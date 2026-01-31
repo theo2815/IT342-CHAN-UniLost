@@ -1,0 +1,30 @@
+# General
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.log
+
+# Backend
+backend/target/
+backend/.mvn/wrapper/maven-wrapper.jar
+backend/**/*.class
+backend/HELP.md
+
+# Mobile
+mobile/.gradle/
+mobile/local.properties
+mobile/build/
+mobile/app/build/
+mobile/*.iml
+mobile/.idea/
+
+# Website
+website/node_modules/
+website/dist/
+website/.env
+website/.env.local
+website/coverage/
+website/npm-debug.log*
+website/yarn-debug.log*
+website/yarn-error.log*
