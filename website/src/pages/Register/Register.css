@@ -1,0 +1,336 @@
+/* Register Page Layout */
+.register-page {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: var(--spacing-md);
+    position: relative;
+    overflow: hidden;
+}
+
+.register-page::before {
+    content: '';
+    position: absolute;
+    bottom: -10%;
+    right: -5%;
+    width: 600px;
+    height: 600px;
+    background: radial-gradient(circle, rgba(6, 182, 212, 0.1) 0%, transparent 70%);
+    border-radius: 50%;
+    z-index: -1;
+}
+
+.register-container {
+    display: flex;
+    /* Changed from grid to flex for better control on large screens if grid is tricky */
+    width: 100%;
+    max-width: 1100px;
+    min-height: 700px;
+    background: var(--color-bg-card);
+    border-radius: var(--radius-xl);
+    box-shadow: var(--shadow-2xl);
+    overflow: hidden;
+    border: 1px solid var(--color-border);
+}
+
+/* LEFT SIDE: Form Section */
+.register-form-section {
+    flex: 1.2;
+    /* Give more space to form */
+    padding: var(--spacing-lg);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    position: relative;
+    z-index: 10;
+    max-height: 100vh;
+    overflow-y: auto;
+    /* Allow scrolling if form is tall */
+}
+
+/* Custom Scrollbar for form section */
+.register-form-section::-webkit-scrollbar {
+    width: 6px;
+}
+
+.register-form-section::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.register-form-section::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 3px;
+}
+
+.form-wrapper {
+    width: 100%;
+    max-width: 480px;
+    /* Slightly wider */
+    margin: 0 auto;
+    padding: var(--spacing-md);
+}
+
+/* Form Styles */
+.register-form {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-md);
+}
+
+.form-row {
+    display: flex;
+    gap: var(--spacing-md);
+}
+
+.form-row .form-group {
+    flex: 1;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    /* Little gap between label and input */
+}
+
+.form-group label {
+    font-size: var(--font-size-sm);
+    font-weight: 500;
+    color: var(--color-text-secondary);
+    margin-left: 2px;
+}
+
+/* Input Group Styling (Crucial for icons) */
+.input-group {
+    position: relative;
+    display: flex;
+    align-items: center;
+    width: 100%;
+}
+
+.input-icon {
+    position: absolute;
+    left: 1rem;
+    color: var(--color-text-muted);
+    pointer-events: none;
+    transition: color var(--transition-fast);
+    z-index: 2;
+}
+
+/* Base Input Styles */
+.input-group input,
+.select-input {
+    width: 100%;
+    padding: 0.75rem 1rem 0.75rem 2.75rem;
+    /* Left padding for icon */
+    background: var(--color-bg-input);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    color: #fff;
+    font-size: var(--font-size-base);
+    transition: all var(--transition-fast);
+}
+
+/* Specific fix for select input since it has no icon inside usually, or does it? 
+   In Register.jsx, Building icon is used. So it needs padding too. */
+.input-group select.select-input {
+    padding-left: 2.75rem;
+    appearance: none;
+    cursor: pointer;
+}
+
+.input-group input:focus,
+.select-input:focus {
+    outline: none;
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.2);
+    background: rgba(15, 23, 42, 0.9);
+}
+
+.input-group:focus-within .input-icon {
+    color: var(--color-primary-light);
+}
+
+/* Validation Messages */
+.error-msg {
+    color: var(--color-error);
+    font-size: 0.75rem;
+    margin-top: 4px;
+}
+
+.input-group input.error,
+.select-input.error {
+    border-color: var(--color-error);
+}
+
+/* Optional Section */
+.optional-section {
+    border-top: 1px solid var(--color-border);
+    margin-top: var(--spacing-sm);
+    padding-top: var(--spacing-md);
+}
+
+.section-label {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--color-text-muted);
+    margin-bottom: var(--spacing-sm);
+    font-weight: 600;
+}
+
+/* Checkbox specific to register */
+.checkbox-group {
+    margin-top: var(--spacing-xs);
+}
+
+.checkbox-container {
+    display: flex;
+    align-items: flex-start;
+    /* Align top for multi-line text */
+    gap: 0.75rem;
+    cursor: pointer;
+    font-size: var(--font-size-sm);
+    color: var(--color-text-secondary);
+    user-select: none;
+}
+
+.checkbox-container input {
+    display: none;
+}
+
+.checkbox-custom {
+    color: var(--color-text-muted);
+    display: flex;
+    align-items: center;
+    margin-top: 2px;
+    /* Slight offset */
+    transition: color var(--transition-fast);
+}
+
+.checkbox-container input:checked+.checkbox-custom {
+    color: var(--color-primary);
+}
+
+.checkbox-container span a {
+    color: var(--color-primary-light);
+    text-decoration: none;
+    transition: color 0.2s;
+}
+
+.checkbox-container span a:hover {
+    color: var(--color-primary-hover);
+    text-decoration: underline;
+}
+
+/* RIGHT SIDE: Branding */
+.register-branding {
+    flex: 0.8;
+    /* Smaller than form */
+    background: linear-gradient(135deg, rgba(6, 182, 212, 0.9) 0%, rgba(79, 70, 229, 0.9) 100%);
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: var(--spacing-2xl);
+    color: white;
+    overflow: hidden;
+}
+
+.register-branding .branding-content {
+    max-width: 380px;
+    z-index: 2;
+}
+
+.branding-content h1 {
+    font-size: 2.5rem;
+    line-height: 1.1;
+    margin-bottom: 1rem;
+    font-family: var(--font-display);
+}
+
+.branding-content p {
+    opacity: 0.9;
+    font-size: 1.1rem;
+    line-height: 1.5;
+}
+
+.benefits-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    margin-top: 3rem;
+}
+
+.benefit-item {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    font-size: 1rem;
+    font-weight: 500;
+    color: rgba(255, 255, 255, 0.95);
+}
+
+.benefit-icon {
+    width: 42px;
+    height: 42px;
+    background: rgba(255, 255, 255, 0.2);
+    backdrop-filter: blur(5px);
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    flex-shrink: 0;
+}
+
+/* Decorative Circles */
+.decorative-circle {
+    position: absolute;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.1);
+    filter: blur(50px);
+    z-index: 1;
+}
+
+.circle-3 {
+    width: 300px;
+    height: 300px;
+    top: -50px;
+    left: -50px;
+}
+
+.circle-4 {
+    width: 200px;
+    height: 200px;
+    bottom: -20px;
+    right: -20px;
+}
+
+/* Responsive */
+@media (max-width: 1000px) {
+    .register-container {
+        flex-direction: column;
+        max-width: 600px;
+        height: auto;
+        min-height: auto;
+    }
+
+    .register-branding {
+        display: none;
+    }
+
+    .register-form-section {
+        padding: 2rem;
+        overflow-y: visible;
+        /* No scroll needed on mobile usually as page scrolls */
+    }
+}
+
+@media (max-width: 600px) {
+    .form-row {
+        flex-direction: column;
+        gap: var(--spacing-md);
+    }
+}
