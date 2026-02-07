@@ -7,6 +7,7 @@
     padding: var(--spacing-md);
     position: relative;
     overflow: hidden;
+    background: var(--color-bg-base);
 }
 
 .register-page::before {
@@ -16,28 +17,29 @@
     right: -5%;
     width: 600px;
     height: 600px;
-    background: radial-gradient(circle, rgba(6, 182, 212, 0.1) 0%, transparent 70%);
+    background: radial-gradient(circle, var(--color-secondary) 0%, transparent 70%);
+    opacity: 0.1;
     border-radius: 50%;
-    z-index: -1;
+    z-index: 0;
 }
 
 .register-container {
     display: flex;
-    /* Changed from grid to flex for better control on large screens if grid is tricky */
     width: 100%;
     max-width: 1100px;
     min-height: 700px;
     background: var(--color-bg-card);
     border-radius: var(--radius-xl);
-    box-shadow: var(--shadow-2xl);
+    box-shadow: var(--shadow-lg);
     overflow: hidden;
     border: 1px solid var(--color-border);
+    position: relative;
+    z-index: 1;
 }
 
 /* LEFT SIDE: Form Section */
 .register-form-section {
     flex: 1.2;
-    /* Give more space to form */
     padding: var(--spacing-lg);
     display: flex;
     flex-direction: column;
@@ -46,7 +48,6 @@
     z-index: 10;
     max-height: 100vh;
     overflow-y: auto;
-    /* Allow scrolling if form is tall */
 }
 
 /* Custom Scrollbar for form section */
@@ -55,18 +56,17 @@
 }
 
 .register-form-section::-webkit-scrollbar-track {
-    background: rgba(255, 255, 255, 0.05);
+    background: var(--color-bg-base);
 }
 
 .register-form-section::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.1);
+    background: var(--color-border-focus);
     border-radius: 3px;
 }
 
 .form-wrapper {
     width: 100%;
     max-width: 480px;
-    /* Slightly wider */
     margin: 0 auto;
     padding: var(--spacing-md);
 }
@@ -91,7 +91,6 @@
     display: flex;
     flex-direction: column;
     gap: 0.35rem;
-    /* Little gap between label and input */
 }
 
 .form-group label {
@@ -101,7 +100,7 @@
     margin-left: 2px;
 }
 
-/* Input Group Styling (Crucial for icons) */
+/* Input Group Styling */
 .input-group {
     position: relative;
     display: flex;
@@ -123,17 +122,14 @@
 .select-input {
     width: 100%;
     padding: 0.75rem 1rem 0.75rem 2.75rem;
-    /* Left padding for icon */
     background: var(--color-bg-input);
     border: 1px solid var(--color-border);
     border-radius: var(--radius-md);
-    color: #fff;
+    color: var(--color-text-primary);
     font-size: var(--font-size-base);
     transition: all var(--transition-fast);
 }
 
-/* Specific fix for select input since it has no icon inside usually, or does it? 
-   In Register.jsx, Building icon is used. So it needs padding too. */
 .input-group select.select-input {
     padding-left: 2.75rem;
     appearance: none;
@@ -144,12 +140,12 @@
 .select-input:focus {
     outline: none;
     border-color: var(--color-primary);
-    box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.2);
-    background: rgba(15, 23, 42, 0.9);
+    box-shadow: 0 0 0 2px var(--color-border-focus);
+    background: var(--color-bg-input);
 }
 
 .input-group:focus-within .input-icon {
-    color: var(--color-primary-light);
+    color: var(--color-primary);
 }
 
 /* Validation Messages */
@@ -188,7 +184,6 @@
 .checkbox-container {
     display: flex;
     align-items: flex-start;
-    /* Align top for multi-line text */
     gap: 0.75rem;
     cursor: pointer;
     font-size: var(--font-size-sm);
@@ -205,7 +200,6 @@
     display: flex;
     align-items: center;
     margin-top: 2px;
-    /* Slight offset */
     transition: color var(--transition-fast);
 }
 
@@ -214,7 +208,7 @@
 }
 
 .checkbox-container span a {
-    color: var(--color-primary-light);
+    color: var(--color-primary);
     text-decoration: none;
     transition: color 0.2s;
 }
@@ -227,8 +221,7 @@
 /* RIGHT SIDE: Branding */
 .register-branding {
     flex: 0.8;
-    /* Smaller than form */
-    background: linear-gradient(135deg, rgba(6, 182, 212, 0.9) 0%, rgba(79, 70, 229, 0.9) 100%);
+    background: var(--gradient-primary);
     position: relative;
     display: flex;
     align-items: center;
@@ -248,12 +241,14 @@
     line-height: 1.1;
     margin-bottom: 1rem;
     font-family: var(--font-display);
+    color: white;
 }
 
 .branding-content p {
     opacity: 0.9;
     font-size: 1.1rem;
     line-height: 1.5;
+    color: white;
 }
 
 .benefits-list {
@@ -324,7 +319,6 @@
     .register-form-section {
         padding: 2rem;
         overflow-y: visible;
-        /* No scroll needed on mobile usually as page scrolls */
     }
 }
 

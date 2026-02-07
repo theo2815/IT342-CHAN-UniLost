@@ -36,7 +36,7 @@ function Register() {
                     // Auto-select CIT-U if found, purely as a helper
                     const cit = result.data.find(s => s.name.includes("Cebu Institute of Technology"));
                     if (cit) {
-                        setFormData(prev => ({ ...prev, schoolId: cit.id }));
+                        setFormData(prev => ({ ...prev, schoolId: cit.schoolId }));
                     }
                 }
             } catch (err) {
@@ -134,9 +134,9 @@ function Register() {
                                         onChange={handleChange}
                                         className={`select-input ${errors.schoolId ? 'error' : ''}`}
                                     >
-                                        <option value="">-- Choose your school --</option>
+                                    <option value="">-- Choose your school --</option>
                                         {schools.map(school => (
-                                            <option key={school.id} value={school.id}>{school.name}</option>
+                                            <option key={school.schoolId} value={school.schoolId}>{school.name}</option>
                                         ))}
                                     </select>
                                 </div>
@@ -190,6 +190,20 @@ function Register() {
                                     />
                                 </div>
                                 {errors.email && <span className="error-msg">{errors.email}</span>}
+                            </div>
+
+                            <div className="form-group full-width">
+                                <label>Address</label>
+                                <div className="input-group">
+                                    <MapPin className="input-icon" size={18} />
+                                    <input
+                                        type="text"
+                                        name="address"
+                                        value={formData.address}
+                                        onChange={handleChange}
+                                        placeholder="Your complete address"
+                                    />
+                                </div>
                             </div>
 
                             <div className="form-row">

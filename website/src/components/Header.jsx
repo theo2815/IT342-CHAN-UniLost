@@ -6,16 +6,11 @@ import './Header.css';
 
 function Header() {
     const navigate = useNavigate();
-    const [user, setUser] = useState(null);
+    const [user] = useState(() => authService.getCurrentUser());
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
     const dropdownRef = useRef(null);
 
     useEffect(() => {
-        const currentUser = authService.getCurrentUser();
-        if (currentUser) {
-            setUser(currentUser);
-        }
-
         // Close dropdown when clicking outside
         const handleClickOutside = (event) => {
             if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
@@ -54,6 +49,8 @@ function Header() {
             </div>
 
             <div className="header-right">
+
+
                 <button className="icon-btn notification-btn">
                     <Bell size={20} />
                     <span className="notification-badge">3</span>

@@ -1,42 +1,14 @@
 /* ============================================
-   Global Design System
+   Global Design System - Focused Minimalist
    ============================================ */
 
-/* Import Google Font */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700&display=swap');
+/* Import Google Fonts */
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700&display=swap");
 
 :root {
-  /* Colors */
-  --color-primary: #4f46e5;
-  /* Violet/Indigo */
-  --color-primary-hover: #4338ca;
-  --color-primary-light: #818cf8;
-
-  --color-secondary: #06b6d4;
-  /* Teal/Cyan - Accents */
-  --color-secondary-hover: #0891b2;
-
-  --color-bg-dark: #0f172a;
-  /* Slate 900 */
-  --color-bg-card: rgba(30, 41, 59, 0.7);
-  /* Slate 800 with opacity */
-  --color-bg-input: rgba(15, 23, 42, 0.6);
-
-  --color-text-primary: #f8fafc;
-  --color-text-secondary: #cbd5e1;
-  --color-text-muted: #94a3b8;
-
-  --color-border: rgba(148, 163, 184, 0.15);
-  --color-border-focus: rgba(79, 70, 229, 0.5);
-
-  --color-success: #10b981;
-  --color-warning: #f59e0b;
-  --color-error: #ef4444;
-
-  /* Gradients */
-  --gradient-primary: linear-gradient(135deg, #4f46e5 0%, #06b6d4 100%);
-  --gradient-bg: radial-gradient(circle at top right, #1e1b4b 0%, #0f172a 40%, #020617 100%);
-  --gradient-card: linear-gradient(180deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.01) 100%);
+  /* 
+     Shared Design Tokens 
+  */
 
   /* Spacing */
   --spacing-xs: 0.25rem;
@@ -53,15 +25,9 @@
   --radius-xl: 1.5rem;
   --radius-full: 9999px;
 
-  /* Shadows */
-  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
-  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
-  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.4);
-  --shadow-glow: 0 0 20px rgba(79, 70, 229, 0.25);
-
   /* Typography */
-  --font-body: 'Inter', system-ui, sans-serif;
-  --font-display: 'Outfit', system-ui, sans-serif;
+  --font-body: "Inter", system-ui, sans-serif;
+  --font-display: "Outfit", system-ui, sans-serif;
 
   --font-size-xs: 0.75rem;
   --font-size-sm: 0.875rem;
@@ -75,6 +41,83 @@
   /* Transitions */
   --transition-fast: 0.15s cubic-bezier(0.4, 0, 0.2, 1);
   --transition-normal: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+  /* 
+     Light Mode (Default) 
+  */
+  /* Primary Slate Blue */
+  --color-primary: #475569; /* Slate 600 */
+  --color-primary-hover: #334155; /* Slate 700 */
+  --color-primary-light: #64748b; /* Slate 500 */
+
+  /* Secondary Sage Green */
+  --color-secondary: #84a98c; /* Sage */
+  --color-secondary-hover: #52796f; /* Darker Sage */
+
+  /* Backgrounds */
+  --color-bg-base: #f1f5f9; /* Slate 100 */
+  --color-bg-card: #ffffff; /* White */
+  --color-bg-input: #ffffff; /* White */
+
+  /* Text */
+  --color-text-primary: #1e293b; /* Slate 800 */
+  --color-text-secondary: #475569; /* Slate 600 */
+  --color-text-muted: #94a3b8; /* Slate 400 */
+
+  /* Borders & Dividers */
+  --color-border: #e2e8f0; /* Slate 200 */
+  --color-border-focus: #475569; /* Slate 600 */
+
+  /* Functional Colors */
+  --color-success: #10b981;
+  --color-warning: #f59e0b;
+  --color-error: #ef4444;
+
+  /* Gradients */
+  --gradient-primary: linear-gradient(135deg, #475569 0%, #64748b 100%);
+  --gradient-bg: linear-gradient(180deg, #f1f5f9 0%, #e2e8f0 100%);
+
+  /* Shadows */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.05);
+}
+
+[data-theme="dark"] {
+  /* 
+     Dark Mode Overrides 
+  */
+  /* Primary Slate Blue (Lighter for dark mode) */
+  --color-primary: #94a3b8; /* Slate 400 */
+  --color-primary-hover: #cbd5e1; /* Slate 300 */
+  --color-primary-light: #64748b; /* Slate 500 */
+
+  /* Secondary Sage Green (Lighter/Muted for dark mode) */
+  --color-secondary: #a3c1ad; /* Light Sage */
+  --color-secondary-hover: #84a98c; /* Sage */
+
+  /* Backgrounds */
+  --color-bg-base: #0f172a; /* Slate 900 (Darker than requested #1E293B for better contrast) */
+  --color-bg-card: #1e293b; /* Slate 800 */
+  --color-bg-input: #0f172a; /* Slate 900 */
+
+  /* Text */
+  --color-text-primary: #f8fafc; /* Slate 50 */
+  --color-text-secondary: #cbd5e1; /* Slate 300 */
+  --color-text-muted: #64748b; /* Slate 500 */
+
+  /* Borders & Dividers */
+  --color-border: #334155; /* Slate 700 */
+  --color-border-focus: #94a3b8; /* Slate 400 */
+
+  /* Gradients */
+  --gradient-primary: linear-gradient(135deg, #94a3b8 0%, #64748b 100%);
+  --gradient-bg: linear-gradient(180deg, #0f172a 0%, #1e293b 100%);
+
+  /* Shadows */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.4);
 }
 
 /* Reset & Base Styles */
@@ -93,12 +136,14 @@ html {
 
 body {
   font-family: var(--font-body);
-  background: var(--gradient-bg);
-  background-attachment: fixed;
+  background: var(--color-bg-base);
   color: var(--color-text-primary);
   line-height: 1.6;
   min-height: 100vh;
   -webkit-font-smoothing: antialiased;
+  transition:
+    background-color var(--transition-normal),
+    color var(--transition-normal);
 }
 
 h1,
@@ -109,16 +154,17 @@ h5,
 h6 {
   font-family: var(--font-display);
   font-weight: 700;
-  color: #fff;
+  color: var(--color-text-primary); /* Changed from fixed white */
 }
 
-/* Glassmorphism Utility */
+/* Glassmorphism Utility - Updated */
 .glass {
   background: var(--color-bg-card);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
   border: 1px solid var(--color-border);
   box-shadow: var(--shadow-lg);
+  /* Optional: keeping backdrop filter if desired, but making it subtle */
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
 }
 
 /* Utility Classes */
@@ -152,11 +198,9 @@ h6 {
   0% {
     transform: translateY(0px);
   }
-
   50% {
     transform: translateY(-10px);
   }
-
   100% {
     transform: translateY(0px);
   }
@@ -167,6 +211,16 @@ input,
 select,
 textarea {
   font-family: var(--font-body);
+  background-color: var(--color-bg-input);
+  color: var(--color-text-primary);
+  border: 1px solid var(--color-border);
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+  border-color: var(--color-border-focus);
+  outline: none;
 }
 
 button {
