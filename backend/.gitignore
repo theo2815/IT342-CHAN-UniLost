@@ -31,3 +31,12 @@ build/
 
 ### VS Code ###
 .vscode/
+
+node_modules
+package-lock.json
+package.json
+
+### Secrets ###
+.env
+# src/main/resources/application.properties (Safe to commit now, uses env vars)
+# run_dev.ps1 (Safe to commit if it just loads .env)
