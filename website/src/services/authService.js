@@ -4,7 +4,7 @@ const authService = {
     // Register a new user
     register: async (userData) => {
         try {
-            const response = await api.post('/users', {
+            const response = await api.post('/auth/register', {
                 firstName: userData.firstName,
                 lastName: userData.lastName,
                 email: userData.email,
@@ -22,35 +22,22 @@ const authService = {
         }
     },
 
-    // Login user by email
+    // Login user by email and password
     login: async (email, password) => {
         try {
-            // Get user by email
-            const response = await api.get(`/users/email/${email}`);
-            const user = response.data;
-
-            // Simple password check (in production, this should be done server-side)
-            if (user.password === password || user) {
-                // Store user in localStorage (excluding password)
-                const userData = {
-                    userId: user.userId,
-                    firstName: user.firstName,
-                    lastName: user.lastName,
-                    email: user.email,
-                    address: user.address,
-                    phoneNumber: user.phoneNumber,
-                    studentIdNumber: user.studentIdNumber,
-                    school: user.school,
-                };
-                localStorage.setItem('user', JSON.stringify(userData));
-                return { success: true, data: userData };
+            const response = await api.post('/auth/login', {
+                email,
+                password
+            });
+            
+            const userData = response.data;
+            if (userData) {
+                 localStorage.setItem('user', JSON.stringify(userData));
+                 return { success: true, data: userData };
             } else {
-                return { success: false, error: 'Invalid password' };
+                return { success: false, error: 'Login failed' };
             }
         } catch (error) {
-            if (error.response?.status === 404) {
-                return { success: false, error: 'User not found' };
-            }
             const message = error.response?.data || error.message || 'Login failed';
             return { success: false, error: message };
         }

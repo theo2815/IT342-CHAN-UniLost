@@ -2,13 +2,13 @@
 package com.hulampay.backend;
 
 import org.springframework.boot.CommandLineRunner;
-import org.springframework.stereotype.Component;
+// import org.springframework.stereotype.Component;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.bson.Document;
 import lombok.RequiredArgsConstructor;
 
 // Probe to check raw DB content
-@Component
+// @Component
 @RequiredArgsConstructor
 public class UserProbe implements CommandLineRunner {
 

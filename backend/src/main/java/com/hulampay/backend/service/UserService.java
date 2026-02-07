@@ -17,59 +17,71 @@ import java.util.stream.Collectors;
 @Service
 @RequiredArgsConstructor
 public class UserService {
-    
+
     private final UserRepository userRepository;
     private final SchoolService schoolService;
-    
+    private final org.springframework.security.crypto.password.PasswordEncoder passwordEncoder;
+
     public UserDTO createUser(UserRegistrationDTO registrationDTO) {
         // Check if email already exists
         if (userRepository.existsByEmail(registrationDTO.getEmail())) {
             throw new RuntimeException("Email already exists");
         }
-        
+
         // Check if student ID already exists
         if (userRepository.existsByStudentIdNumber(registrationDTO.getStudentIdNumber())) {
             throw new RuntimeException("Student ID number already exists");
         }
-        
+
         UserEntity user = new UserEntity();
         user.setFirstName(registrationDTO.getFirstName());
         user.setLastName(registrationDTO.getLastName());
         user.setEmail(registrationDTO.getEmail());
-        user.setPassword(registrationDTO.getPassword()); // TODO: Add password encoding
+        user.setPassword(passwordEncoder.encode(registrationDTO.getPassword()));
         user.setAddress(registrationDTO.getAddress());
         user.setPhoneNumber(registrationDTO.getPhoneNumber());
         user.setProfilePicture(registrationDTO.getProfilePicture());
         user.setStudentIdNumber(registrationDTO.getStudentIdNumber());
         user.setCreatedAt(LocalDateTime.now());
-        
+
         // Set school reference if provided
         if (registrationDTO.getSchoolId() != null) {
             SchoolEntity school = schoolService.getSchoolEntityById(registrationDTO.getSchoolId());
             user.setSchool(school);
         }
-        
+
         UserEntity savedUser = userRepository.save(user);
         return convertToDTO(savedUser);
     }
-    
+
+    public UserDTO authenticate(String email, String password) {
+        UserEntity user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("Invalid email or password"));
+
+        if (!passwordEncoder.matches(password, user.getPassword())) {
+            throw new RuntimeException("Invalid email or password");
+        }
+
+        return convertToDTO(user);
+    }
+
     public List<UserDTO> getAllUsers() {
         return userRepository.findAll()
                 .stream()
                 .map(this::convertToDTO)
                 .collect(Collectors.toList());
     }
-    
+
     public Optional<UserDTO> getUserById(String id) {
         return userRepository.findById(id)
                 .map(this::convertToDTO);
     }
-    
+
     public Optional<UserDTO> getUserByEmail(String email) {
         return userRepository.findByEmail(email)
                 .map(this::convertToDTO);
     }
-    
+
     public Optional<UserDTO> updateUser(String id, UserRegistrationDTO updateDTO) {
         return userRepository.findById(id)
                 .map(existingUser -> {
@@ -80,22 +92,22 @@ public class UserService {
                     existingUser.setPhoneNumber(updateDTO.getPhoneNumber());
                     existingUser.setProfilePicture(updateDTO.getProfilePicture());
                     existingUser.setStudentIdNumber(updateDTO.getStudentIdNumber());
-                    
+
                     // Update password only if provided
                     if (updateDTO.getPassword() != null && !updateDTO.getPassword().isEmpty()) {
-                        existingUser.setPassword(updateDTO.getPassword()); // TODO: Add password encoding
+                        existingUser.setPassword(passwordEncoder.encode(updateDTO.getPassword()));
                     }
-                    
+
                     // Update school reference if provided
                     if (updateDTO.getSchoolId() != null) {
                         SchoolEntity school = schoolService.getSchoolEntityById(updateDTO.getSchoolId());
                         existingUser.setSchool(school);
                     }
-                    
+
                     return convertToDTO(userRepository.save(existingUser));
                 });
     }
-    
+
     public boolean deleteUser(String id) {
         if (userRepository.existsById(id)) {
             userRepository.deleteById(id);
@@ -103,7 +115,7 @@ public class UserService {
         }
         return false;
     }
-    
+
     private UserDTO convertToDTO(UserEntity user) {
         UserDTO dto = new UserDTO();
         dto.setUserId(user.getUserId());
@@ -115,7 +127,7 @@ public class UserService {
         dto.setProfilePicture(user.getProfilePicture());
         dto.setStudentIdNumber(user.getStudentIdNumber());
         dto.setCreatedAt(user.getCreatedAt());
-        
+
         // Convert school if present
         if (user.getSchool() != null) {
             SchoolEntity school = user.getSchool();
@@ -124,10 +136,9 @@ public class UserService {
                     school.getSchoolId(),
                     school.getName(),
                     school.getCity(),
-                    school.getEmailDomain()
-            ));
+                    school.getEmailDomain()));
         }
-        
+
         return dto;
     }
 }
