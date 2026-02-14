@@ -13,7 +13,7 @@ import com.hulampay.mobile.ui.home.MainScreen
 fun NavGraph(navController: NavHostController) {
 
     NavHost(
-        navController = navController, startDestination = Screen.Main.route
+        navController = navController, startDestination = Screen.Login.route
     ) {
 
         composable(Screen.Main.route) {
@@ -24,6 +24,15 @@ fun NavGraph(navController: NavHostController) {
             arguments = listOf(navArgument("id") { type = NavType.IntType })
         ) {
             DetailScreen(navController = navController, id = it.arguments?.getInt("id") ?: 0)
+        }
+        composable(Screen.Login.route) {
+            com.hulampay.mobile.ui.auth.LoginScreen(navController = navController)
+        }
+        composable(Screen.Register.route) {
+            com.hulampay.mobile.ui.auth.RegisterScreen(navController = navController)
+        }
+        composable(Screen.Dashboard.route) {
+            com.hulampay.mobile.ui.dashboard.DashboardScreen(navController = navController)
         }
     }
 }

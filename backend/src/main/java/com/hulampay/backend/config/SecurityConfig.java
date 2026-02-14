@@ -19,7 +19,8 @@ import java.util.List;
 public class SecurityConfig {
 
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+    public SecurityFilterChain securityFilterChain(HttpSecurity http,
+            com.hulampay.backend.filter.JwtAuthenticationFilter jwtAuthenticationFilter) throws Exception {
         http
                 .csrf(AbstractHttpConfigurer::disable)
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
@@ -29,7 +30,9 @@ public class SecurityConfig {
                         .requestMatchers("/api/users", "/api/users/**").permitAll() // TEMPORARY: Allow all user
                                                                                     // endpoints for now until we fully
                                                                                     // migrate frontend
-                        .anyRequest().authenticated());
+                        .anyRequest().authenticated())
+                .addFilterBefore(jwtAuthenticationFilter,
+                        org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }

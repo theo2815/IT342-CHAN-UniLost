@@ -19,6 +19,8 @@ public class AuthController {
 
     private final UserService userService;
 
+    private final com.hulampay.backend.util.JwtUtils jwtUtils;
+
     @PostMapping("/register")
     public ResponseEntity<?> registerUser(@RequestBody UserRegistrationDTO registrationDTO) {
         try {
@@ -33,7 +35,8 @@ public class AuthController {
     public ResponseEntity<?> loginUser(@RequestBody LoginRequest loginRequest) {
         try {
             UserDTO user = userService.authenticate(loginRequest.getEmail(), loginRequest.getPassword());
-            return ResponseEntity.ok(user);
+            String token = jwtUtils.generateToken(user.getEmail());
+            return ResponseEntity.ok(new com.hulampay.backend.dto.JwtResponse(token, user));
         } catch (RuntimeException e) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(e.getMessage());
         }

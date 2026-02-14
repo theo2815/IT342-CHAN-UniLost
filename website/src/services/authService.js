@@ -29,11 +29,12 @@ const authService = {
                 email,
                 password
             });
-            
-            const userData = response.data;
-            if (userData) {
-                 localStorage.setItem('user', JSON.stringify(userData));
-                 return { success: true, data: userData };
+
+            const { token, user } = response.data;
+            if (token && user) {
+                localStorage.setItem('user', JSON.stringify(user));
+                localStorage.setItem('token', token);
+                return { success: true, data: user };
             } else {
                 return { success: false, error: 'Login failed' };
             }
@@ -46,6 +47,7 @@ const authService = {
     // Logout user
     logout: () => {
         localStorage.removeItem('user');
+        localStorage.removeItem('token');
     },
 
     // Get current user from localStorage
@@ -56,7 +58,7 @@ const authService = {
 
     // Check if user is logged in
     isAuthenticated: () => {
-        return !!localStorage.getItem('user');
+        return !!localStorage.getItem('token');
     },
 };
 
