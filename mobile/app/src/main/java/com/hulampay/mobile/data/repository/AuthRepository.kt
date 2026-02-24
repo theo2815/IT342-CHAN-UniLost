@@ -19,6 +19,10 @@ class AuthRepository @Inject constructor(
             if (response.isSuccessful && response.body() != null) {
                 val authResponse = response.body()!!
                 tokenManager.saveToken(authResponse.token)
+                // Save user role from response
+                authResponse.user?.role?.let { role ->
+                    tokenManager.saveRole(role)
+                }
                 Result.success(authResponse)
             } else {
                 Result.failure(Exception(response.errorBody()?.string() ?: "Login failed"))

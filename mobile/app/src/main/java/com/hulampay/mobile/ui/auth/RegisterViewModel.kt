@@ -42,11 +42,10 @@ class RegisterViewModel @Inject constructor(
         confirmPassword: String,
         address: String,
         phoneNumber: String,
-        studentIdNumber: String,
-        schoolId: String
+        studentIdNumber: String
     ) {
-        if (firstName.isBlank() || lastName.isBlank() || email.isBlank() || password.isBlank() || address.isBlank() || phoneNumber.isBlank() || studentIdNumber.isBlank()) {
-            _registerState.value = UiState.Error("All fields are required")
+        if (firstName.isBlank() || lastName.isBlank() || email.isBlank() || password.isBlank()) {
+            _registerState.value = UiState.Error("First name, last name, email, and password are required")
             return
         }
 
@@ -65,23 +64,18 @@ class RegisterViewModel @Inject constructor(
             return
         }
 
-        if (schoolId.isBlank()) {
-            _registerState.value = UiState.Error("Please select a university")
-            return
-        }
-
         _registerState.value = UiState.Loading
         viewModelScope.launch {
-            val data = mapOf(
+            val data = mutableMapOf<String, Any>(
                 "firstName" to firstName,
                 "lastName" to lastName,
                 "email" to email,
-                "password" to password,
-                "address" to address,
-                "phoneNumber" to phoneNumber,
-                "studentIdNumber" to studentIdNumber,
-                "schoolId" to schoolId
+                "password" to password
             )
+            if (address.isNotBlank()) data["address"] = address
+            if (phoneNumber.isNotBlank()) data["phoneNumber"] = phoneNumber
+            if (studentIdNumber.isNotBlank()) data["studentIdNumber"] = studentIdNumber
+
             val result = authRepository.register(data)
             if (result.isSuccess) {
                 _registerState.value = UiState.Success(result.getOrThrow())

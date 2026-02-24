@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Sparkles, GraduationCap, Mail, Lock, User, MapPin, Phone, Building, ArrowRight, AlertTriangle, CheckSquare, Square, CheckCircle, Leaf } from 'lucide-react';
+import { Search, GraduationCap, Mail, Lock, User, MapPin, Phone, ArrowRight, AlertTriangle, CheckSquare, Square, CheckCircle, ShieldCheck, MapPinned } from 'lucide-react';
 import authService from '../../services/authService';
 import schoolService from '../../services/schoolService';
 import './Register.css';
@@ -8,9 +8,9 @@ import './Register.css';
 function Register() {
     const navigate = useNavigate();
     const [schools, setSchools] = useState([]);
+    const [detectedSchool, setDetectedSchool] = useState(null);
 
     const [formData, setFormData] = useState({
-        schoolId: '', // Default school set below
         firstName: '',
         lastName: '',
         email: '',
@@ -26,18 +26,13 @@ function Register() {
     const [errors, setErrors] = useState({});
     const [apiError, setApiError] = useState('');
 
-    // Fetch schools on mount
+    // Fetch schools on mount for domain validation display
     useEffect(() => {
         const fetchSchools = async () => {
             try {
                 const result = await schoolService.getAllSchools();
                 if (result.success) {
                     setSchools(result.data);
-                    // Auto-select CIT-U if found, purely as a helper
-                    const cit = result.data.find(s => s.name.includes("Cebu Institute of Technology"));
-                    if (cit) {
-                        setFormData(prev => ({ ...prev, schoolId: cit.schoolId }));
-                    }
                 }
             } catch (err) {
                 console.error("Failed to fetch schools", err);
@@ -45,6 +40,24 @@ function Register() {
         };
         fetchSchools();
     }, []);
+
+    // Auto-detect school from email domain
+    useEffect(() => {
+        const email = formData.email;
+        if (email && email.includes('@')) {
+            const domain = email.split('@')[1]?.toLowerCase();
+            if (domain) {
+                const matched = schools.find(s =>
+                    s.emailDomain && s.emailDomain.toLowerCase() === domain
+                );
+                setDetectedSchool(matched || null);
+            } else {
+                setDetectedSchool(null);
+            }
+        } else {
+            setDetectedSchool(null);
+        }
+    }, [formData.email, schools]);
 
     const handleChange = (e) => {
         const { name, value, type, checked } = e.target;
@@ -59,15 +72,15 @@ function Register() {
 
     const validateForm = () => {
         const newErrors = {};
-        if (!formData.schoolId) newErrors.schoolId = 'Please select your university';
         if (!formData.firstName.trim()) newErrors.firstName = 'First name is required';
         if (!formData.lastName.trim()) newErrors.lastName = 'Last name is required';
 
         if (!formData.email.trim()) {
             newErrors.email = 'Email is required';
-        } else if (!formData.email.endsWith('.edu')) {
-            // Optional: Enforce .edu email for "Verified Student" feel
-            // newErrors.email = 'Please use your school (.edu) email address';
+        } else if (!formData.email.includes('@')) {
+            newErrors.email = 'Please enter a valid email address';
+        } else if (!detectedSchool) {
+            newErrors.email = 'Use your university email (e.g., name@cit.edu)';
         }
 
         if (!formData.password) newErrors.password = 'Password is required';
@@ -109,11 +122,11 @@ function Register() {
                     <div className="form-wrapper glass">
                         <div className="form-header">
                             <div className="logo">
-                                <Sparkles className="logo-icon" size={28} />
-                                <span className="logo-text">HulamPay</span>
+                                <Search className="logo-icon" size={28} />
+                                <span className="logo-text">UniLost</span>
                             </div>
                             <h2>Create Account</h2>
-                            <p>Join your campus marketplace today.</p>
+                            <p>Join the Cebu City campus lost & found network.</p>
                         </div>
 
                         {apiError && (
@@ -123,26 +136,6 @@ function Register() {
                         )}
 
                         <form onSubmit={handleSubmit} className="register-form">
-                            {/* School Selection */}
-                            <div className="form-group full-width">
-                                <label>Select University <span className="required">*</span></label>
-                                <div className="input-group">
-                                    <Building className="input-icon" size={18} />
-                                    <select
-                                        name="schoolId"
-                                        value={formData.schoolId}
-                                        onChange={handleChange}
-                                        className={`select-input ${errors.schoolId ? 'error' : ''}`}
-                                    >
-                                    <option value="">-- Choose your school --</option>
-                                        {schools.map(school => (
-                                            <option key={school.schoolId} value={school.schoolId}>{school.name}</option>
-                                        ))}
-                                    </select>
-                                </div>
-                                {errors.schoolId && <span className="error-msg">{errors.schoolId}</span>}
-                            </div>
-
                             <div className="form-row">
                                 <div className="form-group">
                                     <label>First Name</label>
@@ -176,8 +169,8 @@ function Register() {
                                 </div>
                             </div>
 
-                            <div className="form-group">
-                                <label>School Email</label>
+                            <div className="form-group full-width">
+                                <label>University Email <span className="required">*</span></label>
                                 <div className="input-group">
                                     <Mail className="input-icon" size={18} />
                                     <input
@@ -185,11 +178,21 @@ function Register() {
                                         name="email"
                                         value={formData.email}
                                         onChange={handleChange}
-                                        placeholder="student@cit.edu"
+                                        placeholder="yourname@cit.edu"
                                         className={errors.email ? 'error' : ''}
                                     />
                                 </div>
+                                {detectedSchool && (
+                                    <span className="school-detected">
+                                        Detected: {detectedSchool.name} ({detectedSchool.shortName})
+                                    </span>
+                                )}
                                 {errors.email && <span className="error-msg">{errors.email}</span>}
+                                {!detectedSchool && formData.email.includes('@') && !errors.email && (
+                                    <span className="email-hint">
+                                        Supported: cit.edu, usc.edu.ph, usjr.edu.ph, uc.edu.ph, up.edu.ph, swu.edu.ph, cnu.edu.ph, ctu.edu.ph
+                                    </span>
+                                )}
                             </div>
 
                             <div className="form-group full-width">
@@ -239,9 +242,9 @@ function Register() {
                                 </div>
                             </div>
 
-                            {/* Optional Fields Toggle or Section */}
+                            {/* Optional Fields */}
                             <div className="optional-section">
-                                <p className="section-label">Student Verification (Optional)</p>
+                                <p className="section-label">Additional Info (Optional)</p>
                                 <div className="form-row">
                                     <div className="form-group">
                                         <div className="input-group">
@@ -288,7 +291,7 @@ function Register() {
 
                             <button type="submit" className="btn-primary" disabled={isLoading}>
                                 {isLoading ? 'Creating Account...' : (
-                                    <>Join HulamPay <ArrowRight size={18} /></>
+                                    <>Join UniLost <ArrowRight size={18} /></>
                                 )}
                             </button>
                         </form>
@@ -302,27 +305,27 @@ function Register() {
                 {/* Right Side - Branding */}
                 <div className="register-branding">
                     <div className="branding-content">
-                        <h1>The Student<br />Economy.</h1>
-                        <p>Connect with peers from <strong>Cebu Institute of Technology - University</strong> and beyond.</p>
+                        <h1>Never Lose<br />Track Again.</h1>
+                        <p>Connect with students across <strong>8 Cebu City universities</strong> to recover lost items safely.</p>
 
                         <div className="benefits-list">
                             <div className="benefit-item">
                                 <div className="benefit-icon">
+                                    <ShieldCheck size={24} />
+                                </div>
+                                <span>Verified University Emails</span>
+                            </div>
+                            <div className="benefit-item">
+                                <div className="benefit-icon">
+                                    <MapPinned size={24} />
+                                </div>
+                                <span>Cross-Campus Search</span>
+                            </div>
+                            <div className="benefit-item">
+                                <div className="benefit-icon">
                                     <GraduationCap size={24} />
                                 </div>
-                                <span>Campus-Exclusive Deals</span>
-                            </div>
-                            <div className="benefit-item">
-                                <div className="benefit-icon">
-                                    <User size={24} />
-                                </div>
-                                <span>Meet on Campus</span>
-                            </div>
-                            <div className="benefit-item">
-                                <div className="benefit-icon">
-                                    <Leaf size={24} />
-                                </div>
-                                <span>Sustainable Living</span>
+                                <span>Safe Campus Handover</span>
                             </div>
                         </div>
                     </div>

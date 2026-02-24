@@ -11,8 +11,8 @@
 	<groupId>com.hulampay</groupId>
 	<artifactId>backend</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
-	<name>backend</name>
-	<description>HulamPay-Backend-Service</description>
+	<name>unilost-backend</name>
+	<description>UniLost - Cebu City Academic Lost and Found Network</description>
 	<url/>
 	<licenses>
 		<license/>

@@ -1,0 +1,86 @@
+.status-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 4px 12px;
+    border-radius: var(--radius-full);
+    font-size: var(--font-size-xs);
+    font-weight: 600;
+    letter-spacing: 0.3px;
+    white-space: nowrap;
+}
+
+.status-active {
+    background: rgba(59, 130, 246, 0.12);
+    color: #3b82f6;
+}
+
+.status-claimed {
+    background: rgba(168, 85, 247, 0.12);
+    color: #a855f7;
+}
+
+.status-handed-over {
+    background: rgba(16, 185, 129, 0.12);
+    color: #10b981;
+}
+
+.status-expired {
+    background: rgba(107, 114, 128, 0.12);
+    color: #6b7280;
+}
+
+.status-cancelled {
+    background: rgba(107, 114, 128, 0.12);
+    color: #6b7280;
+}
+
+.status-lost {
+    background: rgba(239, 68, 68, 0.12);
+    color: #ef4444;
+}
+
+.status-found {
+    background: rgba(16, 185, 129, 0.12);
+    color: #10b981;
+}
+
+.status-pending {
+    background: rgba(245, 158, 11, 0.12);
+    color: #f59e0b;
+}
+
+.status-approved {
+    background: rgba(16, 185, 129, 0.12);
+    color: #10b981;
+}
+
+.status-rejected {
+    background: rgba(239, 68, 68, 0.12);
+    color: #ef4444;
+}
+
+.status-default {
+    background: var(--color-border);
+    color: var(--color-text-secondary);
+}
+
+/* Dark mode adjustments */
+[data-theme="dark"] .status-active {
+    background: rgba(59, 130, 246, 0.2);
+}
+
+[data-theme="dark"] .status-claimed {
+    background: rgba(168, 85, 247, 0.2);
+}
+
+[data-theme="dark"] .status-handed-over {
+    background: rgba(16, 185, 129, 0.2);
+}
+
+[data-theme="dark"] .status-lost {
+    background: rgba(239, 68, 68, 0.2);
+}
+
+[data-theme="dark"] .status-found {
+    background: rgba(16, 185, 129, 0.2);
+}

@@ -9,6 +9,7 @@ Thumbs.db
 backend/target/
 backend/.mvn/wrapper/maven-wrapper.jar
 backend/**/*.class
+backend/.env
 backend/HELP.md
 
 # Mobile

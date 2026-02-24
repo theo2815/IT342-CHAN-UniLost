@@ -1,0 +1,229 @@
+/* Admin Claims Management */
+.admin-claims-page {
+    min-height: 100vh;
+    background: var(--gradient-bg);
+}
+
+.admin-claims-page .main-content {
+    padding-top: 80px;
+}
+
+.admin-claims-page .content-wrapper {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: var(--spacing-xl);
+}
+
+.admin-claims-page .page-header {
+    margin-bottom: var(--spacing-lg);
+}
+
+.admin-claims-page .page-header-top {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    color: var(--color-text-primary);
+}
+
+.admin-claims-page .page-header-top h1 {
+    font-size: var(--font-size-2xl);
+}
+
+/* Tabs */
+.admin-claims-page .tabs {
+    display: flex;
+    gap: 2px;
+    border-bottom: 1px solid var(--color-border);
+    margin-bottom: var(--spacing-lg);
+    overflow-x: auto;
+}
+
+.admin-claims-page .tab {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+    padding: 10px 16px;
+    border: none;
+    background: none;
+    color: var(--color-text-muted);
+    font-size: var(--font-size-sm);
+    font-weight: 500;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    transition: all var(--transition-fast);
+    white-space: nowrap;
+}
+
+.admin-claims-page .tab:hover {
+    color: var(--color-text-primary);
+}
+
+.admin-claims-page .tab.active {
+    color: var(--color-primary);
+    border-bottom-color: var(--color-primary);
+}
+
+.admin-claims-page .tab-count {
+    background: var(--color-border);
+    padding: 1px 6px;
+    border-radius: var(--radius-full);
+    font-size: 0.7rem;
+    font-weight: 600;
+}
+
+.admin-claims-page .tab.active .tab-count {
+    background: var(--color-primary);
+    color: #fff;
+}
+
+/* Item Cell */
+.item-cell {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+}
+
+.item-cell-info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.item-cell-title {
+    font-weight: 500;
+    font-size: var(--font-size-sm);
+    max-width: 180px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.type-badge-sm {
+    display: inline-block;
+    padding: 1px 6px;
+    border-radius: var(--radius-full);
+    font-size: 0.6rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    width: fit-content;
+}
+
+.type-badge-sm.lost {
+    background: rgba(239, 68, 68, 0.1);
+    color: #ef4444;
+}
+
+.type-badge-sm.found {
+    background: rgba(16, 185, 129, 0.1);
+    color: #10b981;
+}
+
+/* Person Cell */
+.person-cell {
+    display: flex;
+    flex-direction: column;
+}
+
+.person-name {
+    font-weight: 500;
+    font-size: var(--font-size-sm);
+}
+
+.person-email {
+    font-size: var(--font-size-xs);
+    color: var(--color-text-muted);
+}
+
+.td-poster-name {
+    font-size: var(--font-size-sm);
+}
+
+/* Status badges — reuses from AdminItems */
+.admin-claims-page .status-badge.pending {
+    background: rgba(245, 158, 11, 0.1);
+    color: #f59e0b;
+}
+
+.admin-claims-page .status-badge.approved {
+    background: rgba(16, 185, 129, 0.1);
+    color: #10b981;
+}
+
+.admin-claims-page .status-badge.rejected {
+    background: rgba(239, 68, 68, 0.1);
+    color: #ef4444;
+}
+
+/* Warning action button */
+.action-btn.warning:hover {
+    background: #f59e0b;
+    color: #fff;
+}
+
+/* Override Summary */
+.override-summary {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-md);
+    padding: var(--spacing-sm);
+    background: var(--color-bg-secondary);
+    border-radius: var(--radius-md);
+    margin-bottom: var(--spacing-md);
+}
+
+.override-summary img {
+    width: 56px;
+    height: 42px;
+    object-fit: cover;
+    border-radius: var(--radius-sm);
+}
+
+.override-summary div {
+    display: flex;
+    flex-direction: column;
+}
+
+.override-summary span {
+    font-size: var(--font-size-xs);
+    color: var(--color-text-muted);
+}
+
+.override-warning {
+    font-size: var(--font-size-sm);
+    color: #f59e0b;
+    background: rgba(245, 158, 11, 0.08);
+    padding: var(--spacing-sm);
+    border-radius: var(--radius-md);
+    margin-bottom: var(--spacing-md);
+}
+
+/* Warning Button */
+.btn-warning {
+    padding: 8px 18px;
+    border: none;
+    border-radius: var(--radius-md);
+    background: #f59e0b;
+    color: #fff;
+    font-size: var(--font-size-sm);
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.btn-warning:hover {
+    background: #d97706;
+}
+
+/* Responsive */
+@media (max-width: 900px) {
+    .admin-claims-page .content-wrapper {
+        padding: var(--spacing-md);
+    }
+
+    .admin-table {
+        overflow-x: auto;
+    }
+
+    .admin-table table {
+        min-width: 650px;
+    }
+}

@@ -1,0 +1,132 @@
+/* ImageUpload - Reusable drag & drop image upload component */
+
+.image-upload-component {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-sm);
+}
+
+.image-upload-label {
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: var(--color-text-secondary);
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+/* Drop Zone */
+.image-upload-dropzone {
+    border: 2px dashed var(--color-border);
+    border-radius: var(--radius-lg);
+    padding: var(--spacing-xl) var(--spacing-lg);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: var(--spacing-sm);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    background: var(--color-bg-input);
+    text-align: center;
+}
+
+.image-upload-dropzone:hover {
+    border-color: var(--color-primary);
+    background: rgba(71, 85, 105, 0.03);
+}
+
+.image-upload-dropzone.drag-over {
+    border-color: var(--color-primary);
+    background: rgba(71, 85, 105, 0.08);
+    border-style: solid;
+}
+
+.image-upload-dropzone svg {
+    color: var(--color-text-muted);
+}
+
+.image-upload-dropzone:hover svg {
+    color: var(--color-primary);
+}
+
+.dropzone-text {
+    font-size: 0.9rem;
+    color: var(--color-text-secondary);
+    font-weight: 500;
+}
+
+.dropzone-hint {
+    font-size: 0.8rem;
+    color: var(--color-text-muted);
+}
+
+/* Image Previews */
+.image-upload-previews {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--spacing-sm);
+    margin-top: var(--spacing-xs);
+}
+
+.image-upload-thumb {
+    position: relative;
+    width: 80px;
+    height: 80px;
+    border-radius: var(--radius-md);
+    overflow: hidden;
+    border: 1px solid var(--color-border);
+}
+
+.image-upload-thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.image-upload-remove {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: rgba(0, 0, 0, 0.6);
+    color: white;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.2s;
+    padding: 0;
+}
+
+.image-upload-remove:hover {
+    background: var(--color-error);
+}
+
+/* Dark mode */
+[data-theme="dark"] .image-upload-dropzone {
+    background: rgba(255, 255, 255, 0.02);
+}
+
+[data-theme="dark"] .image-upload-dropzone:hover {
+    background: rgba(255, 255, 255, 0.05);
+}
+
+[data-theme="dark"] .image-upload-dropzone.drag-over {
+    background: rgba(255, 255, 255, 0.08);
+}
+
+/* Responsive */
+@media (max-width: 480px) {
+    .image-upload-dropzone {
+        padding: var(--spacing-lg) var(--spacing-md);
+    }
+
+    .image-upload-thumb {
+        width: 64px;
+        height: 64px;
+    }
+}

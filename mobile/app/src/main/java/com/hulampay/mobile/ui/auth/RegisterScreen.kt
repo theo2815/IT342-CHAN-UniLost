@@ -13,7 +13,6 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -40,11 +39,19 @@ fun RegisterScreen(
     var confirmPassword by remember { mutableStateOf("") }
     var address by remember { mutableStateOf("") }
     var studentId by remember { mutableStateOf("") }
-    var schoolId by remember { mutableStateOf("") }
 
     val registerState by viewModel.registerState.collectAsState()
+    val schools by viewModel.schoolsState.collectAsState()
     val context = LocalContext.current
     val scrollState = rememberScrollState()
+
+    // Auto-detect school from email domain
+    val detectedSchool = remember(email, schools) {
+        if (email.contains("@")) {
+            val domain = email.substringAfter("@").lowercase()
+            schools.find { it.emailDomain.lowercase() == domain }
+        } else null
+    }
 
     LaunchedEffect(registerState) {
         when (registerState) {
@@ -75,7 +82,7 @@ fun RegisterScreen(
         ) {
             // Header
             Text(
-                text = "HulamPay",
+                text = "UniLost",
                 fontSize = 24.sp,
                 fontWeight = FontWeight.Bold,
                 color = Slate800,
@@ -89,7 +96,7 @@ fun RegisterScreen(
                 modifier = Modifier.padding(top = 4.dp)
             )
             Text(
-                text = "Join your campus marketplace today.",
+                text = "Join the Cebu City campus lost & found network.",
                 fontSize = 14.sp,
                 color = Slate400,
                 modifier = Modifier.padding(bottom = 24.dp)
@@ -102,64 +109,6 @@ fun RegisterScreen(
                     .background(White, shape = RoundedCornerShape(24.dp))
                     .padding(24.dp)
             ) {
-                // School Dropdown
-                // School Dropdown
-                val schools by viewModel.schoolsState.collectAsState()
-                var expanded by remember { mutableStateOf(false) }
-                var selectedSchoolName by remember { mutableStateOf("") }
-
-                LaunchedEffect(schools) {
-                    if (schools.isNotEmpty()) {
-                        selectedSchoolName = schools[0].name
-                        schoolId = "1" // Default to first school or handle properly
-                        // Ideally we should map the selected school's ID, but for now defaulting logic as placeholder
-                        // better logic:
-                         schoolId = schools[0].schoolId
-                    }
-                }
-
-                Text("Select University", color = Slate600, fontSize = 14.sp, modifier = Modifier.padding(bottom = 4.dp))
-                ExposedDropdownMenuBox(
-                    expanded = expanded,
-                    onExpandedChange = { expanded = !expanded },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(bottom = 16.dp)
-                ) {
-                    OutlinedTextField(
-                        value = selectedSchoolName,
-                        onValueChange = {},
-                        readOnly = true,
-                        leadingIcon = { Icon(Icons.Default.Home, contentDescription = null, tint = Slate400) },
-                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .menuAnchor(),
-                        shape = RoundedCornerShape(12.dp),
-                        colors = TextFieldDefaults.outlinedTextFieldColors(
-                            focusedBorderColor = Slate600,
-                            unfocusedBorderColor = Color.LightGray,
-                            containerColor = White
-                        )
-                    )
-                    ExposedDropdownMenu(
-                        expanded = expanded,
-                        onDismissRequest = { expanded = false },
-                        modifier = Modifier.background(White)
-                    ) {
-                        schools.forEach { school ->
-                            DropdownMenuItem(
-                                text = { Text(school.name, color = Slate800) },
-                                onClick = {
-                                    selectedSchoolName = school.name
-                                    schoolId = school.schoolId
-                                    expanded = false
-                                }
-                            )
-                        }
-                    }
-                }
-
                 Row(modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp)) {
                     AuthInput(
                         value = firstName,
@@ -180,10 +129,30 @@ fun RegisterScreen(
                 AuthInput(
                     value = email,
                     onValueChange = { email = it },
-                    label = "School Email",
+                    label = "University Email (e.g., name@cit.edu)",
                     icon = Icons.Default.Email,
-                    modifier = Modifier.padding(bottom = 16.dp)
+                    modifier = Modifier.padding(bottom = 4.dp)
                 )
+
+                // School detection feedback
+                if (detectedSchool != null) {
+                    Text(
+                        text = "Detected: ${detectedSchool.name} (${detectedSchool.shortName})",
+                        fontSize = 12.sp,
+                        color = Sage,
+                        fontWeight = FontWeight.Medium,
+                        modifier = Modifier.padding(bottom = 12.dp, start = 4.dp)
+                    )
+                } else if (email.contains("@")) {
+                    Text(
+                        text = "Supported: cit.edu, usc.edu.ph, usjr.edu.ph, uc.edu.ph, up.edu.ph, swu.edu.ph, cnu.edu.ph, ctu.edu.ph",
+                        fontSize = 11.sp,
+                        color = Slate400,
+                        modifier = Modifier.padding(bottom = 12.dp, start = 4.dp)
+                    )
+                } else {
+                    Spacer(modifier = Modifier.height(12.dp))
+                }
 
                 AuthInput(
                     value = address,
@@ -211,7 +180,7 @@ fun RegisterScreen(
                     modifier = Modifier.padding(bottom = 16.dp)
                 )
 
-                Text("Student Verification (Optional)", color = Slate400, fontSize = 12.sp, modifier = Modifier.padding(vertical = 8.dp))
+                Text("Additional Info (Optional)", color = Slate400, fontSize = 12.sp, modifier = Modifier.padding(vertical = 8.dp))
 
                 Row(modifier = Modifier.fillMaxWidth().padding(bottom = 24.dp)) {
                      AuthInput(
@@ -224,11 +193,11 @@ fun RegisterScreen(
                 }
 
                 PrimaryButton(
-                    text = "Join HulamPay",
+                    text = "Join UniLost",
                     onClick = {
                         viewModel.register(
                             firstName, lastName, email, password, confirmPassword,
-                            address, "09123456789", studentId, schoolId
+                            address, "", studentId
                         )
                     },
                     isLoading = registerState is UiState.Loading

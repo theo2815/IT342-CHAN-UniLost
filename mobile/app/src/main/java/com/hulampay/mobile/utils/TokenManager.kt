@@ -19,10 +19,15 @@ class TokenManager @Inject constructor(@ApplicationContext private val context: 
 
     companion object {
         private val TOKEN_KEY = stringPreferencesKey("jwt_token")
+        private val ROLE_KEY = stringPreferencesKey("user_role")
     }
 
     val token: Flow<String?> = context.dataStore.data.map { preferences ->
         preferences[TOKEN_KEY]
+    }
+
+    val role: Flow<String?> = context.dataStore.data.map { preferences ->
+        preferences[ROLE_KEY]
     }
 
     suspend fun saveToken(token: String) {
@@ -31,9 +36,16 @@ class TokenManager @Inject constructor(@ApplicationContext private val context: 
         }
     }
 
+    suspend fun saveRole(role: String) {
+        context.dataStore.edit { preferences ->
+            preferences[ROLE_KEY] = role
+        }
+    }
+
     suspend fun clearToken() {
         context.dataStore.edit { preferences ->
             preferences.remove(TOKEN_KEY)
+            preferences.remove(ROLE_KEY)
         }
     }
 }

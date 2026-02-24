@@ -1,20 +1,29 @@
 import { useState, useEffect, useRef } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { GraduationCap, ChevronDown, User, Settings, LogOut, Bell } from 'lucide-react';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { Search, ChevronDown, User, Settings, LogOut, Bell, Shield, Plus, Package, FileText } from 'lucide-react';
 import authService from '../services/authService';
+import NotificationDropdown from './NotificationDropdown';
+import { getUnreadCount } from '../mockData/notifications';
 import './Header.css';
 
 function Header() {
     const navigate = useNavigate();
+    const location = useLocation();
     const [user] = useState(() => authService.getCurrentUser());
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+    const [isNotificationOpen, setIsNotificationOpen] = useState(false);
+    const [unreadCount, setUnreadCount] = useState(() => getUnreadCount());
     const dropdownRef = useRef(null);
+    const notificationRef = useRef(null);
+    const isAdmin = authService.isAdmin();
 
     useEffect(() => {
-        // Close dropdown when clicking outside
         const handleClickOutside = (event) => {
             if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
                 setIsDropdownOpen(false);
+            }
+            if (notificationRef.current && !notificationRef.current.contains(event.target)) {
+                setIsNotificationOpen(false);
             }
         };
 
@@ -33,7 +42,6 @@ function Header() {
         setIsDropdownOpen(!isDropdownOpen);
     };
 
-    // Get initials for avatar
     const getInitials = () => {
         if (!user) return 'G';
         return `${user.firstName?.charAt(0) || ''}${user.lastName?.charAt(0) || ''}`.toUpperCase();
@@ -42,19 +50,50 @@ function Header() {
     return (
         <header className="main-header glass">
             <div className="header-left">
-                <Link to="/dashboard" className="logo">
-                    <GraduationCap className="logo-icon" size={28} />
-                    <span className="logo-text">HulamPay</span>
+                <Link to="/items" className="logo">
+                    <Search className="logo-icon" size={28} />
+                    <span className="logo-text">UniLost</span>
                 </Link>
             </div>
 
+            <nav className="header-nav">
+                <Link to="/items" className={`nav-link ${location.pathname === '/items' ? 'active' : ''}`}>
+                    <Search size={16} />
+                    Feed
+                </Link>
+                <Link to="/my-items" className={`nav-link ${location.pathname === '/my-items' || location.pathname.startsWith('/my-items/') ? 'active' : ''}`}>
+                    <Package size={16} />
+                    My Items
+                </Link>
+                <Link to="/my-claims" className={`nav-link ${location.pathname === '/my-claims' || location.pathname.startsWith('/claims/') ? 'active' : ''}`}>
+                    <FileText size={16} />
+                    My Claims
+                </Link>
+                <Link to="/post-item" className={`nav-link post-link ${location.pathname === '/post-item' ? 'active' : ''}`}>
+                    <Plus size={16} />
+                    Post Item
+                </Link>
+            </nav>
+
             <div className="header-right">
 
-
-                <button className="icon-btn notification-btn">
-                    <Bell size={20} />
-                    <span className="notification-badge">3</span>
-                </button>
+                <div className="notification-wrapper" ref={notificationRef}>
+                    <button
+                        className="icon-btn notification-btn"
+                        onClick={() => setIsNotificationOpen(!isNotificationOpen)}
+                    >
+                        <Bell size={20} />
+                        {unreadCount > 0 && (
+                            <span className="notification-badge">{unreadCount}</span>
+                        )}
+                    </button>
+                    {isNotificationOpen && (
+                        <NotificationDropdown
+                            onClose={() => setIsNotificationOpen(false)}
+                            onCountChange={() => setUnreadCount(getUnreadCount())}
+                        />
+                    )}
+                </div>
 
                 <div className="user-menu" ref={dropdownRef}>
                     <button className="user-btn" onClick={toggleDropdown}>
@@ -72,6 +111,9 @@ function Header() {
                             <div className="dropdown-header">
                                 <p className="dropdown-name">{user ? `${user.firstName} ${user.lastName}` : 'Guest User'}</p>
                                 <p className="dropdown-email">{user?.email || ''}</p>
+                                {user?.role && user.role !== 'STUDENT' && (
+                                    <span className="dropdown-role">{user.role.replace('_', ' ')}</span>
+                                )}
                             </div>
                             <div className="dropdown-divider"></div>
                             <Link to="/profile" className="dropdown-item" onClick={() => setIsDropdownOpen(false)}>
@@ -82,6 +124,15 @@ function Header() {
                                 <Settings size={18} />
                                 <span>Settings</span>
                             </Link>
+                            {isAdmin && (
+                                <>
+                                    <div className="dropdown-divider"></div>
+                                    <Link to="/admin" className="dropdown-item" onClick={() => setIsDropdownOpen(false)}>
+                                        <Shield size={18} />
+                                        <span>Admin Panel</span>
+                                    </Link>
+                                </>
+                            )}
                             <div className="dropdown-divider"></div>
                             <button className="dropdown-item logout" onClick={handleLogout}>
                                 <LogOut size={18} />

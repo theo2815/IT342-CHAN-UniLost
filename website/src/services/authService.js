@@ -13,7 +13,6 @@ const authService = {
                 address: userData.address || null,
                 phoneNumber: userData.phoneNumber || null,
                 profilePicture: userData.profilePicture || null,
-                schoolId: userData.schoolId || null,
             });
             return { success: true, data: response.data };
         } catch (error) {
@@ -59,6 +58,27 @@ const authService = {
     // Check if user is logged in
     isAuthenticated: () => {
         return !!localStorage.getItem('token');
+    },
+
+    // Get current user's role
+    getUserRole: () => {
+        const user = localStorage.getItem('user');
+        if (user) {
+            const parsed = JSON.parse(user);
+            return parsed.role || 'STUDENT';
+        }
+        return null;
+    },
+
+    // Check if current user is admin
+    isAdmin: () => {
+        const role = authService.getUserRole();
+        return role === 'ADMIN' || role === 'SUPER_ADMIN';
+    },
+
+    // Check if current user is super admin
+    isSuperAdmin: () => {
+        return authService.getUserRole() === 'SUPER_ADMIN';
     },
 };
 

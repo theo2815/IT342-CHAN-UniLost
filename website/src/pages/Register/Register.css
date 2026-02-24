@@ -160,6 +160,28 @@
     border-color: var(--color-error);
 }
 
+/* School Detection & Email Hints */
+.school-detected {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.8rem;
+    color: var(--color-success);
+    font-weight: 500;
+    margin-top: 4px;
+}
+
+.email-hint {
+    font-size: 0.75rem;
+    color: var(--color-text-muted);
+    margin-top: 4px;
+    line-height: 1.4;
+}
+
+.required {
+    color: var(--color-error);
+}
+
 /* Optional Section */
 .optional-section {
     border-top: 1px solid var(--color-border);

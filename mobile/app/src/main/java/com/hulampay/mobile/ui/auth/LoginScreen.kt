@@ -39,7 +39,7 @@ fun LoginScreen(
     LaunchedEffect(loginState) {
         when (loginState) {
             is UiState.Success -> {
-                navController.navigate(Screen.Dashboard.route) {
+                navController.navigate(Screen.ItemFeed.route) {
                     popUpTo(Screen.Login.route) { inclusive = true }
                 }
             }
@@ -66,7 +66,7 @@ fun LoginScreen(
         ) {
             // Logo & Header
             Text(
-                text = "HulamPay",
+                text = "UniLost",
                 fontSize = 28.sp,
                 fontWeight = FontWeight.Bold,
                 color = Slate800
@@ -79,7 +79,7 @@ fun LoginScreen(
                 modifier = Modifier.padding(top = 8.dp)
             )
             Text(
-                text = "Your campus marketplace awaits.",
+                text = "Your campus lost & found network.",
                 fontSize = 14.sp,
                 color = Slate400,
                 modifier = Modifier.padding(bottom = 32.dp)
@@ -132,7 +132,7 @@ fun LoginScreen(
                 modifier = Modifier.padding(top = 24.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(text = "New to HulamPay? ", color = Slate600, fontSize = 14.sp)
+                Text(text = "New to UniLost? ", color = Slate600, fontSize = 14.sp)
                 Text(
                     text = "Create Account",
                     color = Sage,

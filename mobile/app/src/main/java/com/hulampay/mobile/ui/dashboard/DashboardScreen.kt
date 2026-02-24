@@ -22,7 +22,7 @@ fun DashboardScreen(
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Text(text = "Welcome to Dashboard", style = MaterialTheme.typography.headlineMedium)
+        Text(text = "Welcome to UniLost", style = MaterialTheme.typography.headlineMedium)
 
         Spacer(modifier = Modifier.height(32.dp))
 

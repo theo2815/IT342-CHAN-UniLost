@@ -8,9 +8,10 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class SchoolDTO {
-    
+
     private String schoolId;
     private String name;
+    private String shortName;
     private String city;
     private String emailDomain;
 }

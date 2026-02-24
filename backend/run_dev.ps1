@@ -1,5 +1,5 @@
 
-# HulamPay Backend Run Script
+# UniLost Backend Run Script
 # Usage: ./run_dev.ps1
 
 # Load Environment Variables from .env
@@ -19,7 +19,7 @@ else {
     exit 1
 }
 
-Write-Host "Starting HulamPay Backend..."
+Write-Host "Starting UniLost Backend..."
 Write-Host "Database Configuration Loaded."
 
 # Run Spring Boot

@@ -5,8 +5,10 @@ import com.hulampay.backend.dto.UserDTO;
 import com.hulampay.backend.dto.UserRegistrationDTO;
 import com.hulampay.backend.entity.SchoolEntity;
 import com.hulampay.backend.entity.UserEntity;
+import com.hulampay.backend.repository.SchoolRepository;
 import com.hulampay.backend.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -19,8 +21,9 @@ import java.util.stream.Collectors;
 public class UserService {
 
     private final UserRepository userRepository;
+    private final SchoolRepository schoolRepository;
     private final SchoolService schoolService;
-    private final org.springframework.security.crypto.password.PasswordEncoder passwordEncoder;
+    private final PasswordEncoder passwordEncoder;
 
     public UserDTO createUser(UserRegistrationDTO registrationDTO) {
         // Check if email already exists
@@ -28,9 +31,22 @@ public class UserService {
             throw new RuntimeException("Email already exists");
         }
 
-        // Check if student ID already exists
-        if (userRepository.existsByStudentIdNumber(registrationDTO.getStudentIdNumber())) {
+        // Check if student ID already exists (only if provided)
+        if (registrationDTO.getStudentIdNumber() != null
+                && !registrationDTO.getStudentIdNumber().isEmpty()
+                && userRepository.existsByStudentIdNumber(registrationDTO.getStudentIdNumber())) {
             throw new RuntimeException("Student ID number already exists");
+        }
+
+        // Email domain validation: extract domain and match to a school
+        String email = registrationDTO.getEmail();
+        String emailDomain = extractEmailDomain(email);
+        SchoolEntity school = schoolRepository.findByEmailDomain(emailDomain)
+                .orElseThrow(() -> new RuntimeException(
+                        "Email domain '" + emailDomain + "' is not recognized. Please use your university email."));
+
+        if (!school.isActive()) {
+            throw new RuntimeException("This university is currently not accepting new registrations.");
         }
 
         UserEntity user = new UserEntity();
@@ -42,13 +58,10 @@ public class UserService {
         user.setPhoneNumber(registrationDTO.getPhoneNumber());
         user.setProfilePicture(registrationDTO.getProfilePicture());
         user.setStudentIdNumber(registrationDTO.getStudentIdNumber());
+        user.setSchool(school);
+        user.setRole("STUDENT");
         user.setCreatedAt(LocalDateTime.now());
-
-        // Set school reference if provided
-        if (registrationDTO.getSchoolId() != null) {
-            SchoolEntity school = schoolService.getSchoolEntityById(registrationDTO.getSchoolId());
-            user.setSchool(school);
-        }
+        user.setUpdatedAt(LocalDateTime.now());
 
         UserEntity savedUser = userRepository.save(user);
         return convertToDTO(savedUser);
@@ -57,6 +70,10 @@ public class UserService {
     public UserDTO authenticate(String email, String password) {
         UserEntity user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("Invalid email or password"));
+
+        if (user.isBanned()) {
+            throw new RuntimeException("Your account has been suspended. Contact your campus admin.");
+        }
 
         if (!passwordEncoder.matches(password, user.getPassword())) {
             throw new RuntimeException("Invalid email or password");
@@ -85,25 +102,28 @@ public class UserService {
     public Optional<UserDTO> updateUser(String id, UserRegistrationDTO updateDTO) {
         return userRepository.findById(id)
                 .map(existingUser -> {
-                    existingUser.setFirstName(updateDTO.getFirstName());
-                    existingUser.setLastName(updateDTO.getLastName());
-                    existingUser.setEmail(updateDTO.getEmail());
-                    existingUser.setAddress(updateDTO.getAddress());
-                    existingUser.setPhoneNumber(updateDTO.getPhoneNumber());
-                    existingUser.setProfilePicture(updateDTO.getProfilePicture());
-                    existingUser.setStudentIdNumber(updateDTO.getStudentIdNumber());
+                    if (updateDTO.getFirstName() != null) {
+                        existingUser.setFirstName(updateDTO.getFirstName());
+                    }
+                    if (updateDTO.getLastName() != null) {
+                        existingUser.setLastName(updateDTO.getLastName());
+                    }
+                    if (updateDTO.getAddress() != null) {
+                        existingUser.setAddress(updateDTO.getAddress());
+                    }
+                    if (updateDTO.getPhoneNumber() != null) {
+                        existingUser.setPhoneNumber(updateDTO.getPhoneNumber());
+                    }
+                    if (updateDTO.getProfilePicture() != null) {
+                        existingUser.setProfilePicture(updateDTO.getProfilePicture());
+                    }
 
                     // Update password only if provided
                     if (updateDTO.getPassword() != null && !updateDTO.getPassword().isEmpty()) {
                         existingUser.setPassword(passwordEncoder.encode(updateDTO.getPassword()));
                     }
 
-                    // Update school reference if provided
-                    if (updateDTO.getSchoolId() != null) {
-                        SchoolEntity school = schoolService.getSchoolEntityById(updateDTO.getSchoolId());
-                        existingUser.setSchool(school);
-                    }
-
+                    existingUser.setUpdatedAt(LocalDateTime.now());
                     return convertToDTO(userRepository.save(existingUser));
                 });
     }
@@ -116,6 +136,13 @@ public class UserService {
         return false;
     }
 
+    private String extractEmailDomain(String email) {
+        if (email == null || !email.contains("@")) {
+            throw new RuntimeException("Invalid email format");
+        }
+        return email.substring(email.indexOf("@") + 1).toLowerCase();
+    }
+
     private UserDTO convertToDTO(UserEntity user) {
         UserDTO dto = new UserDTO();
         dto.setUserId(user.getUserId());
@@ -126,6 +153,10 @@ public class UserService {
         dto.setPhoneNumber(user.getPhoneNumber());
         dto.setProfilePicture(user.getProfilePicture());
         dto.setStudentIdNumber(user.getStudentIdNumber());
+        dto.setRole(user.getRole());
+        dto.setKarmaScore(user.getKarmaScore());
+        dto.setVerified(user.isVerified());
+        dto.setBanned(user.isBanned());
         dto.setCreatedAt(user.getCreatedAt());
 
         // Convert school if present
@@ -135,6 +166,7 @@ public class UserService {
             dto.setSchool(new SchoolDTO(
                     school.getSchoolId(),
                     school.getName(),
+                    school.getShortName(),
                     school.getCity(),
                     school.getEmailDomain()));
         }

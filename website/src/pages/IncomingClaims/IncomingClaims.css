@@ -1,0 +1,303 @@
+/* Incoming Claims Page */
+.incoming-claims-page {
+    min-height: 100vh;
+    background: var(--gradient-bg);
+}
+
+.incoming-claims-page .main-content {
+    padding-top: 80px;
+}
+
+.incoming-claims-page .content-wrapper {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: var(--spacing-xl);
+}
+
+.incoming-claims-page .back-link {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+    background: none;
+    border: none;
+    color: var(--color-text-secondary);
+    font-size: var(--font-size-sm);
+    cursor: pointer;
+    margin-bottom: var(--spacing-lg);
+    transition: color var(--transition-fast);
+}
+
+.incoming-claims-page .back-link:hover {
+    color: var(--color-text-primary);
+}
+
+/* Item Summary */
+.ic-item-summary {
+    display: flex;
+    gap: var(--spacing-lg);
+    padding: var(--spacing-lg);
+    border-radius: var(--radius-lg);
+    margin-bottom: var(--spacing-lg);
+}
+
+.ic-item-thumb {
+    width: 100px;
+    height: 80px;
+    border-radius: var(--radius-md);
+    object-fit: cover;
+    flex-shrink: 0;
+}
+
+.ic-item-info {
+    min-width: 0;
+}
+
+.ic-item-badges {
+    display: flex;
+    gap: var(--spacing-xs);
+    margin-bottom: var(--spacing-xs);
+}
+
+.ic-item-info h2 {
+    font-size: var(--font-size-xl);
+    margin-bottom: 4px;
+}
+
+.ic-item-info p {
+    font-size: var(--font-size-sm);
+    color: var(--color-text-muted);
+}
+
+/* Warning */
+.ic-warning {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    padding: var(--spacing-md);
+    border-radius: var(--radius-md);
+    background: rgba(245, 158, 11, 0.08);
+    border: 1px solid rgba(245, 158, 11, 0.2);
+    color: #d97706;
+    font-size: var(--font-size-sm);
+    margin-bottom: var(--spacing-lg);
+}
+
+/* Claims list */
+.ic-claims-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-lg);
+}
+
+.ic-claim-card {
+    padding: var(--spacing-lg);
+    border-radius: var(--radius-lg);
+    animation: fadeIn 0.4s ease forwards;
+    opacity: 0;
+}
+
+/* Claim header */
+.ic-claim-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: var(--spacing-md);
+    gap: var(--spacing-sm);
+}
+
+.ic-claimant {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+}
+
+.ic-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: var(--color-primary);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: var(--font-size-sm);
+    flex-shrink: 0;
+}
+
+.ic-claimant-name {
+    display: block;
+    font-weight: 600;
+    font-size: var(--font-size-sm);
+}
+
+.ic-claimant-school {
+    display: block;
+    font-size: var(--font-size-xs);
+    color: var(--color-text-muted);
+}
+
+.ic-claim-status {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 4px;
+}
+
+.ic-claim-time {
+    font-size: var(--font-size-xs);
+    color: var(--color-text-muted);
+}
+
+/* Secret detail comparison */
+.ic-secret-comparison {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--spacing-md);
+    margin-bottom: var(--spacing-md);
+}
+
+.ic-secret-label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: var(--font-size-xs);
+    font-weight: 600;
+    color: var(--color-text-muted);
+    margin-bottom: 6px;
+}
+
+.ic-secret-value {
+    padding: var(--spacing-sm) var(--spacing-md);
+    border-radius: var(--radius-md);
+    font-size: var(--font-size-sm);
+    line-height: 1.5;
+}
+
+.ic-secret-value.yours {
+    background: rgba(71, 85, 105, 0.06);
+    border: 1px solid var(--color-border);
+}
+
+.ic-secret-value.theirs {
+    background: rgba(168, 85, 247, 0.06);
+    border: 1px solid rgba(168, 85, 247, 0.2);
+}
+
+/* Message */
+.ic-claim-message {
+    display: flex;
+    gap: var(--spacing-sm);
+    padding: var(--spacing-md);
+    background: var(--color-border);
+    border-radius: var(--radius-md);
+    margin-bottom: var(--spacing-md);
+}
+
+.ic-claim-message svg {
+    flex-shrink: 0;
+    color: var(--color-text-muted);
+    margin-top: 2px;
+}
+
+.ic-claim-message p {
+    font-size: var(--font-size-sm);
+    color: var(--color-text-secondary);
+    line-height: 1.5;
+}
+
+/* Actions */
+.ic-claim-actions {
+    display: flex;
+    gap: var(--spacing-sm);
+    justify-content: flex-end;
+}
+
+.ic-approve-btn,
+.ic-reject-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 20px;
+    border: none;
+    border-radius: var(--radius-md);
+    font-size: var(--font-size-sm);
+    font-weight: 600;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+}
+
+.ic-approve-btn {
+    background: #10b981;
+    color: #fff;
+}
+
+.ic-approve-btn:hover {
+    background: #059669;
+}
+
+.ic-reject-btn {
+    background: none;
+    border: 1px solid var(--color-border);
+    color: var(--color-text-secondary);
+}
+
+.ic-reject-btn:hover {
+    border-color: #ef4444;
+    color: #ef4444;
+}
+
+/* Dark mode */
+[data-theme="dark"] .ic-warning {
+    background: rgba(245, 158, 11, 0.12);
+}
+
+[data-theme="dark"] .ic-secret-value.yours {
+    background: rgba(71, 85, 105, 0.15);
+}
+
+[data-theme="dark"] .ic-secret-value.theirs {
+    background: rgba(168, 85, 247, 0.12);
+}
+
+[data-theme="dark"] .ic-claim-message {
+    background: rgba(255, 255, 255, 0.05);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .incoming-claims-page .content-wrapper {
+        padding: var(--spacing-md);
+    }
+
+    .ic-item-summary {
+        flex-direction: column;
+    }
+
+    .ic-item-thumb {
+        width: 100%;
+        height: 120px;
+    }
+
+    .ic-claim-header {
+        flex-direction: column;
+    }
+
+    .ic-claim-status {
+        flex-direction: row;
+        align-items: center;
+    }
+
+    .ic-secret-comparison {
+        grid-template-columns: 1fr;
+    }
+
+    .ic-claim-actions {
+        flex-direction: column;
+    }
+
+    .ic-approve-btn,
+    .ic-reject-btn {
+        justify-content: center;
+    }
+}

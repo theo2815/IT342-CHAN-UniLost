@@ -21,6 +21,16 @@ function Profile() {
         return `${user.firstName?.charAt(0) || ''}${user.lastName?.charAt(0) || ''}`.toUpperCase();
     };
 
+    const roleBadge = () => {
+        const role = user.role || 'STUDENT';
+        const labels = {
+            'STUDENT': 'Student',
+            'ADMIN': 'Campus Admin',
+            'SUPER_ADMIN': 'Super Admin'
+        };
+        return labels[role] || 'Student';
+    };
+
     return (
         <div className="profile-page">
             <Header />
@@ -41,7 +51,7 @@ function Profile() {
 
                             <div className="user-details">
                                 <h1>{user.firstName} {user.lastName}</h1>
-                                <p className="school-name">🎓 {user.school?.name || 'No School Selected'}</p>
+                                <p className="school-name">{user.school?.name || 'University not detected'}</p>
                                 <p className="join-date">Member since {new Date().getFullYear()}</p>
                             </div>
 
@@ -64,28 +74,32 @@ function Profile() {
                                 <span className="value">{user.studentIdNumber || 'N/A'}</span>
                             </div>
                             <div className="info-row">
-                                <span className="label">School Name</span>
+                                <span className="label">School</span>
                                 <span className="value">{user.school?.name || 'Not Enrolled'}</span>
                             </div>
                             <div className="info-row">
-                                <span className="label">Status</span>
-                                <span className="status-tag verified">Verified Student</span>
+                                <span className="label">Role</span>
+                                <span className="status-tag verified">{roleBadge()}</span>
+                            </div>
+                            <div className="info-row">
+                                <span className="label">Karma Score</span>
+                                <span className="value">{user.karmaScore ?? 0} pts</span>
                             </div>
                         </div>
 
-                        {/* Main Content / Listings */}
+                        {/* Main Content / Items */}
                         <div className="profile-content glass">
                             <div className="tabs">
-                                <button className="tab active">My Listings</button>
-                                <button className="tab">Rentals</button>
-                                <button className="tab">Saved</button>
+                                <button className="tab active">My Reports</button>
+                                <button className="tab">Claims</button>
+                                <button className="tab">Recovered</button>
                             </div>
 
                             <div className="empty-state">
-                                <span className="empty-icon">📦</span>
-                                <h3>No listings yet</h3>
-                                <p>Start selling or renting out items to your schoolmates!</p>
-                                <button className="btn-primary">Post Item</button>
+                                <span className="empty-icon">🔍</span>
+                                <h3>No reports yet</h3>
+                                <p>Report a lost item or post a found item to help your campus community!</p>
+                                <button className="btn-primary">Report Item</button>
                             </div>
                         </div>
                     </div>

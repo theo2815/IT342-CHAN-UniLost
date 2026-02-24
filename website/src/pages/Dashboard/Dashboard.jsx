@@ -1,22 +1,28 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { Search, Package, CheckCircle, Clock, AlertTriangle } from 'lucide-react';
 import Header from '../../components/Header';
+import authService from '../../services/authService';
 import './Dashboard.css';
 
 function Dashboard() {
-    const [activeNav, setActiveNav] = useState('dashboard');
+    const [user, setUser] = useState(null);
+
+    useEffect(() => {
+        const currentUser = authService.getCurrentUser();
+        if (currentUser) {
+            setUser(currentUser);
+        }
+    }, []);
 
     const stats = [
-        { id: 1, label: 'Total Users', value: '2,543', icon: '👥', trend: '+12%', color: 'blue' },
-        { id: 2, label: 'Revenue', value: '$45,678', icon: '💰', trend: '+8%', color: 'green' },
-        { id: 3, label: 'Orders', value: '1,234', icon: '📦', trend: '+23%', color: 'purple' },
-        { id: 4, label: 'Visitors', value: '8,901', icon: '📊', trend: '+5%', color: 'orange' },
+        { id: 1, label: 'Items Reported', value: '0', icon: <Package size={24} />, trend: '--', color: 'blue' },
+        { id: 2, label: 'Items Recovered', value: '0', icon: <CheckCircle size={24} />, trend: '--', color: 'green' },
+        { id: 3, label: 'Pending Claims', value: '0', icon: <Clock size={24} />, trend: '--', color: 'purple' },
+        { id: 4, label: 'Active Listings', value: '0', icon: <Search size={24} />, trend: '--', color: 'orange' },
     ];
 
     const recentActivity = [
-        { id: 1, action: 'New user registered', user: 'John Doe', time: '2 minutes ago', icon: '👤' },
-        { id: 2, action: 'Order completed', user: 'Jane Smith', time: '15 minutes ago', icon: '✅' },
-        { id: 3, action: 'Payment received', user: 'Bob Wilson', time: '1 hour ago', icon: '💳' },
-        { id: 4, action: 'New comment', user: 'Alice Brown', time: '2 hours ago', icon: '💬' },
+        { id: 1, action: 'Welcome to UniLost!', user: 'Get started by reporting a lost or found item.', time: 'Just now', icon: <Search size={18} /> },
     ];
 
     return (
@@ -27,7 +33,7 @@ function Dashboard() {
                 <div className="content-wrapper">
                     <div className="page-header">
                         <h1>Dashboard</h1>
-                        <p>Welcome to your control center.</p>
+                        <p>Welcome back{user ? `, ${user.firstName}` : ''}. Track lost & found items across Cebu City campuses.</p>
                     </div>
 
                     {/* Stats Grid */}
@@ -50,10 +56,10 @@ function Dashboard() {
 
                     {/* Content Grid */}
                     <section className="content-grid">
-                        {/* Chart Placeholder */}
+                        {/* Activity Overview */}
                         <div className="chart-card glass">
                             <div className="card-header">
-                                <h3>Revenue Overview</h3>
+                                <h3>Item Activity</h3>
                                 <select className="period-select">
                                     <option>Last 7 days</option>
                                     <option>Last 30 days</option>
@@ -62,7 +68,7 @@ function Dashboard() {
                             </div>
                             <div className="chart-placeholder">
                                 <div className="chart-bars">
-                                    {[40, 65, 45, 80, 55, 90, 70].map((height, i) => (
+                                    {[10, 25, 15, 40, 20, 35, 30].map((height, i) => (
                                         <div
                                             key={i}
                                             className="chart-bar"

@@ -10,7 +10,7 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 public class UserDTO {
-    
+
     private String userId;
     private String schoolId;
     private String firstName;
@@ -20,8 +20,12 @@ public class UserDTO {
     private String phoneNumber;
     private String profilePicture;
     private String studentIdNumber;
+    private String role;
+    private int karmaScore;
+    private boolean isVerified;
+    private boolean isBanned;
     private LocalDateTime createdAt;
-    
+
     // School details (for response)
     private SchoolDTO school;
 }

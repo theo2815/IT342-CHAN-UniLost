@@ -1,0 +1,118 @@
+/* Item Feed Page */
+.item-feed-page {
+    min-height: 100vh;
+    background: var(--gradient-bg);
+}
+
+.item-feed-page .main-content {
+    padding-top: 80px;
+}
+
+.item-feed-page .content-wrapper {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: var(--spacing-xl);
+}
+
+.item-feed-page .page-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    margin-bottom: var(--spacing-lg);
+    gap: var(--spacing-md);
+}
+
+.page-header-text h1 {
+    font-size: var(--font-size-3xl);
+    margin-bottom: var(--spacing-xs);
+}
+
+.page-header-text p {
+    color: var(--color-text-secondary);
+    font-size: var(--font-size-base);
+}
+
+.post-item-btn {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+    padding: 10px 20px;
+    border: none;
+    border-radius: var(--radius-md);
+    background: var(--gradient-primary);
+    color: #fff;
+    font-size: var(--font-size-sm);
+    font-weight: 600;
+    cursor: pointer;
+    transition: opacity var(--transition-fast);
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+.post-item-btn:hover {
+    opacity: 0.9;
+}
+
+/* Items Count */
+.items-count {
+    font-size: var(--font-size-sm);
+    color: var(--color-text-muted);
+    margin-bottom: var(--spacing-md);
+}
+
+/* Items Grid */
+.items-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: var(--spacing-lg);
+}
+
+/* Load More */
+.load-more-wrapper {
+    display: flex;
+    justify-content: center;
+    margin-top: var(--spacing-xl);
+}
+
+.load-more-btn {
+    padding: 10px 32px;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    background: var(--color-bg-card);
+    color: var(--color-text-secondary);
+    font-size: var(--font-size-sm);
+    font-weight: 500;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+}
+
+.load-more-btn:hover {
+    border-color: var(--color-primary);
+    color: var(--color-primary);
+}
+
+/* Responsive */
+@media (max-width: 1024px) {
+    .items-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 640px) {
+    .items-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .item-feed-page .content-wrapper {
+        padding: var(--spacing-md);
+    }
+
+    .item-feed-page .page-header {
+        flex-direction: column;
+    }
+
+    .post-item-btn {
+        width: 100%;
+        justify-content: center;
+    }
+}

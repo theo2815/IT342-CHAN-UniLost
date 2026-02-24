@@ -17,7 +17,7 @@ public class MongoConfig extends AbstractMongoClientConfiguration {
     @Override
     @NonNull
     protected String getDatabaseName() {
-        return "hulampay";
+        return "unilost";
     }
 
     @Override

@@ -221,7 +221,7 @@ function Settings() {
                         <section className="form-section">
                             <h2 className="section-title">Theme Preferences</h2>
                             <p className="settings-subtitle" style={{marginBottom: '1.5rem'}}>
-                                Choose how Hulampay looks to you. Select a single theme that will apply across all pages.
+                                Choose how UniLost looks to you. Select a single theme that will apply across all pages.
                             </p>
                             
                             <div className="theme-selection-grid">
