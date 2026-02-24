@@ -1,130 +1,130 @@
 .filter-bar {
-    display: flex;
-    flex-direction: column;
-    gap: var(--spacing-md);
-    margin-bottom: var(--spacing-lg);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+  margin-bottom: var(--spacing-lg);
 }
 
 /* Search */
 .search-row {
-    width: 100%;
+  width: 100%;
 }
 
 .search-input-wrapper {
-    position: relative;
-    width: 100%;
+  position: relative;
+  width: 100%;
 }
 
 .search-input-wrapper .search-icon {
-    position: absolute;
-    left: 14px;
-    top: 50%;
-    transform: translateY(-50%);
-    color: var(--color-text-muted);
-    pointer-events: none;
+  position: absolute;
+  left: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--color-text-muted);
+  pointer-events: none;
 }
 
 .search-input {
-    width: 100%;
-    padding: 12px 14px 12px 42px;
-    border-radius: var(--radius-md);
-    border: 1px solid var(--color-border);
-    background: var(--color-bg-card);
-    font-size: var(--font-size-sm);
-    color: var(--color-text-primary);
-    transition: border-color var(--transition-fast);
+  width: 100%;
+  padding: 12px 14px 12px 42px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+  background: var(--color-bg-card);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-primary);
+  transition: border-color var(--transition-fast);
 }
 
 .search-input:focus {
-    border-color: var(--color-border-focus);
+  border-color: var(--color-border-focus);
 }
 
 /* Filter Row */
 .filter-row {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: var(--spacing-md);
-    flex-wrap: wrap;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-md);
+  flex-wrap: wrap;
 }
 
 /* Type Chips */
 .type-chips {
-    display: flex;
-    gap: var(--spacing-xs);
+  display: flex;
+  gap: var(--spacing-xs);
 }
 
 .filter-chip {
-    padding: 6px 16px;
-    border-radius: var(--radius-full);
-    border: 1px solid var(--color-border);
-    background: var(--color-bg-card);
-    color: var(--color-text-secondary);
-    font-size: var(--font-size-sm);
-    font-weight: 500;
-    cursor: pointer;
-    transition: all var(--transition-fast);
+  padding: 6px 16px;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--color-border);
+  background: var(--color-bg-card);
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  cursor: pointer;
+  transition: all var(--transition-fast);
 }
 
 .filter-chip:hover {
-    border-color: var(--color-primary);
-    color: var(--color-primary);
+  border-color: var(--color-primary);
+  color: var(--color-primary);
 }
 
 .filter-chip.active {
-    background: var(--color-primary);
-    color: #fff;
-    border-color: var(--color-primary);
+  background: var(--color-primary);
+  color: #fff;
+  border-color: var(--color-primary);
 }
 
 .filter-chip.active.lost {
-    background: #ef4444;
-    border-color: #ef4444;
+  background: #ef4444;
+  border-color: #ef4444;
 }
 
 .filter-chip.active.found {
-    background: #10b981;
-    border-color: #10b981;
+  background: #10b981;
+  border-color: #10b981;
 }
 
 /* Select Dropdowns */
 .filter-selects {
-    display: flex;
-    gap: var(--spacing-sm);
+  display: flex;
+  gap: var(--spacing-sm);
 }
 
 .filter-select {
-    padding: 8px 12px;
-    border-radius: var(--radius-md);
-    border: 1px solid var(--color-border);
-    background: var(--color-bg-card);
-    color: var(--color-text-secondary);
-    font-size: var(--font-size-sm);
-    cursor: pointer;
-    transition: border-color var(--transition-fast);
-    min-width: 140px;
+  padding: 8px 12px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+  background: var(--color-bg-card);
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+  cursor: pointer;
+  transition: border-color var(--transition-fast);
+  min-width: 140px;
 }
 
 .filter-select:focus {
-    border-color: var(--color-border-focus);
+  border-color: var(--color-border-focus);
 }
 
 @media (max-width: 768px) {
-    .filter-row {
-        flex-direction: column;
-        align-items: stretch;
-    }
+  .filter-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
 
-    .type-chips {
-        justify-content: center;
-    }
+  .type-chips {
+    justify-content: center;
+  }
 
-    .filter-selects {
-        flex-direction: column;
-    }
+  .filter-selects {
+    flex-direction: column;
+  }
 
-    .filter-select {
-        min-width: unset;
-        width: 100%;
-    }
+  .filter-select {
+    min-width: unset;
+    width: 100%;
+  }
 }

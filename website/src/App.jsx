@@ -7,8 +7,6 @@ import Settings from './pages/Settings/Settings';
 import ItemFeed from './pages/ItemFeed/ItemFeed';
 import ItemDetail from './pages/ItemDetail/ItemDetail';
 import PostItem from './pages/PostItem/PostItem';
-import MyItems from './pages/MyItems/MyItems';
-import MyClaims from './pages/MyClaims/MyClaims';
 import IncomingClaims from './pages/IncomingClaims/IncomingClaims';
 import ClaimDetail from './pages/ClaimDetail/ClaimDetail';
 import Notifications from './pages/Notifications/Notifications';
@@ -19,6 +17,10 @@ import AdminClaims from './pages/Admin/AdminClaims';
 import SuperAdminPanel from './pages/Admin/SuperAdminPanel';
 import ProtectedRoute from './components/ProtectedRoute';
 import { AdminRoute, SuperAdminRoute } from './components/AdminRoute';
+import Landing from './pages/Landing/Landing';
+import MapView from './pages/MapView/MapView';
+import Leaderboard from './pages/Leaderboard/Leaderboard';
+import Messages from './pages/Messages/Messages';
 import './App.css';
 
 import { ThemeProvider } from './context/ThemeContext';
@@ -28,19 +30,20 @@ function App() {
     <ThemeProvider>
       <Router>
         <Routes>
-          <Route path="/" element={<Navigate to="/login" replace />} />
+          <Route path="/" element={<Landing />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
 
           {/* Protected Routes */}
-          <Route element={<ProtectedRoute />}>
-            <Route path="/dashboard" element={<Dashboard />} />
-            <Route path="/items" element={<ItemFeed />} />
-            <Route path="/items/:id" element={<ItemDetail />} />
+            <Route element={<ProtectedRoute />}>
+              <Route path="/dashboard" element={<Dashboard />} />
+              <Route path="/items" element={<ItemFeed />} />
+              <Route path="/map" element={<MapView />} />
+              <Route path="/leaderboard" element={<Leaderboard />} />
+              <Route path="/messages" element={<Messages />} />
+              <Route path="/items/:id" element={<ItemDetail />} />
             <Route path="/post-item" element={<PostItem />} />
-            <Route path="/my-items" element={<MyItems />} />
             <Route path="/my-items/:itemId/claims" element={<IncomingClaims />} />
-            <Route path="/my-claims" element={<MyClaims />} />
             <Route path="/claims/:claimId" element={<ClaimDetail />} />
             <Route path="/notifications" element={<Notifications />} />
             <Route path="/profile" element={<Profile />} />
