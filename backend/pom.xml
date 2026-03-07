@@ -8,8 +8,8 @@
 		<version>4.0.2</version>
 		<relativePath/> <!-- lookup parent from repository -->
 	</parent>
-	<groupId>com.hulampay</groupId>
-	<artifactId>backend</artifactId>
+	<groupId>edu.cit.chan</groupId>
+	<artifactId>unilost</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
 	<name>unilost-backend</name>
 	<description>UniLost - Cebu City Academic Lost and Found Network</description>
