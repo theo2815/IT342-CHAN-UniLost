@@ -7,6 +7,7 @@ import org.springframework.security.config.annotation.method.configuration.Enabl
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
+import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
@@ -19,6 +20,9 @@ import java.util.List;
 @Configuration
 @EnableWebSecurity
 @EnableMethodSecurity
+// TODO: [Phase 3] Add JWT refresh token rotation
+// TODO: [Phase 6] Add WebSocket security configuration for real-time chat
+// TODO: [Phase 8] Add rate limiting for auth endpoints
 public class SecurityConfig {
 
     @Bean
@@ -26,22 +30,29 @@ public class SecurityConfig {
             edu.cit.chan.unilost.filter.JwtAuthenticationFilter jwtAuthenticationFilter) throws Exception {
         http
                 .csrf(AbstractHttpConfigurer::disable)
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .authorizeHttpRequests(auth -> auth
                         // Public endpoints
                         .requestMatchers("/api/auth/**").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/schools", "/api/schools/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/campuses", "/api/campuses/**").permitAll()
 
-                        // Admin endpoints require ADMIN or SUPER_ADMIN role
-                        .requestMatchers("/api/admin/**").hasAnyRole("ADMIN", "SUPER_ADMIN")
+                        // Admin endpoints
+                        .requestMatchers("/api/admin/**").hasRole("ADMIN")
 
-                        // School management (create/update/delete) requires SUPER_ADMIN
-                        .requestMatchers(HttpMethod.POST, "/api/schools").hasRole("SUPER_ADMIN")
-                        .requestMatchers(HttpMethod.PUT, "/api/schools/**").hasRole("SUPER_ADMIN")
-                        .requestMatchers(HttpMethod.DELETE, "/api/schools/**").hasRole("SUPER_ADMIN")
+                        // TODO: [Phase 4] Add item endpoints security rules
+                        // TODO: [Phase 5] Add claim endpoints security rules
+                        // TODO: [Phase 6] Add chat/message endpoints security rules
+                        // TODO: [Phase 7] Add handover endpoints security rules
+                        // TODO: [Phase 8] Add notification endpoints security rules
 
-                        // User list (GET all) requires ADMIN+
-                        .requestMatchers(HttpMethod.GET, "/api/users").hasAnyRole("ADMIN", "SUPER_ADMIN")
+                        // Campus management (create/update/delete) requires ADMIN
+                        .requestMatchers(HttpMethod.POST, "/api/campuses").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.PUT, "/api/campuses/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.DELETE, "/api/campuses/**").hasRole("ADMIN")
+
+                        // User list (GET all) requires ADMIN or FACULTY
+                        .requestMatchers(HttpMethod.GET, "/api/users").hasAnyRole("ADMIN", "FACULTY")
 
                         // All other requests require authentication
                         .anyRequest().authenticated())

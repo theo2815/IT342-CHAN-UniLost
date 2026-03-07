@@ -40,8 +40,8 @@ const AdminDashboard = () => {
                         <div className="page-header-top">
                             <Shield size={28} />
                             <h1>Admin Dashboard</h1>
-                            <span className={`role-badge ${role === 'SUPER_ADMIN' ? 'super' : ''}`}>
-                                {role === 'SUPER_ADMIN' ? 'Super Admin' : 'Campus Admin'}
+                            <span className={`role-badge ${role === 'FACULTY' ? 'super' : ''}`}>
+                                {role === 'FACULTY' ? 'Faculty' : 'Admin'}
                             </span>
                         </div>
                         <p>Manage items, users, and claims across the platform</p>
@@ -83,18 +83,18 @@ const AdminDashboard = () => {
                             </div>
                         ))}
 
-                        {role === 'SUPER_ADMIN' && (
+                        {role === 'FACULTY' && (
                             <div
                                 className="quick-link-card glass super-admin-link"
-                                onClick={() => navigate('/superadmin')}
+                                onClick={() => navigate('/faculty')}
                                 style={{ animationDelay: '0.45s' }}
                             >
                                 <div className="ql-icon">
                                     <Shield size={24} />
                                 </div>
                                 <div className="ql-info">
-                                    <h3>Super Admin Panel</h3>
-                                    <p>Cross-campus stats, school management, create admin accounts</p>
+                                    <h3>Faculty Panel</h3>
+                                    <p>Cross-campus stats, campus management</p>
                                 </div>
                                 <ChevronRight size={20} className="ql-arrow" />
                             </div>

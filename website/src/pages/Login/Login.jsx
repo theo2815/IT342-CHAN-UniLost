@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Search, Mail, Lock, CheckSquare, Square, AlertTriangle, ArrowRight, ShieldCheck, MapPin } from 'lucide-react';
+import { Search, Mail, Lock, CheckSquare, Square, AlertTriangle, ArrowRight, ShieldCheck, MapPin, Eye, EyeOff } from 'lucide-react';
 import authService from '../../services/authService';
+import { useToast } from '../../components/Toast';
 import './Login.css';
 
 function Login() {
@@ -10,9 +11,12 @@ function Login() {
     password: '',
     rememberMe: false
   });
+  const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [errors, setErrors] = useState({});
+  const [apiError, setApiError] = useState('');
   const navigate = useNavigate();
+  const toast = useToast();
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -20,23 +24,48 @@ function Login() {
       ...prev,
       [name]: type === 'checkbox' ? checked : value
     }));
-    if (error) setError('');
+    if (errors[name]) setErrors(prev => ({ ...prev, [name]: '' }));
+    if (apiError) setApiError('');
+  };
+
+  const validateForm = () => {
+    const newErrors = {};
+
+    if (!formData.email.trim()) {
+      newErrors.email = 'Email is required';
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+      newErrors.email = 'Please enter a valid email address';
+    }
+
+    if (!formData.password) {
+      newErrors.password = 'Password is required';
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!validateForm()) return;
+
     setIsLoading(true);
-    setError('');
+    setApiError('');
 
     try {
       const result = await authService.login(formData.email, formData.password);
       if (result.success) {
-        navigate('/dashboard');
+        toast.success('Welcome back! Redirecting...', { title: 'Login Successful', duration: 2000 });
+        setTimeout(() => navigate('/dashboard'), 600);
       } else {
-        setError(result.error || 'Login failed. Please check your credentials.');
+        const msg = typeof result.error === 'string' ? result.error : 'Login failed. Please check your credentials.';
+        setApiError(msg);
+        toast.error(msg, { title: 'Login Failed' });
       }
     } catch (err) {
-      setError('An unexpected error occurred. Please try again later.');
+      const msg = 'An unexpected error occurred. Please try again later.';
+      setApiError(msg);
+      toast.error(msg);
     } finally {
       setIsLoading(false);
     }
@@ -57,14 +86,7 @@ function Login() {
               <p>Your campus lost & found network.</p>
             </div>
 
-            {error && (
-              <div className="error-alert">
-                <AlertTriangle className="error-icon" size={20} />
-                <span>{error}</span>
-              </div>
-            )}
-
-            <form onSubmit={handleSubmit} className="login-form">
+            <form onSubmit={handleSubmit} className="login-form" noValidate>
               <div className="form-group">
                 <label htmlFor="email">University Email</label>
                 <div className="input-group">
@@ -76,9 +98,11 @@ function Login() {
                     value={formData.email}
                     onChange={handleChange}
                     placeholder="student@cit.edu"
-                    required
+                    className={errors.email ? 'input-error' : ''}
+                    autoComplete="email"
                   />
                 </div>
+                {errors.email && <span className="field-error">{errors.email}</span>}
               </div>
 
               <div className="form-group">
@@ -86,15 +110,26 @@ function Login() {
                 <div className="input-group">
                   <Lock className="input-icon" size={20} />
                   <input
-                    type="password"
+                    type={showPassword ? 'text' : 'password'}
                     id="password"
                     name="password"
                     value={formData.password}
                     onChange={handleChange}
                     placeholder="••••••••"
-                    required
+                    className={errors.password ? 'input-error' : ''}
+                    autoComplete="current-password"
                   />
+                  <button
+                    type="button"
+                    className="password-toggle"
+                    onClick={() => setShowPassword(v => !v)}
+                    tabIndex={-1}
+                    aria-label={showPassword ? 'Hide password' : 'Show password'}
+                  >
+                    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
                 </div>
+                {errors.password && <span className="field-error">{errors.password}</span>}
               </div>
 
               <div className="form-options">
@@ -115,7 +150,10 @@ function Login() {
 
               <button type="submit" className="btn-primary" disabled={isLoading}>
                 {isLoading ? (
-                  <span className="spinner"></span>
+                  <span className="btn-loading">
+                    <span className="spinner"></span>
+                    Signing in...
+                  </span>
                 ) : (
                   <>
                     Sign In <ArrowRight size={20} />
@@ -159,7 +197,6 @@ function Login() {
               </div>
             </div>
           </div>
-          {/* Decorative Elements */}
           <div className="decorative-circle circle-1"></div>
           <div className="decorative-circle circle-2"></div>
         </div>

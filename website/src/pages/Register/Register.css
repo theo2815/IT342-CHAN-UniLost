@@ -102,50 +102,57 @@
 
 /* Input Group Styling */
 .input-group {
-    position: relative;
     display: flex;
     align-items: center;
+    gap: 0.75rem;
     width: 100%;
+    padding: 0 1rem;
+    background: var(--color-bg-base);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    transition: all var(--transition-fast);
+}
+
+.input-group:focus-within {
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 2px var(--color-border-focus);
+}
+
+.input-group:has(.input-error) {
+    border-color: var(--color-error, #ef4444);
 }
 
 .input-icon {
-    position: absolute;
-    left: 1rem;
+    flex-shrink: 0;
     color: var(--color-text-muted);
-    pointer-events: none;
     transition: color var(--transition-fast);
-    z-index: 2;
+}
+
+.input-group:focus-within .input-icon {
+    color: var(--color-primary);
 }
 
 /* Base Input Styles */
 .input-group input,
 .select-input {
-    width: 100%;
-    padding: 0.75rem 1rem 0.75rem 2.75rem;
-    background: var(--color-bg-input);
-    border: 1px solid var(--color-border);
-    border-radius: var(--radius-md);
+    flex: 1;
+    min-width: 0;
+    padding: 0.75rem 0;
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
     color: var(--color-text-primary);
     font-size: var(--font-size-base);
-    transition: all var(--transition-fast);
+    outline: none;
+}
+
+.input-group input::placeholder {
+    color: var(--color-text-muted);
 }
 
 .input-group select.select-input {
-    padding-left: 2.75rem;
     appearance: none;
     cursor: pointer;
-}
-
-.input-group input:focus,
-.select-input:focus {
-    outline: none;
-    border-color: var(--color-primary);
-    box-shadow: 0 0 0 2px var(--color-border-focus);
-    background: var(--color-bg-input);
-}
-
-.input-group:focus-within .input-icon {
-    color: var(--color-primary);
 }
 
 /* Validation Messages */
@@ -153,11 +160,6 @@
     color: var(--color-error);
     font-size: 0.75rem;
     margin-top: 4px;
-}
-
-.input-group input.error,
-.select-input.error {
-    border-color: var(--color-error);
 }
 
 /* School Detection & Email Hints */
@@ -349,4 +351,104 @@
         flex-direction: column;
         gap: var(--spacing-md);
     }
+}
+
+/* Field-level errors */
+.register-form .field-error {
+    font-size: 0.78rem;
+    color: var(--color-error, #ef4444);
+    margin-top: 4px;
+    display: block;
+    animation: regFadeIn 0.2s ease;
+}
+
+/* Password toggle */
+.register-form .password-toggle {
+    flex-shrink: 0;
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--color-text-muted, #9ca3af);
+    padding: 4px;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    transition: color 0.15s;
+}
+
+.register-form .password-toggle:hover {
+    color: var(--color-text-primary, #111);
+}
+
+/* Password strength indicator */
+.password-strength {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-top: 6px;
+}
+
+.strength-bar {
+    flex: 1;
+    height: 4px;
+    background: var(--color-border, #e5e7eb);
+    border-radius: 2px;
+    overflow: hidden;
+}
+
+.strength-fill {
+    height: 100%;
+    border-radius: 2px;
+    transition: width 0.3s ease, background 0.3s ease;
+}
+
+.strength-fill.strength-weak {
+    width: 33%;
+    background: var(--color-error, #ef4444);
+}
+
+.strength-fill.strength-medium {
+    width: 66%;
+    background: #f59e0b;
+}
+
+.strength-fill.strength-strong {
+    width: 100%;
+    background: var(--color-success, #22c55e);
+}
+
+.strength-label {
+    font-size: 0.72rem;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.strength-label.strength-weak { color: var(--color-error, #ef4444); }
+.strength-label.strength-medium { color: #f59e0b; }
+.strength-label.strength-strong { color: var(--color-success, #22c55e); }
+
+/* Loading button */
+.register-form .btn-loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+}
+
+.register-form .spinner {
+    width: 18px;
+    height: 18px;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-top-color: #fff;
+    border-radius: 50%;
+    animation: regSpin 0.6s linear infinite;
+}
+
+@keyframes regSpin {
+    to { transform: rotate(360deg); }
+}
+
+@keyframes regFadeIn {
+    from { opacity: 0; transform: translateY(-4px); }
+    to { opacity: 1; transform: translateY(0); }
 }

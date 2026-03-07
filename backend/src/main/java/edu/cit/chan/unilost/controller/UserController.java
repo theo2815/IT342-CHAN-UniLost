@@ -1,7 +1,7 @@
 package edu.cit.chan.unilost.controller;
 
+import edu.cit.chan.unilost.dto.RegisterRequest;
 import edu.cit.chan.unilost.dto.UserDTO;
-import edu.cit.chan.unilost.dto.UserRegistrationDTO;
 import edu.cit.chan.unilost.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -12,6 +12,11 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+/**
+ * User profile management endpoints.
+ *
+ * Phase 3 — Authentication System (user CRUD)
+ */
 @RestController
 @RequestMapping("/api/users")
 @RequiredArgsConstructor
@@ -21,8 +26,7 @@ public class UserController {
 
     @GetMapping
     public ResponseEntity<List<UserDTO>> getAllUsers() {
-        List<UserDTO> users = userService.getAllUsers();
-        return ResponseEntity.ok(users);
+        return ResponseEntity.ok(userService.getAllUsers());
     }
 
     @GetMapping("/{id}")
@@ -33,8 +37,7 @@ public class UserController {
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<?> updateUser(@PathVariable String id, @RequestBody UserRegistrationDTO updateDTO) {
-        // Users can only update their own profile
+    public ResponseEntity<?> updateUser(@PathVariable String id, @RequestBody RegisterRequest updateDTO) {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         String currentEmail = (String) auth.getPrincipal();
 
@@ -57,7 +60,6 @@ public class UserController {
 
     @DeleteMapping("/{id}")
     public ResponseEntity<?> deleteUser(@PathVariable String id) {
-        // Users can only delete their own account
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         String currentEmail = (String) auth.getPrincipal();
 

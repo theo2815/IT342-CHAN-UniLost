@@ -41,18 +41,18 @@ export const mockAdminActions = [
 
 // ── Admin Users ──────────────────────────────────────────────
 export const mockAdminUsers = [
-    { id: 'u1', firstName: 'Juan', lastName: 'Dela Cruz', email: 'juan.delacruz@cit.edu', school: { name: 'Cebu Institute of Technology - University', shortName: 'CIT-U' }, role: 'STUDENT', karmaScore: 45, isBanned: false, studentId: '2021-0001', createdAt: '2024-06-15T08:00:00' },
-    { id: 'u2', firstName: 'Maria', lastName: 'Santos', email: 'maria.santos@usc.edu.ph', school: { name: 'University of San Carlos', shortName: 'USC' }, role: 'ADMIN', karmaScore: 120, isBanned: false, studentId: '2020-1234', createdAt: '2024-05-10T08:00:00' },
-    { id: 'u3', firstName: 'Carlos', lastName: 'Reyes', email: 'carlos.reyes@up.edu.ph', school: { name: 'University of the Philippines Cebu', shortName: 'UP Cebu' }, role: 'ADMIN', karmaScore: 98, isBanned: false, studentId: '2020-5678', createdAt: '2024-05-12T08:00:00' },
-    { id: 'u4', firstName: 'Ana', lastName: 'Garcia', email: 'ana.garcia@usjr.edu.ph', school: { name: 'University of San Jose-Recoletos', shortName: 'USJ-R' }, role: 'STUDENT', karmaScore: 32, isBanned: false, studentId: '2022-0045', createdAt: '2024-08-20T08:00:00' },
-    { id: 'u5', firstName: 'Pedro', lastName: 'Lim', email: 'pedro.lim@uc.edu.ph', school: { name: 'University of Cebu', shortName: 'UC' }, role: 'STUDENT', karmaScore: 15, isBanned: true, studentId: '2021-0789', createdAt: '2024-07-01T08:00:00' },
-    { id: 'u6', firstName: 'Rosa', lastName: 'Tan', email: 'rosa.tan@swu.edu.ph', school: { name: 'Southwestern University PHINMA', shortName: 'SWU' }, role: 'STUDENT', karmaScore: 67, isBanned: false, studentId: '2022-1111', createdAt: '2024-09-15T08:00:00' },
-    { id: 'u7', firstName: 'Miguel', lastName: 'Aquino', email: 'miguel.aquino@cnu.edu.ph', school: { name: 'Cebu Normal University', shortName: 'CNU' }, role: 'STUDENT', karmaScore: 28, isBanned: false, studentId: '2023-0222', createdAt: '2024-10-05T08:00:00' },
-    { id: 'u8', firstName: 'Lisa', lastName: 'Cruz', email: 'lisa.cruz@ctu.edu.ph', school: { name: 'Cebu Technological University', shortName: 'CTU' }, role: 'STUDENT', karmaScore: 53, isBanned: false, studentId: '2022-0333', createdAt: '2024-08-12T08:00:00' },
-    { id: 'u9', firstName: 'John', lastName: 'Spam', email: 'john.spam@cit.edu', school: { name: 'Cebu Institute of Technology - University', shortName: 'CIT-U' }, role: 'STUDENT', karmaScore: 0, isBanned: true, studentId: '2023-9999', createdAt: '2025-01-10T08:00:00' },
-    { id: 'u10', firstName: 'Sophia', lastName: 'Mendoza', email: 'sophia.mendoza@usc.edu.ph', school: { name: 'University of San Carlos', shortName: 'USC' }, role: 'STUDENT', karmaScore: 72, isBanned: false, studentId: '2021-0567', createdAt: '2024-06-20T08:00:00' },
-    { id: 'u11', firstName: 'Daniel', lastName: 'Villanueva', email: 'daniel.v@up.edu.ph', school: { name: 'University of the Philippines Cebu', shortName: 'UP Cebu' }, role: 'STUDENT', karmaScore: 41, isBanned: false, studentId: '2022-0888', createdAt: '2024-11-01T08:00:00' },
-    { id: 'u12', firstName: 'Admin', lastName: 'Super', email: 'admin@unilost.com', school: { name: 'UniLost Platform', shortName: 'UniLost' }, role: 'SUPER_ADMIN', karmaScore: 999, isBanned: false, studentId: 'ADMIN-001', createdAt: '2024-01-01T08:00:00' },
+    { id: 'u1', fullName: 'Juan Dela Cruz', email: 'juan.delacruz@cit.edu', campus: { id: 'CIT-U-MAIN', name: 'Cebu Institute of Technology - University' }, role: 'STUDENT', karmaScore: 45, isBanned: false, createdAt: '2024-06-15T08:00:00' },
+    { id: 'u2', fullName: 'Maria Santos', email: 'maria.santos@usc.edu.ph', campus: { id: 'USC-MAIN', name: 'University of San Carlos' }, role: 'ADMIN', karmaScore: 120, isBanned: false, createdAt: '2024-05-10T08:00:00' },
+    { id: 'u3', fullName: 'Carlos Reyes', email: 'carlos.reyes@up.edu.ph', campus: { id: 'UP-CEBU', name: 'University of the Philippines Cebu' }, role: 'ADMIN', karmaScore: 98, isBanned: false, createdAt: '2024-05-12T08:00:00' },
+    { id: 'u4', fullName: 'Ana Garcia', email: 'ana.garcia@usjr.edu.ph', campus: { id: 'USJR-MAIN', name: 'University of San Jose-Recoletos' }, role: 'STUDENT', karmaScore: 32, isBanned: false, createdAt: '2024-08-20T08:00:00' },
+    { id: 'u5', fullName: 'Pedro Lim', email: 'pedro.lim@uc.edu.ph', campus: { id: 'UC-MAIN', name: 'University of Cebu' }, role: 'STUDENT', karmaScore: 15, isBanned: true, createdAt: '2024-07-01T08:00:00' },
+    { id: 'u6', fullName: 'Rosa Tan', email: 'rosa.tan@swu.edu.ph', campus: { id: 'SWU-MAIN', name: 'Southwestern University PHINMA' }, role: 'STUDENT', karmaScore: 67, isBanned: false, createdAt: '2024-09-15T08:00:00' },
+    { id: 'u7', fullName: 'Miguel Aquino', email: 'miguel.aquino@cnu.edu.ph', campus: { id: 'CNU-MAIN', name: 'Cebu Normal University' }, role: 'STUDENT', karmaScore: 28, isBanned: false, createdAt: '2024-10-05T08:00:00' },
+    { id: 'u8', fullName: 'Lisa Cruz', email: 'lisa.cruz@ctu.edu.ph', campus: { id: 'CTU-MAIN', name: 'Cebu Technological University' }, role: 'STUDENT', karmaScore: 53, isBanned: false, createdAt: '2024-08-12T08:00:00' },
+    { id: 'u9', fullName: 'John Spam', email: 'john.spam@cit.edu', campus: { id: 'CIT-U-MAIN', name: 'Cebu Institute of Technology - University' }, role: 'STUDENT', karmaScore: 0, isBanned: true, createdAt: '2025-01-10T08:00:00' },
+    { id: 'u10', fullName: 'Sophia Mendoza', email: 'sophia.mendoza@usc.edu.ph', campus: { id: 'USC-MAIN', name: 'University of San Carlos' }, role: 'STUDENT', karmaScore: 72, isBanned: false, createdAt: '2024-06-20T08:00:00' },
+    { id: 'u11', fullName: 'Daniel Villanueva', email: 'daniel.v@up.edu.ph', campus: { id: 'UP-CEBU', name: 'University of the Philippines Cebu' }, role: 'STUDENT', karmaScore: 41, isBanned: false, createdAt: '2024-11-01T08:00:00' },
+    { id: 'u12', fullName: 'UniLost Admin', email: 'admin@cit.edu', campus: { id: 'CIT-U-MAIN', name: 'Cebu Institute of Technology - University' }, role: 'ADMIN', karmaScore: 999, isBanned: false, createdAt: '2024-01-01T08:00:00' },
 ];
 
 // ── Admin Items ──────────────────────────────────────────────

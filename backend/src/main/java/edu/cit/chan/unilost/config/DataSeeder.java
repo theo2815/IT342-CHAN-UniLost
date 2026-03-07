@@ -1,93 +1,72 @@
 package edu.cit.chan.unilost.config;
 
-import edu.cit.chan.unilost.entity.SchoolEntity;
+import edu.cit.chan.unilost.entity.CampusEntity;
 import edu.cit.chan.unilost.entity.UserEntity;
-import edu.cit.chan.unilost.repository.SchoolRepository;
+import edu.cit.chan.unilost.repository.CampusRepository;
 import edu.cit.chan.unilost.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.CommandLineRunner;
+import org.springframework.data.mongodb.core.geo.GeoJsonPoint;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDateTime;
 
-import lombok.extern.slf4j.Slf4j;
-
+/**
+ * Seeds initial data on application startup.
+ *
+ * Phase 1 — Backend Project Setup
+ */
+// TODO: [Phase 4] Add sample items for development/testing
+// TODO: [Phase 5] Add sample claims for development/testing
 @Slf4j
 @Component
 @RequiredArgsConstructor
 public class DataSeeder implements CommandLineRunner {
 
-    private final SchoolRepository schoolRepository;
+    private final CampusRepository campusRepository;
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
 
     @Override
     public void run(String... args) {
         try {
-            seedSchools();
-            seedSuperAdmin();
+            seedCampuses();
             seedAdmin();
         } catch (Exception e) {
             log.warn("DataSeeder failed (database may be temporarily unavailable): {}", e.getMessage());
         }
     }
 
-    private void seedSchools() {
-        if (schoolRepository.count() > 0) {
+    private void seedCampuses() {
+        if (campusRepository.count() > 0) {
             return;
         }
 
-        System.out.println("=== Seeding Cebu City Universities ===");
+        log.info("=== Seeding Cebu City Campuses ===");
 
-        createSchool("Cebu Institute of Technology - University", "CIT-U", "Cebu City", "cit.edu");
-        createSchool("University of San Carlos", "USC", "Cebu City", "usc.edu.ph");
-        createSchool("University of San Jose - Recoletos", "USJ-R", "Cebu City", "usjr.edu.ph");
-        createSchool("University of Cebu", "UC", "Cebu City", "uc.edu.ph");
-        createSchool("University of the Philippines Cebu", "UP Cebu", "Cebu City", "up.edu.ph");
-        createSchool("Southwestern University PHINMA", "SWU", "Cebu City", "swu.edu.ph");
-        createSchool("Cebu Normal University", "CNU", "Cebu City", "cnu.edu.ph");
-        createSchool("Cebu Technological University", "CTU", "Cebu City", "ctu.edu.ph");
+        // [longitude, latitude] for GeoJsonPoint
+        createCampus("CIT-U-MAIN", "Cebu Institute of Technology - University", "cit.edu", 123.8779, 10.2948);
+        createCampus("USC-MAIN", "University of San Carlos - Main", "usc.edu.ph", 123.8988, 10.3001);
+        createCampus("USJR-MAIN", "University of San Jose - Recoletos", "usjr.edu.ph", 123.8961, 10.2995);
+        createCampus("UC-MAIN", "University of Cebu - Main", "uc.edu.ph", 123.9000, 10.3020);
+        createCampus("UP-CEBU", "University of the Philippines Cebu", "up.edu.ph", 123.8853, 10.3231);
+        createCampus("SWU-MAIN", "Southwestern University PHINMA", "swu.edu.ph", 123.8930, 10.3060);
+        createCampus("CNU-MAIN", "Cebu Normal University", "cnu.edu.ph", 123.8920, 10.3050);
+        createCampus("CTU-MAIN", "Cebu Technological University - Main", "ctu.edu.ph", 123.8975, 10.2935);
 
-        System.out.println("=== School seeding complete ===");
+        log.info("=== Campus seeding complete ===");
     }
 
-    private void createSchool(String name, String shortName, String city, String emailDomain) {
-        SchoolEntity school = new SchoolEntity();
-        school.setName(name);
-        school.setShortName(shortName);
-        school.setCity(city);
-        school.setEmailDomain(emailDomain);
-        school.setActive(true);
-        school.setCreatedAt(LocalDateTime.now());
-        schoolRepository.save(school);
-        System.out.println("  Seeded: " + shortName + " (" + emailDomain + ")");
-    }
-
-    private void seedSuperAdmin() {
-        String adminEmail = "admin@unilost.com";
-        if (userRepository.existsByEmail(adminEmail)) {
-            return;
-        }
-
-        // Create a default super admin account
-        // Find CIT-U as default school for the admin
-        SchoolEntity citU = schoolRepository.findByEmailDomain("cit.edu").orElse(null);
-
-        UserEntity admin = new UserEntity();
-        admin.setFirstName("UniLost");
-        admin.setLastName("Admin");
-        admin.setEmail(adminEmail);
-        admin.setPassword(passwordEncoder.encode("admin123456"));
-        admin.setStudentIdNumber("ADMIN-001");
-        admin.setRole("SUPER_ADMIN");
-        admin.setSchool(citU);
-        admin.setVerified(true);
-        admin.setCreatedAt(LocalDateTime.now());
-        admin.setUpdatedAt(LocalDateTime.now());
-        userRepository.save(admin);
-
-        System.out.println("  Seeded Super Admin: " + adminEmail);
+    private void createCampus(String id, String name, String domain, double lng, double lat) {
+        CampusEntity campus = new CampusEntity();
+        campus.setId(id);
+        campus.setName(name);
+        campus.setDomainWhitelist(domain);
+        campus.setCenterCoordinates(new GeoJsonPoint(lng, lat));
+        campusRepository.save(campus);
+        log.info("  Seeded campus: {} ({})", id, domain);
     }
 
     private void seedAdmin() {
@@ -96,22 +75,17 @@ public class DataSeeder implements CommandLineRunner {
             return;
         }
 
-        // Create a default campus admin account
-        SchoolEntity citU = schoolRepository.findByEmailDomain("cit.edu").orElse(null);
-
         UserEntity admin = new UserEntity();
-        admin.setFirstName("Campus");
-        admin.setLastName("Admin");
         admin.setEmail(adminEmail);
-        admin.setPassword(passwordEncoder.encode("admin123456"));
-        admin.setStudentIdNumber("ADMIN-002");
+        admin.setPasswordHash(passwordEncoder.encode("admin123456"));
+        admin.setFullName("UniLost Admin");
+        admin.setUniversityTag("CIT-U-MAIN");
         admin.setRole("ADMIN");
-        admin.setSchool(citU);
-        admin.setVerified(true);
+        admin.setAccountStatus("ACTIVE");
+        admin.setEmailVerified(true);
         admin.setCreatedAt(LocalDateTime.now());
-        admin.setUpdatedAt(LocalDateTime.now());
         userRepository.save(admin);
 
-        System.out.println("  Seeded Campus Admin: " + adminEmail);
+        log.info("  Seeded admin: {}", adminEmail);
     }
 }

@@ -1,24 +1,24 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Search, GraduationCap, Mail, Lock, User, MapPin, Phone, ArrowRight, AlertTriangle, CheckSquare, Square, CheckCircle, ShieldCheck, MapPinned } from 'lucide-react';
+import { Search, GraduationCap, Mail, Lock, User, ArrowRight, AlertTriangle, CheckSquare, Square, CheckCircle, ShieldCheck, MapPinned, Eye, EyeOff } from 'lucide-react';
 import authService from '../../services/authService';
-import schoolService from '../../services/schoolService';
+import campusService from '../../services/campusService';
+import { useToast } from '../../components/Toast';
 import './Register.css';
 
 function Register() {
     const navigate = useNavigate();
-    const [schools, setSchools] = useState([]);
-    const [detectedSchool, setDetectedSchool] = useState(null);
+    const toast = useToast();
+    const [campuses, setCampuses] = useState([]);
+    const [detectedCampus, setDetectedCampus] = useState(null);
+    const [showPassword, setShowPassword] = useState(false);
+    const [showConfirm, setShowConfirm] = useState(false);
 
     const [formData, setFormData] = useState({
-        firstName: '',
-        lastName: '',
+        fullName: '',
         email: '',
         password: '',
         confirmPassword: '',
-        studentIdNumber: '',
-        address: '',
-        phoneNumber: '',
         agreeToTerms: false
     });
 
@@ -26,38 +26,53 @@ function Register() {
     const [errors, setErrors] = useState({});
     const [apiError, setApiError] = useState('');
 
-    // Fetch schools on mount for domain validation display
+    // Password strength calculation
+    const passwordStrength = useMemo(() => {
+        const pw = formData.password;
+        if (!pw) return null;
+        let score = 0;
+        if (pw.length >= 6) score++;
+        if (pw.length >= 10) score++;
+        if (/[A-Z]/.test(pw)) score++;
+        if (/[0-9]/.test(pw)) score++;
+        if (/[^A-Za-z0-9]/.test(pw)) score++;
+        if (score <= 1) return { label: 'Weak', level: 'weak' };
+        if (score <= 3) return { label: 'Medium', level: 'medium' };
+        return { label: 'Strong', level: 'strong' };
+    }, [formData.password]);
+
+    // Fetch campuses on mount for domain validation display
     useEffect(() => {
-        const fetchSchools = async () => {
+        const fetchCampuses = async () => {
             try {
-                const result = await schoolService.getAllSchools();
+                const result = await campusService.getAllCampuses();
                 if (result.success) {
-                    setSchools(result.data);
+                    setCampuses(result.data);
                 }
             } catch (err) {
-                console.error("Failed to fetch schools", err);
+                console.error("Failed to fetch campuses", err);
             }
         };
-        fetchSchools();
+        fetchCampuses();
     }, []);
 
-    // Auto-detect school from email domain
+    // Auto-detect campus from email domain
     useEffect(() => {
         const email = formData.email;
         if (email && email.includes('@')) {
             const domain = email.split('@')[1]?.toLowerCase();
             if (domain) {
-                const matched = schools.find(s =>
-                    s.emailDomain && s.emailDomain.toLowerCase() === domain
+                const matched = campuses.find(c =>
+                    c.domainWhitelist && c.domainWhitelist.toLowerCase() === domain
                 );
-                setDetectedSchool(matched || null);
+                setDetectedCampus(matched || null);
             } else {
-                setDetectedSchool(null);
+                setDetectedCampus(null);
             }
         } else {
-            setDetectedSchool(null);
+            setDetectedCampus(null);
         }
-    }, [formData.email, schools]);
+    }, [formData.email, campuses]);
 
     const handleChange = (e) => {
         const { name, value, type, checked } = e.target;
@@ -72,21 +87,28 @@ function Register() {
 
     const validateForm = () => {
         const newErrors = {};
-        if (!formData.firstName.trim()) newErrors.firstName = 'First name is required';
-        if (!formData.lastName.trim()) newErrors.lastName = 'Last name is required';
+        if (!formData.fullName.trim()) newErrors.fullName = 'Full name is required';
 
         if (!formData.email.trim()) {
             newErrors.email = 'Email is required';
-        } else if (!formData.email.includes('@')) {
+        } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
             newErrors.email = 'Please enter a valid email address';
-        } else if (!detectedSchool) {
+        } else if (!detectedCampus) {
             newErrors.email = 'Use your university email (e.g., name@cit.edu)';
         }
 
-        if (!formData.password) newErrors.password = 'Password is required';
-        else if (formData.password.length < 6) newErrors.password = 'Min. 6 characters';
+        if (!formData.password) {
+            newErrors.password = 'Password is required';
+        } else if (formData.password.length < 6) {
+            newErrors.password = 'Password must be at least 6 characters';
+        }
 
-        if (formData.password !== formData.confirmPassword) newErrors.confirmPassword = 'Passwords do not match';
+        if (!formData.confirmPassword) {
+            newErrors.confirmPassword = 'Please confirm your password';
+        } else if (formData.password !== formData.confirmPassword) {
+            newErrors.confirmPassword = 'Passwords do not match';
+        }
+
         if (!formData.agreeToTerms) newErrors.agreeToTerms = 'You must agree to the terms';
 
         setErrors(newErrors);
@@ -103,12 +125,17 @@ function Register() {
         try {
             const result = await authService.register(formData);
             if (result.success) {
-                navigate('/login');
+                toast.success('Your account has been created. Please sign in.', { title: 'Registration Successful', duration: 3000 });
+                setTimeout(() => navigate('/login'), 800);
             } else {
-                setApiError(result.error || 'Registration failed.');
+                const msg = typeof result.error === 'string' ? result.error : 'Registration failed.';
+                setApiError(msg);
+                toast.error(msg, { title: 'Registration Failed' });
             }
         } catch (err) {
-            setApiError('Something went wrong. Please try again.');
+            const msg = 'Something went wrong. Please try again.';
+            setApiError(msg);
+            toast.error(msg);
         } finally {
             setIsLoading(false);
         }
@@ -135,60 +162,47 @@ function Register() {
                             </div>
                         )}
 
-                        <form onSubmit={handleSubmit} className="register-form">
-                            <div className="form-row">
-                                <div className="form-group">
-                                    <label>First Name</label>
-                                    <div className="input-group">
-                                        <User className="input-icon" size={18} />
-                                        <input
-                                            type="text"
-                                            name="firstName"
-                                            value={formData.firstName}
-                                            onChange={handleChange}
-                                            placeholder="Jane"
-                                            className={errors.firstName ? 'error' : ''}
-                                        />
-                                    </div>
-                                    {errors.firstName && <span className="error-msg">{errors.firstName}</span>}
+                        <form onSubmit={handleSubmit} className="register-form" noValidate>
+                            <div className="form-group full-width">
+                                <label htmlFor="fullName">Full Name <span className="required">*</span></label>
+                                <div className="input-group">
+                                    <User className="input-icon" size={18} />
+                                    <input
+                                        type="text"
+                                        id="fullName"
+                                        name="fullName"
+                                        value={formData.fullName}
+                                        onChange={handleChange}
+                                        placeholder="Jane Doe"
+                                        className={errors.fullName ? 'input-error' : ''}
+                                        autoComplete="name"
+                                    />
                                 </div>
-                                <div className="form-group">
-                                    <label>Last Name</label>
-                                    <div className="input-group">
-                                        <User className="input-icon" size={18} />
-                                        <input
-                                            type="text"
-                                            name="lastName"
-                                            value={formData.lastName}
-                                            onChange={handleChange}
-                                            placeholder="Doe"
-                                            className={errors.lastName ? 'error' : ''}
-                                        />
-                                    </div>
-                                    {errors.lastName && <span className="error-msg">{errors.lastName}</span>}
-                                </div>
+                                {errors.fullName && <span className="field-error">{errors.fullName}</span>}
                             </div>
 
                             <div className="form-group full-width">
-                                <label>University Email <span className="required">*</span></label>
+                                <label htmlFor="email">University Email <span className="required">*</span></label>
                                 <div className="input-group">
                                     <Mail className="input-icon" size={18} />
                                     <input
                                         type="email"
+                                        id="email"
                                         name="email"
                                         value={formData.email}
                                         onChange={handleChange}
                                         placeholder="yourname@cit.edu"
-                                        className={errors.email ? 'error' : ''}
+                                        className={errors.email ? 'input-error' : ''}
+                                        autoComplete="email"
                                     />
                                 </div>
-                                {detectedSchool && (
+                                {detectedCampus && (
                                     <span className="school-detected">
-                                        Detected: {detectedSchool.name} ({detectedSchool.shortName})
+                                        <CheckCircle size={14} /> {detectedCampus.name}
                                     </span>
                                 )}
-                                {errors.email && <span className="error-msg">{errors.email}</span>}
-                                {!detectedSchool && formData.email.includes('@') && !errors.email && (
+                                {errors.email && <span className="field-error">{errors.email}</span>}
+                                {!detectedCampus && formData.email.includes('@') && !errors.email && (
                                     <span className="email-hint">
                                         Supported: cit.edu, usc.edu.ph, usjr.edu.ph, uc.edu.ph, up.edu.ph, swu.edu.ph, cnu.edu.ph, ctu.edu.ph
                                     </span>
@@ -196,81 +210,65 @@ function Register() {
                             </div>
 
                             <div className="form-group full-width">
-                                <label>Address</label>
+                                <label htmlFor="password">Password <span className="required">*</span></label>
                                 <div className="input-group">
-                                    <MapPin className="input-icon" size={18} />
+                                    <Lock className="input-icon" size={18} />
                                     <input
-                                        type="text"
-                                        name="address"
-                                        value={formData.address}
+                                        type={showPassword ? 'text' : 'password'}
+                                        id="password"
+                                        name="password"
+                                        value={formData.password}
                                         onChange={handleChange}
-                                        placeholder="Your complete address"
+                                        placeholder="••••••"
+                                        className={errors.password ? 'input-error' : ''}
+                                        autoComplete="new-password"
                                     />
+                                    <button
+                                        type="button"
+                                        className="password-toggle"
+                                        onClick={() => setShowPassword(v => !v)}
+                                        tabIndex={-1}
+                                        aria-label={showPassword ? 'Hide password' : 'Show password'}
+                                    >
+                                        {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                                    </button>
                                 </div>
+                                {errors.password && <span className="field-error">{errors.password}</span>}
+                                {passwordStrength && !errors.password && (
+                                    <div className="password-strength">
+                                        <div className="strength-bar">
+                                            <div className={`strength-fill strength-${passwordStrength.level}`}></div>
+                                        </div>
+                                        <span className={`strength-label strength-${passwordStrength.level}`}>{passwordStrength.label}</span>
+                                    </div>
+                                )}
                             </div>
 
-                            <div className="form-row">
-                                <div className="form-group">
-                                    <label>Password</label>
-                                    <div className="input-group">
-                                        <Lock className="input-icon" size={18} />
-                                        <input
-                                            type="password"
-                                            name="password"
-                                            value={formData.password}
-                                            onChange={handleChange}
-                                            placeholder="••••••"
-                                            className={errors.password ? 'error' : ''}
-                                        />
-                                    </div>
-                                    {errors.password && <span className="error-msg">{errors.password}</span>}
+                            <div className="form-group full-width">
+                                <label htmlFor="confirmPassword">Confirm Password <span className="required">*</span></label>
+                                <div className="input-group">
+                                    <CheckCircle className="input-icon" size={18} />
+                                    <input
+                                        type={showConfirm ? 'text' : 'password'}
+                                        id="confirmPassword"
+                                        name="confirmPassword"
+                                        value={formData.confirmPassword}
+                                        onChange={handleChange}
+                                        placeholder="••••••"
+                                        className={errors.confirmPassword ? 'input-error' : ''}
+                                        autoComplete="new-password"
+                                    />
+                                    <button
+                                        type="button"
+                                        className="password-toggle"
+                                        onClick={() => setShowConfirm(v => !v)}
+                                        tabIndex={-1}
+                                        aria-label={showConfirm ? 'Hide password' : 'Show password'}
+                                    >
+                                        {showConfirm ? <EyeOff size={16} /> : <Eye size={16} />}
+                                    </button>
                                 </div>
-                                <div className="form-group">
-                                    <label>Confirm</label>
-                                    <div className="input-group">
-                                        <CheckCircle className="input-icon" size={18} />
-                                        <input
-                                            type="password"
-                                            name="confirmPassword"
-                                            value={formData.confirmPassword}
-                                            onChange={handleChange}
-                                            placeholder="••••••"
-                                            className={errors.confirmPassword ? 'error' : ''}
-                                        />
-                                    </div>
-                                    {errors.confirmPassword && <span className="error-msg">{errors.confirmPassword}</span>}
-                                </div>
-                            </div>
-
-                            {/* Optional Fields */}
-                            <div className="optional-section">
-                                <p className="section-label">Additional Info (Optional)</p>
-                                <div className="form-row">
-                                    <div className="form-group">
-                                        <div className="input-group">
-                                            <GraduationCap className="input-icon" size={18} />
-                                            <input
-                                                type="text"
-                                                name="studentIdNumber"
-                                                value={formData.studentIdNumber}
-                                                onChange={handleChange}
-                                                placeholder="Student ID No."
-                                            />
-                                        </div>
-                                    </div>
-                                    <div className="form-group">
-                                        <div className="input-group">
-                                            <Phone className="input-icon" size={18} />
-                                            <input
-                                                type="tel"
-                                                name="phoneNumber"
-                                                value={formData.phoneNumber}
-                                                onChange={handleChange}
-                                                placeholder="Phone Number"
-                                            />
-                                        </div>
-                                    </div>
-                                </div>
+                                {errors.confirmPassword && <span className="field-error">{errors.confirmPassword}</span>}
                             </div>
 
                             <div className="form-group checkbox-group">
@@ -286,11 +284,16 @@ function Register() {
                                     </div>
                                     <span>I agree to the <a href="#">Terms</a> & <a href="#">Privacy Policy</a></span>
                                 </label>
-                                {errors.agreeToTerms && <span className="error-msg">{errors.agreeToTerms}</span>}
+                                {errors.agreeToTerms && <span className="field-error">{errors.agreeToTerms}</span>}
                             </div>
 
                             <button type="submit" className="btn-primary" disabled={isLoading}>
-                                {isLoading ? 'Creating Account...' : (
+                                {isLoading ? (
+                                    <span className="btn-loading">
+                                        <span className="spinner"></span>
+                                        Creating Account...
+                                    </span>
+                                ) : (
                                     <>Join UniLost <ArrowRight size={18} /></>
                                 )}
                             </button>

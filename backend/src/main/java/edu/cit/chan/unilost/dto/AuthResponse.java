@@ -7,12 +7,12 @@ import lombok.NoArgsConstructor;
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-public class JwtResponse {
+public class AuthResponse {
     private String token;
     private String type = "Bearer";
     private UserDTO user;
 
-    public JwtResponse(String token, UserDTO user) {
+    public AuthResponse(String token, UserDTO user) {
         this.token = token;
         this.user = user;
     }

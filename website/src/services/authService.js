@@ -5,14 +5,9 @@ const authService = {
     register: async (userData) => {
         try {
             const response = await api.post('/auth/register', {
-                firstName: userData.firstName,
-                lastName: userData.lastName,
+                fullName: userData.fullName,
                 email: userData.email,
                 password: userData.password,
-                studentIdNumber: userData.studentIdNumber || null,
-                address: userData.address || null,
-                phoneNumber: userData.phoneNumber || null,
-                profilePicture: userData.profilePicture || null,
             });
             return { success: true, data: response.data };
         } catch (error) {
@@ -73,12 +68,43 @@ const authService = {
     // Check if current user is admin
     isAdmin: () => {
         const role = authService.getUserRole();
-        return role === 'ADMIN' || role === 'SUPER_ADMIN';
+        return role === 'ADMIN';
     },
 
-    // Check if current user is super admin
-    isSuperAdmin: () => {
-        return authService.getUserRole() === 'SUPER_ADMIN';
+    // Check if current user is faculty
+    isFaculty: () => {
+        return authService.getUserRole() === 'FACULTY';
+    },
+
+    // Password reset flow
+    forgotPassword: async (email) => {
+        try {
+            const response = await api.post('/auth/forgot-password', { email });
+            return { success: true, message: response.data.message };
+        } catch (error) {
+            const message = error.response?.data || error.message || 'Failed to send reset code';
+            return { success: false, error: message };
+        }
+    },
+
+    verifyOtp: async (email, otp) => {
+        try {
+            const response = await api.post('/auth/verify-otp', { email, otp });
+            return { success: true, message: response.data.message };
+        } catch (error) {
+            const message = error.response?.data || error.message || 'OTP verification failed';
+            return { success: false, error: message };
+        }
+    },
+
+    resetPassword: async (email, otp, newPassword) => {
+        try {
+            const response = await api.post('/auth/reset-password', { email, otp, newPassword });
+            return { success: true, message: response.data.message };
+        } catch (error) {
+            const message = error.response?.data || error.message || 'Password reset failed';
+            return { success: false, error: message };
+        }
     },
 };
 

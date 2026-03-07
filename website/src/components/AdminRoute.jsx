@@ -16,15 +16,15 @@ export const AdminRoute = () => {
   return <Outlet />;
 };
 
-export const SuperAdminRoute = () => {
+export const FacultyRoute = () => {
   const isAuthenticated = authService.isAuthenticated();
-  const isSuperAdmin = authService.isSuperAdmin();
+  const isFaculty = authService.isFaculty();
 
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
   }
 
-  if (!isSuperAdmin) {
+  if (!isFaculty) {
     return <Navigate to="/admin" replace />;
   }
 

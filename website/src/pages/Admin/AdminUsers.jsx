@@ -5,10 +5,10 @@ import Header from '../../components/Header';
 import { mockAdminUsers, timeAgo } from '../../mockData/adminData';
 import './AdminUsers.css';
 
-const roleOptions = ['All', 'STUDENT', 'ADMIN', 'SUPER_ADMIN'];
+const roleOptions = ['All', 'STUDENT', 'FACULTY', 'ADMIN'];
 const statusOptions = ['All', 'Active', 'Banned'];
 
-const roleLabels = { STUDENT: 'Student', ADMIN: 'Campus Admin', SUPER_ADMIN: 'Super Admin' };
+const roleLabels = { STUDENT: 'Student', FACULTY: 'Faculty', ADMIN: 'Admin' };
 
 const AdminUsers = () => {
     const [search, setSearch] = useState('');
@@ -24,7 +24,7 @@ const AdminUsers = () => {
     const filtered = users.filter(user => {
         if (search) {
             const q = search.toLowerCase();
-            if (!user.firstName.toLowerCase().includes(q) && !user.lastName.toLowerCase().includes(q) && !user.email.toLowerCase().includes(q) && !user.studentId.toLowerCase().includes(q)) return false;
+            if (!user.fullName.toLowerCase().includes(q) && !user.email.toLowerCase().includes(q)) return false;
         }
         if (roleFilter !== 'All' && user.role !== roleFilter) return false;
         if (statusFilter === 'Active' && user.isBanned) return false;
@@ -107,12 +107,12 @@ const AdminUsers = () => {
                                     <tr key={user.id} style={{ animationDelay: `${i * 0.03}s` }}>
                                         <td>
                                             <div className="user-cell">
-                                                <div className="user-avatar">{user.firstName[0]}{user.lastName[0]}</div>
-                                                <span className="user-name">{user.firstName} {user.lastName}</span>
+                                                <div className="user-avatar">{user.fullName.split(' ').map(n => n[0]).join('').substring(0, 2)}</div>
+                                                <span className="user-name">{user.fullName}</span>
                                             </div>
                                         </td>
                                         <td className="td-email">{user.email}</td>
-                                        <td>{user.school.shortName}</td>
+                                        <td>{user.campus?.id || '-'}</td>
                                         <td>
                                             <span className={`role-chip ${user.role.toLowerCase().replace('_', '-')}`}>
                                                 {roleLabels[user.role]}
@@ -180,11 +180,11 @@ const AdminUsers = () => {
                                 </div>
                                 <div className="modal-body">
                                     <div className="ban-user-summary">
-                                        <div className="user-avatar lg">{banTarget.firstName[0]}{banTarget.lastName[0]}</div>
+                                        <div className="user-avatar lg">{banTarget.fullName.split(' ').map(n => n[0]).join('').substring(0, 2)}</div>
                                         <div>
-                                            <strong>{banTarget.firstName} {banTarget.lastName}</strong>
+                                            <strong>{banTarget.fullName}</strong>
                                             <span>{banTarget.email}</span>
-                                            <span>{banTarget.school.shortName} &middot; Karma: {banTarget.karmaScore}</span>
+                                            <span>{banTarget.campus?.id || '-'} &middot; Karma: {banTarget.karmaScore}</span>
                                         </div>
                                     </div>
                                     <label>Reason</label>

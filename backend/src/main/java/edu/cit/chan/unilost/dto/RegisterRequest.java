@@ -7,11 +7,9 @@ import lombok.NoArgsConstructor;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class SchoolDTO {
+public class RegisterRequest {
 
-    private String schoolId;
-    private String name;
-    private String shortName;
-    private String city;
-    private String emailDomain;
+    private String fullName;
+    private String email;
+    private String password;
 }

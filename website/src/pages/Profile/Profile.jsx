@@ -49,15 +49,16 @@ function Profile() {
     }
 
     const getInitials = () => {
-        return `${user.firstName?.charAt(0) || ''}${user.lastName?.charAt(0) || ''}`.toUpperCase();
+        const parts = (user.fullName || '').split(' ');
+        return parts.map(p => p.charAt(0)).join('').substring(0, 2).toUpperCase();
     };
 
     const roleBadge = () => {
         const role = user.role || 'STUDENT';
         const labels = {
             'STUDENT': 'Student',
-            'ADMIN': 'Campus Admin',
-            'SUPER_ADMIN': 'Super Admin'
+            'FACULTY': 'Faculty',
+            'ADMIN': 'Admin'
         };
         return labels[role] || 'Student';
     };
@@ -93,7 +94,7 @@ function Profile() {
                             
                             <div className="profile-name-section">
                                 <div className="name-row">
-                                    <h1>{user.firstName} {user.lastName}</h1>
+                                    <h1>{user.fullName}</h1>
                                     <span className="user-tag">
                                         <GraduationCap size={14} />
                                         {roleBadge()}
@@ -101,7 +102,7 @@ function Profile() {
                                 </div>
                                 <p className="user-affiliation">
                                     <ShieldCheck size={16} className="text-gold" />
-                                    Verified Student &bull; {user.school?.name || 'Cebu Institute of Technology - University'}
+                                    Verified Student &bull; {user.campus?.name || 'Cebu Institute of Technology - University'}
                                 </p>
                                 <div className="user-stats-minimal">
                                     <span>Member since 2024</span>

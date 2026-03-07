@@ -11,21 +11,16 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 public class UserDTO {
 
-    private String userId;
-    private String schoolId;
-    private String firstName;
-    private String lastName;
+    private String id;
     private String email;
-    private String address;
-    private String phoneNumber;
-    private String profilePicture;
-    private String studentIdNumber;
-    private String role;
+    private String fullName;
+    private String universityTag;
     private int karmaScore;
-    private boolean isVerified;
-    private boolean isBanned;
+    private String role;
+    private boolean emailVerified;
+    private String accountStatus;
     private LocalDateTime createdAt;
 
-    // School details (for response)
-    private SchoolDTO school;
+    // Resolved campus details (for API responses)
+    private CampusDTO campus;
 }

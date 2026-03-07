@@ -16,11 +16,15 @@ import AdminUsers from './pages/Admin/AdminUsers';
 import AdminClaims from './pages/Admin/AdminClaims';
 import SuperAdminPanel from './pages/Admin/SuperAdminPanel';
 import ProtectedRoute from './components/ProtectedRoute';
-import { AdminRoute, SuperAdminRoute } from './components/AdminRoute';
+import { AdminRoute, FacultyRoute } from './components/AdminRoute';
 import Landing from './pages/Landing/Landing';
+import ForgotPassword from './pages/ForgotPassword/ForgotPassword';
+import VerifyOTP from './pages/VerifyOTP/VerifyOTP';
+import ResetPassword from './pages/ResetPassword/ResetPassword';
 import MapView from './pages/MapView/MapView';
 import Leaderboard from './pages/Leaderboard/Leaderboard';
 import Messages from './pages/Messages/Messages';
+import { ToastProvider } from './components/Toast';
 import './App.css';
 
 import { ThemeProvider } from './context/ThemeContext';
@@ -28,11 +32,15 @@ import { ThemeProvider } from './context/ThemeContext';
 function App() {
   return (
     <ThemeProvider>
+      <ToastProvider>
       <Router>
         <Routes>
           <Route path="/" element={<Landing />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="/verify-otp" element={<VerifyOTP />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
 
           {/* Protected Routes */}
             <Route element={<ProtectedRoute />}>
@@ -56,12 +64,13 @@ function App() {
               <Route path="/admin/users" element={<AdminUsers />} />
               <Route path="/admin/claims" element={<AdminClaims />} />
             </Route>
-            <Route element={<SuperAdminRoute />}>
+            <Route element={<FacultyRoute />}>
               <Route path="/superadmin" element={<SuperAdminPanel />} />
             </Route>
           </Route>
         </Routes>
       </Router>
+      </ToastProvider>
     </ThemeProvider>
   );
 }

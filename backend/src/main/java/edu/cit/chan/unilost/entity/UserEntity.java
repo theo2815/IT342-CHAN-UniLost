@@ -6,7 +6,6 @@ import lombok.NoArgsConstructor;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
-import org.springframework.data.mongodb.core.mapping.DBRef;
 
 import java.time.LocalDateTime;
 
@@ -17,41 +16,34 @@ import java.time.LocalDateTime;
 public class UserEntity {
 
     @Id
-    private String userId;
-
-    @DBRef
-    private SchoolEntity school;
-
-    private String firstName;
-
-    private String lastName;
+    private String id;
 
     @Indexed(unique = true)
     private String email;
 
-    private String password;
+    private String passwordHash;
 
-    private String address;
+    private String fullName;
 
-    private String phoneNumber;
+    // Reference to campuses.id
+    private String universityTag;
 
-    private String profilePicture;
+    private int karmaScore = 0;
 
-    @Indexed(unique = true)
-    private String studentIdNumber;
-
-    // Role: STUDENT, ADMIN, SUPER_ADMIN
+    // STUDENT, FACULTY, ADMIN
     private String role = "STUDENT";
 
-    // Karma & stats (used in Phase 5, initialized here)
-    private int karmaScore = 0;
-    private int totalItemsReturned = 0;
-    private int totalItemsClaimed = 0;
+    // Auth & account management
+    private boolean emailVerified = false;
 
-    // Account status
-    private boolean isVerified = false;
-    private boolean isBanned = false;
+    // ACTIVE, SUSPENDED, DEACTIVATED
+    private String accountStatus = "ACTIVE";
 
     private LocalDateTime createdAt;
-    private LocalDateTime updatedAt;
+
+    private LocalDateTime lastLogin;
+
+    private String passwordResetToken;
+
+    private LocalDateTime passwordResetExpiry;
 }

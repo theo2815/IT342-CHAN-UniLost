@@ -1,83 +1,83 @@
 package edu.cit.chan.unilost.service;
 
-import edu.cit.chan.unilost.dto.SchoolDTO;
+import edu.cit.chan.unilost.dto.CampusDTO;
+import edu.cit.chan.unilost.dto.RegisterRequest;
 import edu.cit.chan.unilost.dto.UserDTO;
-import edu.cit.chan.unilost.dto.UserRegistrationDTO;
-import edu.cit.chan.unilost.entity.SchoolEntity;
+import edu.cit.chan.unilost.entity.CampusEntity;
 import edu.cit.chan.unilost.entity.UserEntity;
-import edu.cit.chan.unilost.repository.SchoolRepository;
+import edu.cit.chan.unilost.repository.CampusRepository;
 import edu.cit.chan.unilost.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.security.SecureRandom;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
+/**
+ * Core user management service.
+ *
+ * Phase 3 — Authentication System
+ */
 @Service
 @RequiredArgsConstructor
 public class UserService {
 
     private final UserRepository userRepository;
-    private final SchoolRepository schoolRepository;
-    private final SchoolService schoolService;
+    private final CampusRepository campusRepository;
     private final PasswordEncoder passwordEncoder;
+    private final EmailService emailService;
 
-    public UserDTO createUser(UserRegistrationDTO registrationDTO) {
-        // Check if email already exists
+    private static final int OTP_LENGTH = 6;
+    private static final int OTP_EXPIRY_MINUTES = 10;
+
+    public UserDTO createUser(RegisterRequest registrationDTO) {
         if (userRepository.existsByEmail(registrationDTO.getEmail())) {
-            throw new RuntimeException("Email already exists");
+            throw new RuntimeException("Email already registered");
         }
 
-        // Check if student ID already exists (only if provided)
-        if (registrationDTO.getStudentIdNumber() != null
-                && !registrationDTO.getStudentIdNumber().isEmpty()
-                && userRepository.existsByStudentIdNumber(registrationDTO.getStudentIdNumber())) {
-            throw new RuntimeException("Student ID number already exists");
-        }
-
-        // Email domain validation: extract domain and match to a school
+        // Validate email domain against campus whitelist
         String email = registrationDTO.getEmail();
-        String emailDomain = extractEmailDomain(email);
-        SchoolEntity school = schoolRepository.findByEmailDomain(emailDomain)
+        String domain = extractEmailDomain(email);
+        CampusEntity campus = campusRepository.findByDomainWhitelist(domain)
                 .orElseThrow(() -> new RuntimeException(
-                        "Email domain '" + emailDomain + "' is not recognized. Please use your university email."));
-
-        if (!school.isActive()) {
-            throw new RuntimeException("This university is currently not accepting new registrations.");
-        }
+                        "Email domain '" + domain + "' is not recognized. Please use your university email."));
 
         UserEntity user = new UserEntity();
-        user.setFirstName(registrationDTO.getFirstName());
-        user.setLastName(registrationDTO.getLastName());
         user.setEmail(registrationDTO.getEmail());
-        user.setPassword(passwordEncoder.encode(registrationDTO.getPassword()));
-        user.setAddress(registrationDTO.getAddress());
-        user.setPhoneNumber(registrationDTO.getPhoneNumber());
-        user.setProfilePicture(registrationDTO.getProfilePicture());
-        user.setStudentIdNumber(registrationDTO.getStudentIdNumber());
-        user.setSchool(school);
+        user.setPasswordHash(passwordEncoder.encode(registrationDTO.getPassword()));
+        user.setFullName(registrationDTO.getFullName());
+        user.setUniversityTag(campus.getId());
         user.setRole("STUDENT");
+        user.setAccountStatus("ACTIVE");
         user.setCreatedAt(LocalDateTime.now());
-        user.setUpdatedAt(LocalDateTime.now());
 
-        UserEntity savedUser = userRepository.save(user);
-        return convertToDTO(savedUser);
+        UserEntity saved = userRepository.save(user);
+        return convertToDTO(saved);
     }
 
     public UserDTO authenticate(String email, String password) {
         UserEntity user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("Invalid email or password"));
 
-        if (user.isBanned()) {
+        if ("SUSPENDED".equals(user.getAccountStatus())) {
             throw new RuntimeException("Your account has been suspended. Contact your campus admin.");
         }
 
-        if (!passwordEncoder.matches(password, user.getPassword())) {
+        if ("DEACTIVATED".equals(user.getAccountStatus())) {
+            throw new RuntimeException("This account has been deactivated.");
+        }
+
+        if (!passwordEncoder.matches(password, user.getPasswordHash())) {
             throw new RuntimeException("Invalid email or password");
         }
+
+        // Update last login timestamp
+        user.setLastLogin(LocalDateTime.now());
+        userRepository.save(user);
 
         return convertToDTO(user);
     }
@@ -99,31 +99,15 @@ public class UserService {
                 .map(this::convertToDTO);
     }
 
-    public Optional<UserDTO> updateUser(String id, UserRegistrationDTO updateDTO) {
+    public Optional<UserDTO> updateUser(String id, RegisterRequest updateDTO) {
         return userRepository.findById(id)
                 .map(existingUser -> {
-                    if (updateDTO.getFirstName() != null) {
-                        existingUser.setFirstName(updateDTO.getFirstName());
+                    if (updateDTO.getFullName() != null) {
+                        existingUser.setFullName(updateDTO.getFullName());
                     }
-                    if (updateDTO.getLastName() != null) {
-                        existingUser.setLastName(updateDTO.getLastName());
-                    }
-                    if (updateDTO.getAddress() != null) {
-                        existingUser.setAddress(updateDTO.getAddress());
-                    }
-                    if (updateDTO.getPhoneNumber() != null) {
-                        existingUser.setPhoneNumber(updateDTO.getPhoneNumber());
-                    }
-                    if (updateDTO.getProfilePicture() != null) {
-                        existingUser.setProfilePicture(updateDTO.getProfilePicture());
-                    }
-
-                    // Update password only if provided
                     if (updateDTO.getPassword() != null && !updateDTO.getPassword().isEmpty()) {
-                        existingUser.setPassword(passwordEncoder.encode(updateDTO.getPassword()));
+                        existingUser.setPasswordHash(passwordEncoder.encode(updateDTO.getPassword()));
                     }
-
-                    existingUser.setUpdatedAt(LocalDateTime.now());
                     return convertToDTO(userRepository.save(existingUser));
                 });
     }
@@ -136,6 +120,60 @@ public class UserService {
         return false;
     }
 
+    // ── Password Reset Flow ────────────────────────────────────
+
+    public void requestPasswordReset(String email) {
+        UserEntity user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("No account found with that email address."));
+
+        String otp = generateOtp();
+        user.setPasswordResetToken(passwordEncoder.encode(otp));
+        user.setPasswordResetExpiry(LocalDateTime.now().plusMinutes(OTP_EXPIRY_MINUTES));
+        userRepository.save(user);
+
+        emailService.sendPasswordResetOtp(email, otp);
+    }
+
+    public void verifyResetOtp(String email, String otp) {
+        UserEntity user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("No account found with that email address."));
+
+        if (user.getPasswordResetToken() == null || user.getPasswordResetExpiry() == null) {
+            throw new RuntimeException("No password reset was requested. Please request a new code.");
+        }
+
+        if (LocalDateTime.now().isAfter(user.getPasswordResetExpiry())) {
+            user.setPasswordResetToken(null);
+            user.setPasswordResetExpiry(null);
+            userRepository.save(user);
+            throw new RuntimeException("This code has expired. Please request a new one.");
+        }
+
+        if (!passwordEncoder.matches(otp, user.getPasswordResetToken())) {
+            throw new RuntimeException("Invalid verification code. Please try again.");
+        }
+    }
+
+    public void resetPassword(String email, String otp, String newPassword) {
+        // Re-verify OTP before changing password
+        verifyResetOtp(email, otp);
+
+        UserEntity user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("No account found with that email address."));
+
+        user.setPasswordHash(passwordEncoder.encode(newPassword));
+        user.setPasswordResetToken(null);
+        user.setPasswordResetExpiry(null);
+        userRepository.save(user);
+    }
+
+    private String generateOtp() {
+        SecureRandom random = new SecureRandom();
+        int bound = (int) Math.pow(10, OTP_LENGTH);
+        int otp = random.nextInt(bound);
+        return String.format("%0" + OTP_LENGTH + "d", otp);
+    }
+
     private String extractEmailDomain(String email) {
         if (email == null || !email.contains("@")) {
             throw new RuntimeException("Invalid email format");
@@ -145,30 +183,32 @@ public class UserService {
 
     private UserDTO convertToDTO(UserEntity user) {
         UserDTO dto = new UserDTO();
-        dto.setUserId(user.getUserId());
-        dto.setFirstName(user.getFirstName());
-        dto.setLastName(user.getLastName());
+        dto.setId(user.getId());
         dto.setEmail(user.getEmail());
-        dto.setAddress(user.getAddress());
-        dto.setPhoneNumber(user.getPhoneNumber());
-        dto.setProfilePicture(user.getProfilePicture());
-        dto.setStudentIdNumber(user.getStudentIdNumber());
-        dto.setRole(user.getRole());
+        dto.setFullName(user.getFullName());
+        dto.setUniversityTag(user.getUniversityTag());
         dto.setKarmaScore(user.getKarmaScore());
-        dto.setVerified(user.isVerified());
-        dto.setBanned(user.isBanned());
+        dto.setRole(user.getRole());
+        dto.setEmailVerified(user.isEmailVerified());
+        dto.setAccountStatus(user.getAccountStatus());
         dto.setCreatedAt(user.getCreatedAt());
 
-        // Convert school if present
-        if (user.getSchool() != null) {
-            SchoolEntity school = user.getSchool();
-            dto.setSchoolId(school.getSchoolId());
-            dto.setSchool(new SchoolDTO(
-                    school.getSchoolId(),
-                    school.getName(),
-                    school.getShortName(),
-                    school.getCity(),
-                    school.getEmailDomain()));
+        // Resolve campus details
+        if (user.getUniversityTag() != null) {
+            campusRepository.findById(user.getUniversityTag())
+                    .ifPresent(campus -> {
+                        CampusDTO campusDTO = new CampusDTO();
+                        campusDTO.setId(campus.getId());
+                        campusDTO.setName(campus.getName());
+                        campusDTO.setDomainWhitelist(campus.getDomainWhitelist());
+                        if (campus.getCenterCoordinates() != null) {
+                            campusDTO.setCenterCoordinates(new double[]{
+                                    campus.getCenterCoordinates().getX(),
+                                    campus.getCenterCoordinates().getY()
+                            });
+                        }
+                        dto.setCampus(campusDTO);
+                    });
         }
 
         return dto;

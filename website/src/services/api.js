@@ -27,10 +27,14 @@ api.interceptors.response.use(
     (response) => response,
     (error) => {
         if (error.response?.status === 401) {
-            // Clear auth data on unauthorized
-            localStorage.removeItem('user');
-            localStorage.removeItem('token');
-            window.location.href = '/login';
+            // Don't redirect for auth endpoints — let the login/register pages handle their own errors
+            const url = error.config?.url || '';
+            const isAuthRequest = url.includes('/auth/login') || url.includes('/auth/register');
+            if (!isAuthRequest) {
+                localStorage.removeItem('user');
+                localStorage.removeItem('token');
+                window.location.href = '/login';
+            }
         }
         return Promise.reject(error);
     }
