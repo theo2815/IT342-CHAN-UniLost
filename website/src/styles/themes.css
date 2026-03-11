@@ -1,0 +1,150 @@
+/* ============================================
+   Theme System — UniLost Design System
+   Light & Dark mode color definitions
+   ============================================ */
+
+/* ── Light Mode (Default) ── */
+:root {
+  /* Primary — Slate Blue */
+  --color-primary: #475569;
+  --color-primary-hover: #334155;
+  --color-primary-light: #64748b;
+  --color-primary-lighter: #94a3b8;
+  --color-primary-bg: rgba(71, 85, 105, 0.08);
+
+  /* Secondary — Sage Green */
+  --color-secondary: #84a98c;
+  --color-secondary-hover: #52796f;
+  --color-secondary-light: #a3c1ad;
+  --color-secondary-bg: rgba(132, 169, 140, 0.08);
+
+  /* Backgrounds */
+  --color-bg-base: #f1f5f9;
+  --color-bg-card: #ffffff;
+  --color-bg-input: #ffffff;
+  --color-bg-elevated: #ffffff;
+  --color-bg-overlay: rgba(15, 23, 42, 0.5);
+  --color-bg-hover: rgba(0, 0, 0, 0.04);
+  --color-bg-active: rgba(0, 0, 0, 0.06);
+
+  /* Text */
+  --color-text-primary: #1e293b;
+  --color-text-secondary: #475569;
+  --color-text-muted: #94a3b8;
+  --color-text-inverse: #ffffff;
+  --color-text-link: #475569;
+  --color-text-link-hover: #334155;
+
+  /* Borders */
+  --color-border: #e2e8f0;
+  --color-border-focus: #475569;
+  --color-border-strong: #cbd5e1;
+
+  /* Functional / Status */
+  --color-success: #10b981;
+  --color-success-hover: #059669;
+  --color-success-bg: rgba(16, 185, 129, 0.08);
+  --color-success-border: rgba(16, 185, 129, 0.3);
+  --color-success-text: #065f46;
+
+  --color-warning: #f59e0b;
+  --color-warning-hover: #d97706;
+  --color-warning-bg: rgba(245, 158, 11, 0.08);
+  --color-warning-border: rgba(245, 158, 11, 0.3);
+  --color-warning-text: #92400e;
+
+  --color-error: #ef4444;
+  --color-error-hover: #dc2626;
+  --color-error-bg: rgba(239, 68, 68, 0.08);
+  --color-error-border: rgba(239, 68, 68, 0.3);
+  --color-error-text: #991b1b;
+
+  --color-info: #3b82f6;
+  --color-info-hover: #2563eb;
+  --color-info-bg: rgba(59, 130, 246, 0.08);
+  --color-info-border: rgba(59, 130, 246, 0.3);
+  --color-info-text: #1e40af;
+
+  /* Gradients */
+  --gradient-primary: linear-gradient(135deg, #475569 0%, #64748b 100%);
+  --gradient-bg: linear-gradient(180deg, #f1f5f9 0%, #e2e8f0 100%);
+
+  /* Shadows */
+  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.04);
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.03);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -4px rgba(0, 0, 0, 0.03);
+  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.08), 0 8px 10px -6px rgba(0, 0, 0, 0.04);
+
+  /* Focus Ring */
+  --focus-ring-color: rgba(71, 85, 105, 0.4);
+}
+
+/* ── Dark Mode ── */
+[data-theme="dark"] {
+  /* Primary — Lighter for dark backgrounds */
+  --color-primary: #94a3b8;
+  --color-primary-hover: #cbd5e1;
+  --color-primary-light: #64748b;
+  --color-primary-lighter: #475569;
+  --color-primary-bg: rgba(148, 163, 184, 0.1);
+
+  /* Secondary */
+  --color-secondary: #a3c1ad;
+  --color-secondary-hover: #84a98c;
+  --color-secondary-light: #84a98c;
+  --color-secondary-bg: rgba(163, 193, 173, 0.1);
+
+  /* Backgrounds */
+  --color-bg-base: #0f172a;
+  --color-bg-card: #1e293b;
+  --color-bg-input: #0f172a;
+  --color-bg-elevated: #1e293b;
+  --color-bg-overlay: rgba(0, 0, 0, 0.6);
+  --color-bg-hover: rgba(255, 255, 255, 0.05);
+  --color-bg-active: rgba(255, 255, 255, 0.08);
+
+  /* Text */
+  --color-text-primary: #f8fafc;
+  --color-text-secondary: #cbd5e1;
+  --color-text-muted: #64748b;
+  --color-text-inverse: #0f172a;
+  --color-text-link: #94a3b8;
+  --color-text-link-hover: #cbd5e1;
+
+  /* Borders */
+  --color-border: #334155;
+  --color-border-focus: #94a3b8;
+  --color-border-strong: #475569;
+
+  /* Functional / Status — Lighten text for dark bg */
+  --color-success-bg: rgba(16, 185, 129, 0.12);
+  --color-success-border: rgba(16, 185, 129, 0.3);
+  --color-success-text: #6ee7b7;
+
+  --color-warning-bg: rgba(245, 158, 11, 0.12);
+  --color-warning-border: rgba(245, 158, 11, 0.3);
+  --color-warning-text: #fcd34d;
+
+  --color-error-bg: rgba(239, 68, 68, 0.12);
+  --color-error-border: rgba(239, 68, 68, 0.3);
+  --color-error-text: #fca5a5;
+
+  --color-info-bg: rgba(59, 130, 246, 0.12);
+  --color-info-border: rgba(59, 130, 246, 0.3);
+  --color-info-text: #93c5fd;
+
+  /* Gradients */
+  --gradient-primary: linear-gradient(135deg, #94a3b8 0%, #64748b 100%);
+  --gradient-bg: linear-gradient(180deg, #0f172a 0%, #1e293b 100%);
+
+  /* Shadows — Heavier for dark bg */
+  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.2);
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -2px rgba(0, 0, 0, 0.2);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.4), 0 4px 6px -4px rgba(0, 0, 0, 0.3);
+  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.4);
+
+  /* Focus Ring */
+  --focus-ring-color: rgba(148, 163, 184, 0.5);
+}

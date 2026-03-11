@@ -24,15 +24,22 @@ import ResetPassword from './pages/ResetPassword/ResetPassword';
 import MapView from './pages/MapView/MapView';
 import Leaderboard from './pages/Leaderboard/Leaderboard';
 import Messages from './pages/Messages/Messages';
-import { ToastProvider } from './components/Toast';
+import { ToastProvider } from './components/ui/Toast';
+import { useGlobalToast } from './hooks/useToast';
 import './App.css';
 
 import { ThemeProvider } from './context/ThemeContext';
+
+function GlobalToastInit() {
+  useGlobalToast();
+  return null;
+}
 
 function App() {
   return (
     <ThemeProvider>
       <ToastProvider>
+      <GlobalToastInit />
       <Router>
         <Routes>
           <Route path="/" element={<Landing />} />

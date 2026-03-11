@@ -3,6 +3,7 @@ import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { Search, ArrowLeft, ShieldCheck } from 'lucide-react';
 import authService from '../../services/authService';
 import { useToast } from '../../components/Toast';
+import { Button } from '../../components/ui';
 import './VerifyOTP.css';
 
 function VerifyOTP() {
@@ -150,16 +151,15 @@ function VerifyOTP() {
                     </div>
                     {error && <span className="field-error">{error}</span>}
 
-                    <button type="submit" className="btn-primary" disabled={isLoading}>
-                        {isLoading ? (
-                            <span className="btn-loading">
-                                <span className="spinner"></span>
-                                Verifying...
-                            </span>
-                        ) : (
-                            <>Verify Code</>
-                        )}
-                    </button>
+                    <Button
+                        type="submit"
+                        variant="primary"
+                        size="lg"
+                        fullWidth
+                        loading={isLoading}
+                    >
+                        {isLoading ? 'Verifying...' : 'Verify Code'}
+                    </Button>
                 </form>
 
                 <div className="resend-section">

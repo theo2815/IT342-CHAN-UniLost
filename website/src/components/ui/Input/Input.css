@@ -1,0 +1,174 @@
+/* ============================================
+   Input Component — UniLost Design System
+   ============================================ */
+
+.ui-input-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+  width: 100%;
+}
+
+/* Label */
+.ui-input__label {
+  font-family: var(--font-display);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+}
+
+.ui-input__label--required::after {
+  content: ' *';
+  color: var(--color-error);
+}
+
+/* Input group (icon + input) */
+.ui-input-group {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  padding: 0 var(--spacing-md);
+  background: var(--color-bg-input);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  transition:
+    border-color var(--transition-fast),
+    box-shadow var(--transition-fast);
+  min-height: 44px;
+}
+
+.ui-input-group:focus-within {
+  border-color: var(--color-border-focus);
+  box-shadow: 0 0 0 var(--focus-ring-width) var(--focus-ring-color);
+}
+
+.ui-input-group--error {
+  border-color: var(--color-error);
+}
+.ui-input-group--error:focus-within {
+  box-shadow: 0 0 0 var(--focus-ring-width) rgba(239, 68, 68, 0.2);
+}
+
+.ui-input-group--disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  background: var(--color-bg-hover);
+}
+
+/* Sizes */
+.ui-input-group--sm { min-height: 36px; padding: 0 var(--spacing-sm); }
+.ui-input-group--lg { min-height: 52px; padding: 0 var(--spacing-lg); }
+
+/* Icon */
+.ui-input__icon {
+  flex-shrink: 0;
+  color: var(--color-text-muted);
+  display: flex;
+  align-items: center;
+}
+
+.ui-input-group:focus-within .ui-input__icon {
+  color: var(--color-primary);
+}
+
+/* Right action (interactive element e.g. password toggle) */
+.ui-input__action {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+}
+
+.ui-input__action button {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--color-text-muted);
+  padding: 4px;
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  transition: color var(--transition-fast);
+}
+
+.ui-input__action button:hover {
+  color: var(--color-text-primary);
+}
+
+/* Actual input — use high-specificity selector to override global resets */
+.ui-input-group .ui-input__field,
+.ui-input-group .ui-input__field:focus,
+.ui-input-group .ui-input__field:active {
+  flex: 1;
+  width: 100%;
+  height: 100%;
+  min-height: inherit;
+  -webkit-appearance: none;
+  appearance: none;
+  border: none !important;
+  border-width: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  outline: none !important;
+  border-radius: 0;
+  font-family: var(--font-body);
+  font-size: var(--font-size-base);
+  color: var(--color-text-primary);
+  padding: 0;
+}
+
+.ui-input__field::placeholder {
+  color: var(--color-text-muted);
+}
+
+/* Browser autofill override — prevent the default blue/yellow highlight */
+.ui-input__field:-webkit-autofill,
+.ui-input__field:-webkit-autofill:hover,
+.ui-input__field:-webkit-autofill:focus,
+.ui-input__field:-webkit-autofill:active {
+  -webkit-box-shadow: 0 0 0 1000px var(--color-bg-input) inset !important;
+  box-shadow: 0 0 0 1000px var(--color-bg-input) inset !important;
+  -webkit-text-fill-color: var(--color-text-primary) !important;
+  caret-color: var(--color-text-primary);
+  transition: background-color 5000s ease-in-out 0s;
+}
+
+.ui-input__field:disabled {
+  cursor: not-allowed;
+}
+
+/* Textarea variant */
+.ui-input-group--textarea {
+  align-items: flex-start;
+  padding: var(--spacing-md);
+}
+
+.ui-input__field--textarea {
+  resize: vertical;
+  min-height: 80px;
+  line-height: var(--line-height-normal);
+}
+
+/* Helper & Error text */
+.ui-input__helper {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+}
+
+.ui-input__error {
+  font-size: var(--font-size-xs);
+  color: var(--color-error);
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+}
+
+/* Character count */
+.ui-input__char-count {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+  text-align: right;
+}
+
+.ui-input__char-count--over {
+  color: var(--color-error);
+}

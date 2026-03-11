@@ -1,0 +1,96 @@
+/* ============================================
+   Alert Component — UniLost Design System
+   ============================================ */
+
+.ui-alert {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--spacing-md);
+  padding: var(--spacing-md) var(--spacing-lg);
+  border-radius: var(--radius-md);
+  border: 1px solid;
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-normal);
+  animation: fadeIn 0.25s var(--ease-default);
+}
+
+.ui-alert__icon {
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.ui-alert__content {
+  flex: 1;
+  min-width: 0;
+}
+
+.ui-alert__title {
+  font-family: var(--font-display);
+  font-weight: var(--font-weight-semibold);
+  font-size: var(--font-size-sm);
+  margin-bottom: var(--spacing-2xs);
+}
+
+.ui-alert__message {
+  color: inherit;
+  opacity: 0.9;
+}
+
+.ui-alert__dismiss {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: none;
+  background: transparent;
+  border-radius: var(--radius-sm);
+  color: inherit;
+  opacity: 0.6;
+  cursor: pointer;
+  transition: opacity var(--transition-fast), background var(--transition-fast);
+}
+
+.ui-alert__dismiss:hover {
+  opacity: 1;
+  background: rgba(0, 0, 0, 0.06);
+}
+
+[data-theme="dark"] .ui-alert__dismiss:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+/* ── Variants ── */
+.ui-alert--success {
+  background: var(--color-success-bg);
+  border-color: var(--color-success-border);
+  color: var(--color-success-text);
+}
+.ui-alert--success .ui-alert__icon { color: var(--color-success); }
+
+.ui-alert--error {
+  background: var(--color-error-bg);
+  border-color: var(--color-error-border);
+  color: var(--color-error-text);
+}
+.ui-alert--error .ui-alert__icon { color: var(--color-error); }
+
+.ui-alert--warning {
+  background: var(--color-warning-bg);
+  border-color: var(--color-warning-border);
+  color: var(--color-warning-text);
+}
+.ui-alert--warning .ui-alert__icon { color: var(--color-warning); }
+
+.ui-alert--info {
+  background: var(--color-info-bg);
+  border-color: var(--color-info-border);
+  color: var(--color-info-text);
+}
+.ui-alert--info .ui-alert__icon { color: var(--color-info); }
+
+/* ── Exiting ── */
+.ui-alert--exiting {
+  animation: fadeOut 0.2s var(--ease-default) forwards;
+}

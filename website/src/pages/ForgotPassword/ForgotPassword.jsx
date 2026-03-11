@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Search, Mail, ArrowRight, ArrowLeft } from 'lucide-react';
 import authService from '../../services/authService';
 import { useToast } from '../../components/Toast';
+import { Input, Button } from '../../components/ui';
 import './ForgotPassword.css';
 
 function ForgotPassword() {
@@ -63,32 +64,30 @@ function ForgotPassword() {
 
                 <form onSubmit={handleSubmit} className="forgot-form" noValidate>
                     <div className="form-group">
-                        <label htmlFor="email">University Email</label>
-                        <div className="input-group">
-                            <Mail className="input-icon" size={18} />
-                            <input
-                                type="email"
-                                id="email"
-                                value={email}
-                                onChange={(e) => { setEmail(e.target.value); setError(''); }}
-                                placeholder="student@cit.edu"
-                                autoComplete="email"
-                                autoFocus
-                            />
-                        </div>
-                        {error && <span className="field-error">{error}</span>}
+                        <Input
+                            label="University Email"
+                            icon={Mail}
+                            type="email"
+                            id="email"
+                            value={email}
+                            onChange={(e) => { setEmail(e.target.value); setError(''); }}
+                            placeholder="student@cit.edu"
+                            error={error}
+                            autoComplete="email"
+                            autoFocus
+                        />
                     </div>
 
-                    <button type="submit" className="btn-primary" disabled={isLoading}>
-                        {isLoading ? (
-                            <span className="btn-loading">
-                                <span className="spinner"></span>
-                                Sending Code...
-                            </span>
-                        ) : (
-                            <>Send Verification Code <ArrowRight size={18} /></>
-                        )}
-                    </button>
+                    <Button
+                        type="submit"
+                        variant="primary"
+                        size="lg"
+                        fullWidth
+                        loading={isLoading}
+                        iconRight={!isLoading ? ArrowRight : undefined}
+                    >
+                        {isLoading ? 'Sending Code...' : 'Send Verification Code'}
+                    </Button>
                 </form>
 
                 <div className="form-footer">

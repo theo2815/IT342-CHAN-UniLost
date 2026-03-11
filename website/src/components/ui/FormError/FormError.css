@@ -1,0 +1,34 @@
+/* ============================================
+   FormError Component — UniLost Design System
+   ============================================ */
+
+.ui-form-error {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-sm) var(--spacing-md);
+  background: var(--color-error-bg);
+  border: 1px solid var(--color-error-border);
+  border-radius: var(--radius-sm);
+  color: var(--color-error-text);
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-normal);
+  animation: fadeIn 0.2s var(--ease-default);
+}
+
+.ui-form-error__icon {
+  flex-shrink: 0;
+  color: var(--color-error);
+}
+
+.ui-form-error__message {
+  flex: 1;
+}
+
+/* Inline variant (no background) */
+.ui-form-error--inline {
+  background: transparent;
+  border: none;
+  padding: var(--spacing-2xs) 0;
+  font-size: var(--font-size-xs);
+}

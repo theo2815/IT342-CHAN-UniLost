@@ -86,60 +86,6 @@
     gap: var(--spacing-xs);
 }
 
-.form-group label {
-    font-size: var(--font-size-sm);
-    font-weight: 500;
-    color: var(--color-text-secondary);
-    margin-left: 2px;
-}
-
-.input-group {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    width: 100%;
-    padding: 0 1rem;
-    background: var(--color-bg-base);
-    border: 1px solid var(--color-border);
-    border-radius: var(--radius-md);
-    transition: all var(--transition-fast);
-}
-
-.input-group:focus-within {
-    border-color: var(--color-primary);
-    box-shadow: 0 0 0 2px var(--color-border-focus);
-}
-
-.input-group:has(.input-error) {
-    border-color: var(--color-error, #ef4444);
-}
-
-.input-icon {
-    flex-shrink: 0;
-    color: var(--color-text-muted);
-    transition: color var(--transition-fast);
-}
-
-.input-group:focus-within .input-icon {
-    color: var(--color-primary);
-}
-
-.input-group input {
-    flex: 1;
-    min-width: 0;
-    padding: 0.75rem 0;
-    background: transparent !important;
-    border: none !important;
-    box-shadow: none !important;
-    color: var(--color-text-primary);
-    font-size: var(--font-size-base);
-    outline: none;
-}
-
-.input-group input::placeholder {
-    color: var(--color-text-muted);
-}
-
 /* Options */
 .form-options {
     display: flex;
@@ -157,9 +103,18 @@
 }
 
 .checkbox-container input {
-    accent-color: var(--color-primary);
-    width: 16px;
-    height: 16px;
+    display: none;
+}
+
+.checkbox-custom {
+    color: var(--color-text-muted);
+    display: flex;
+    align-items: center;
+    transition: color var(--transition-fast);
+}
+
+.checkbox-container input:checked + .checkbox-custom {
+    color: var(--color-primary);
 }
 
 .form-options a {
@@ -170,31 +125,6 @@
 .form-options a:hover {
     text-decoration: underline;
     color: var(--color-primary-hover);
-}
-
-/* Button */
-.btn-primary {
-    width: 100%;
-    padding: var(--spacing-md);
-    background: var(--color-primary);
-    color: white;
-    border-radius: var(--radius-md);
-    font-size: var(--font-size-base);
-    font-weight: 600;
-    cursor: pointer;
-    transition: transform var(--transition-fast), box-shadow var(--transition-fast), background-color var(--transition-fast);
-    margin-top: var(--spacing-sm);
-    border: none;
-}
-
-.btn-primary:hover {
-    transform: translateY(-2px);
-    box-shadow: var(--shadow-md);
-    background: var(--color-primary-hover);
-}
-
-.btn-primary:active {
-    transform: translateY(0);
 }
 
 /* Footer */
@@ -213,21 +143,6 @@
 
 .form-footer a:hover {
     color: var(--color-secondary-hover);
-}
-
-/* Error Alert */
-.error-alert {
-    background: rgba(239, 68, 68, 0.1);
-    border: 1px solid rgba(239, 68, 68, 0.2);
-    color: var(--color-error);
-    padding: var(--spacing-md);
-    border-radius: var(--radius-md);
-    font-size: var(--font-size-sm);
-    display: flex;
-    align-items: center;
-    gap: var(--spacing-sm);
-    margin-bottom: var(--spacing-lg);
-    animation: fadeIn 0.3s ease;
 }
 
 /* Branding Section */
@@ -345,55 +260,4 @@
     }
 }
 
-/* Field-level errors */
-.field-error {
-    font-size: 0.78rem;
-    color: var(--color-error, #ef4444);
-    margin-top: 4px;
-    display: block;
-    animation: fadeIn 0.2s ease;
-}
 
-/* Password toggle */
-.password-toggle {
-    flex-shrink: 0;
-    background: none;
-    border: none;
-    cursor: pointer;
-    color: var(--color-text-muted, #9ca3af);
-    padding: 4px;
-    border-radius: 4px;
-    display: flex;
-    align-items: center;
-    transition: color 0.15s;
-}
-
-.password-toggle:hover {
-    color: var(--color-text-primary, #111);
-}
-
-/* Loading button */
-.btn-loading {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.5rem;
-}
-
-.spinner {
-    width: 18px;
-    height: 18px;
-    border: 2px solid rgba(255, 255, 255, 0.3);
-    border-top-color: #fff;
-    border-radius: 50%;
-    animation: spin 0.6s linear infinite;
-}
-
-@keyframes spin {
-    to { transform: rotate(360deg); }
-}
-
-@keyframes fadeIn {
-    from { opacity: 0; transform: translateY(-4px); }
-    to { opacity: 1; transform: translateY(0); }
-}

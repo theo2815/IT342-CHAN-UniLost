@@ -4,6 +4,7 @@ import { Search, GraduationCap, Mail, Lock, User, ArrowRight, AlertTriangle, Che
 import authService from '../../services/authService';
 import campusService from '../../services/campusService';
 import { useToast } from '../../components/Toast';
+import { Input, Button, Alert } from '../../components/ui';
 import './Register.css';
 
 function Register() {
@@ -157,51 +158,47 @@ function Register() {
                         </div>
 
                         {apiError && (
-                            <div className="error-alert">
-                                <AlertTriangle size={18} /> {apiError}
-                            </div>
+                            <Alert type="error" icon={AlertTriangle}>
+                                {apiError}
+                            </Alert>
                         )}
 
                         <form onSubmit={handleSubmit} className="register-form" noValidate>
                             <div className="form-group full-width">
-                                <label htmlFor="fullName">Full Name <span className="required">*</span></label>
-                                <div className="input-group">
-                                    <User className="input-icon" size={18} />
-                                    <input
-                                        type="text"
-                                        id="fullName"
-                                        name="fullName"
-                                        value={formData.fullName}
-                                        onChange={handleChange}
-                                        placeholder="Jane Doe"
-                                        className={errors.fullName ? 'input-error' : ''}
-                                        autoComplete="name"
-                                    />
-                                </div>
-                                {errors.fullName && <span className="field-error">{errors.fullName}</span>}
+                                <Input
+                                    label="Full Name"
+                                    required
+                                    icon={User}
+                                    type="text"
+                                    id="fullName"
+                                    name="fullName"
+                                    value={formData.fullName}
+                                    onChange={handleChange}
+                                    placeholder="Jane Doe"
+                                    error={errors.fullName}
+                                    autoComplete="name"
+                                />
                             </div>
 
                             <div className="form-group full-width">
-                                <label htmlFor="email">University Email <span className="required">*</span></label>
-                                <div className="input-group">
-                                    <Mail className="input-icon" size={18} />
-                                    <input
-                                        type="email"
-                                        id="email"
-                                        name="email"
-                                        value={formData.email}
-                                        onChange={handleChange}
-                                        placeholder="yourname@cit.edu"
-                                        className={errors.email ? 'input-error' : ''}
-                                        autoComplete="email"
-                                    />
-                                </div>
+                                <Input
+                                    label="University Email"
+                                    required
+                                    icon={Mail}
+                                    type="email"
+                                    id="email"
+                                    name="email"
+                                    value={formData.email}
+                                    onChange={handleChange}
+                                    placeholder="yourname@cit.edu"
+                                    error={errors.email}
+                                    autoComplete="email"
+                                />
                                 {detectedCampus && (
                                     <span className="school-detected">
                                         <CheckCircle size={14} /> {detectedCampus.name}
                                     </span>
                                 )}
-                                {errors.email && <span className="field-error">{errors.email}</span>}
                                 {!detectedCampus && formData.email.includes('@') && !errors.email && (
                                     <span className="email-hint">
                                         Supported: cit.edu, usc.edu.ph, usjr.edu.ph, uc.edu.ph, up.edu.ph, swu.edu.ph, cnu.edu.ph, ctu.edu.ph
@@ -210,30 +207,29 @@ function Register() {
                             </div>
 
                             <div className="form-group full-width">
-                                <label htmlFor="password">Password <span className="required">*</span></label>
-                                <div className="input-group">
-                                    <Lock className="input-icon" size={18} />
-                                    <input
-                                        type={showPassword ? 'text' : 'password'}
-                                        id="password"
-                                        name="password"
-                                        value={formData.password}
-                                        onChange={handleChange}
-                                        placeholder="••••••"
-                                        className={errors.password ? 'input-error' : ''}
-                                        autoComplete="new-password"
-                                    />
-                                    <button
-                                        type="button"
-                                        className="password-toggle"
-                                        onClick={() => setShowPassword(v => !v)}
-                                        tabIndex={-1}
-                                        aria-label={showPassword ? 'Hide password' : 'Show password'}
-                                    >
-                                        {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-                                    </button>
-                                </div>
-                                {errors.password && <span className="field-error">{errors.password}</span>}
+                                <Input
+                                    label="Password"
+                                    required
+                                    icon={Lock}
+                                    type={showPassword ? 'text' : 'password'}
+                                    id="password"
+                                    name="password"
+                                    value={formData.password}
+                                    onChange={handleChange}
+                                    placeholder="••••••"
+                                    error={errors.password}
+                                    autoComplete="new-password"
+                                    rightAction={
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowPassword(v => !v)}
+                                            tabIndex={-1}
+                                            aria-label={showPassword ? 'Hide password' : 'Show password'}
+                                        >
+                                            {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                                        </button>
+                                    }
+                                />
                                 {passwordStrength && !errors.password && (
                                     <div className="password-strength">
                                         <div className="strength-bar">
@@ -245,30 +241,29 @@ function Register() {
                             </div>
 
                             <div className="form-group full-width">
-                                <label htmlFor="confirmPassword">Confirm Password <span className="required">*</span></label>
-                                <div className="input-group">
-                                    <CheckCircle className="input-icon" size={18} />
-                                    <input
-                                        type={showConfirm ? 'text' : 'password'}
-                                        id="confirmPassword"
-                                        name="confirmPassword"
-                                        value={formData.confirmPassword}
-                                        onChange={handleChange}
-                                        placeholder="••••••"
-                                        className={errors.confirmPassword ? 'input-error' : ''}
-                                        autoComplete="new-password"
-                                    />
-                                    <button
-                                        type="button"
-                                        className="password-toggle"
-                                        onClick={() => setShowConfirm(v => !v)}
-                                        tabIndex={-1}
-                                        aria-label={showConfirm ? 'Hide password' : 'Show password'}
-                                    >
-                                        {showConfirm ? <EyeOff size={16} /> : <Eye size={16} />}
-                                    </button>
-                                </div>
-                                {errors.confirmPassword && <span className="field-error">{errors.confirmPassword}</span>}
+                                <Input
+                                    label="Confirm Password"
+                                    required
+                                    icon={CheckCircle}
+                                    type={showConfirm ? 'text' : 'password'}
+                                    id="confirmPassword"
+                                    name="confirmPassword"
+                                    value={formData.confirmPassword}
+                                    onChange={handleChange}
+                                    placeholder="••••••"
+                                    error={errors.confirmPassword}
+                                    autoComplete="new-password"
+                                    rightAction={
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowConfirm(v => !v)}
+                                            tabIndex={-1}
+                                            aria-label={showConfirm ? 'Hide password' : 'Show password'}
+                                        >
+                                            {showConfirm ? <EyeOff size={16} /> : <Eye size={16} />}
+                                        </button>
+                                    }
+                                />
                             </div>
 
                             <div className="form-group checkbox-group">
@@ -287,16 +282,16 @@ function Register() {
                                 {errors.agreeToTerms && <span className="field-error">{errors.agreeToTerms}</span>}
                             </div>
 
-                            <button type="submit" className="btn-primary" disabled={isLoading}>
-                                {isLoading ? (
-                                    <span className="btn-loading">
-                                        <span className="spinner"></span>
-                                        Creating Account...
-                                    </span>
-                                ) : (
-                                    <>Join UniLost <ArrowRight size={18} /></>
-                                )}
-                            </button>
+                            <Button
+                                type="submit"
+                                variant="primary"
+                                size="lg"
+                                fullWidth
+                                loading={isLoading}
+                                iconRight={!isLoading ? ArrowRight : undefined}
+                            >
+                                {isLoading ? 'Creating Account...' : 'Join UniLost'}
+                            </Button>
                         </form>
 
                         <div className="form-footer">

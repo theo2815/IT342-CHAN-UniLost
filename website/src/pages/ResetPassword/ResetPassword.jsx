@@ -3,6 +3,7 @@ import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { Search, Lock, ArrowRight, Eye, EyeOff, CheckCircle } from 'lucide-react';
 import authService from '../../services/authService';
 import { useToast } from '../../components/Toast';
+import { Input, Button } from '../../components/ui';
 import './ResetPassword.css';
 
 function ResetPassword() {
@@ -100,30 +101,29 @@ function ResetPassword() {
 
                 <form onSubmit={handleSubmit} className="reset-form" noValidate>
                     <div className="form-group">
-                        <label htmlFor="password">New Password</label>
-                        <div className="input-group">
-                            <Lock className="input-icon" size={18} />
-                            <input
-                                type={showPassword ? 'text' : 'password'}
-                                id="password"
-                                name="password"
-                                value={formData.password}
-                                onChange={handleChange}
-                                placeholder="••••••••"
-                                autoComplete="new-password"
-                                autoFocus
-                            />
-                            <button
-                                type="button"
-                                className="password-toggle"
-                                onClick={() => setShowPassword(v => !v)}
-                                tabIndex={-1}
-                                aria-label={showPassword ? 'Hide password' : 'Show password'}
-                            >
-                                {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-                            </button>
-                        </div>
-                        {errors.password && <span className="field-error">{errors.password}</span>}
+                        <Input
+                            label="New Password"
+                            icon={Lock}
+                            type={showPassword ? 'text' : 'password'}
+                            id="password"
+                            name="password"
+                            value={formData.password}
+                            onChange={handleChange}
+                            placeholder="••••••••"
+                            error={errors.password}
+                            autoComplete="new-password"
+                            autoFocus
+                            rightAction={
+                                <button
+                                    type="button"
+                                    onClick={() => setShowPassword(v => !v)}
+                                    tabIndex={-1}
+                                    aria-label={showPassword ? 'Hide password' : 'Show password'}
+                                >
+                                    {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                                </button>
+                            }
+                        />
                         {passwordStrength && !errors.password && (
                             <div className="password-strength">
                                 <div className="strength-bar">
@@ -135,41 +135,40 @@ function ResetPassword() {
                     </div>
 
                     <div className="form-group">
-                        <label htmlFor="confirmPassword">Confirm New Password</label>
-                        <div className="input-group">
-                            <Lock className="input-icon" size={18} />
-                            <input
-                                type={showConfirm ? 'text' : 'password'}
-                                id="confirmPassword"
-                                name="confirmPassword"
-                                value={formData.confirmPassword}
-                                onChange={handleChange}
-                                placeholder="••••••••"
-                                autoComplete="new-password"
-                            />
-                            <button
-                                type="button"
-                                className="password-toggle"
-                                onClick={() => setShowConfirm(v => !v)}
-                                tabIndex={-1}
-                                aria-label={showConfirm ? 'Hide password' : 'Show password'}
-                            >
-                                {showConfirm ? <EyeOff size={16} /> : <Eye size={16} />}
-                            </button>
-                        </div>
-                        {errors.confirmPassword && <span className="field-error">{errors.confirmPassword}</span>}
+                        <Input
+                            label="Confirm New Password"
+                            icon={Lock}
+                            type={showConfirm ? 'text' : 'password'}
+                            id="confirmPassword"
+                            name="confirmPassword"
+                            value={formData.confirmPassword}
+                            onChange={handleChange}
+                            placeholder="••••••••"
+                            error={errors.confirmPassword}
+                            autoComplete="new-password"
+                            rightAction={
+                                <button
+                                    type="button"
+                                    onClick={() => setShowConfirm(v => !v)}
+                                    tabIndex={-1}
+                                    aria-label={showConfirm ? 'Hide password' : 'Show password'}
+                                >
+                                    {showConfirm ? <EyeOff size={16} /> : <Eye size={16} />}
+                                </button>
+                            }
+                        />
                     </div>
 
-                    <button type="submit" className="btn-primary" disabled={isLoading}>
-                        {isLoading ? (
-                            <span className="btn-loading">
-                                <span className="spinner"></span>
-                                Resetting...
-                            </span>
-                        ) : (
-                            <>Reset Password <ArrowRight size={18} /></>
-                        )}
-                    </button>
+                    <Button
+                        type="submit"
+                        variant="primary"
+                        size="lg"
+                        fullWidth
+                        loading={isLoading}
+                        iconRight={!isLoading ? ArrowRight : undefined}
+                    >
+                        {isLoading ? 'Resetting...' : 'Reset Password'}
+                    </Button>
                 </form>
 
                 <div className="form-footer">

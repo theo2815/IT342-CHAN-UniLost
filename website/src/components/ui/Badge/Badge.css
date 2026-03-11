@@ -1,0 +1,102 @@
+/* ============================================
+   Badge Component — UniLost Design System
+   ============================================ */
+
+.ui-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  font-family: var(--font-display);
+  font-weight: var(--font-weight-semibold);
+  white-space: nowrap;
+  border-radius: var(--radius-full);
+  line-height: 1;
+  vertical-align: middle;
+}
+
+/* Sizes */
+.ui-badge--sm {
+  font-size: var(--font-size-2xs);
+  padding: 2px var(--spacing-sm);
+  height: 20px;
+}
+
+.ui-badge--md {
+  font-size: var(--font-size-xs);
+  padding: var(--spacing-xs) var(--spacing-sm);
+  height: 24px;
+}
+
+.ui-badge--lg {
+  font-size: var(--font-size-sm);
+  padding: var(--spacing-xs) var(--spacing-md);
+  height: 28px;
+}
+
+/* ── Variants ── */
+.ui-badge--default {
+  background: var(--color-bg-hover);
+  color: var(--color-text-secondary);
+}
+
+.ui-badge--primary {
+  background: var(--color-primary-bg);
+  color: var(--color-primary);
+}
+
+.ui-badge--success {
+  background: var(--color-success-bg);
+  color: var(--color-success);
+}
+
+.ui-badge--warning {
+  background: var(--color-warning-bg);
+  color: var(--color-warning);
+}
+
+.ui-badge--error {
+  background: var(--color-error-bg);
+  color: var(--color-error);
+}
+
+.ui-badge--info {
+  background: var(--color-info-bg);
+  color: var(--color-info);
+}
+
+/* Solid variants */
+.ui-badge--solid.ui-badge--primary {
+  background: var(--color-primary);
+  color: var(--color-text-inverse);
+}
+.ui-badge--solid.ui-badge--success {
+  background: var(--color-success);
+  color: #fff;
+}
+.ui-badge--solid.ui-badge--warning {
+  background: var(--color-warning);
+  color: #fff;
+}
+.ui-badge--solid.ui-badge--error {
+  background: var(--color-error);
+  color: #fff;
+}
+.ui-badge--solid.ui-badge--info {
+  background: var(--color-info);
+  color: #fff;
+}
+
+/* Dot indicator */
+.ui-badge__dot {
+  width: 6px;
+  height: 6px;
+  border-radius: var(--radius-full);
+  background: currentColor;
+  flex-shrink: 0;
+}
+
+/* Outline variant */
+.ui-badge--outline {
+  background: transparent;
+  border: 1px solid currentColor;
+}

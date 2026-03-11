@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Search, Mail, Lock, CheckSquare, Square, AlertTriangle, ArrowRight, ShieldCheck, MapPin, Eye, EyeOff } from 'lucide-react';
 import authService from '../../services/authService';
 import { useToast } from '../../components/Toast';
+import { Input, Button, Alert } from '../../components/ui';
 import './Login.css';
 
 function Login() {
@@ -79,57 +80,58 @@ function Login() {
           <div className="form-wrapper glass">
             <div className="form-header">
               <div className="logo">
-                <Search className="logo-icon" size={32} />
+                <Search className="logo-icon" size={28} />
                 <span className="logo-text">UniLost</span>
               </div>
               <h2>Welcome Back</h2>
               <p>Your campus lost & found network.</p>
             </div>
 
+            {apiError && (
+              <Alert type="error" icon={AlertTriangle}>
+                {apiError}
+              </Alert>
+            )}
+
             <form onSubmit={handleSubmit} className="login-form" noValidate>
               <div className="form-group">
-                <label htmlFor="email">University Email</label>
-                <div className="input-group">
-                  <Mail className="input-icon" size={20} />
-                  <input
-                    type="email"
-                    id="email"
-                    name="email"
-                    value={formData.email}
-                    onChange={handleChange}
-                    placeholder="student@cit.edu"
-                    className={errors.email ? 'input-error' : ''}
-                    autoComplete="email"
-                  />
-                </div>
-                {errors.email && <span className="field-error">{errors.email}</span>}
+                <Input
+                  label="University Email"
+                  icon={Mail}
+                  type="email"
+                  id="email"
+                  name="email"
+                  value={formData.email}
+                  onChange={handleChange}
+                  placeholder="student@cit.edu"
+                  error={errors.email}
+                  autoComplete="email"
+                />
               </div>
 
               <div className="form-group">
-                <label htmlFor="password">Password</label>
-                <div className="input-group">
-                  <Lock className="input-icon" size={20} />
-                  <input
-                    type={showPassword ? 'text' : 'password'}
-                    id="password"
-                    name="password"
-                    value={formData.password}
-                    onChange={handleChange}
-                    placeholder="••••••••"
-                    className={errors.password ? 'input-error' : ''}
-                    autoComplete="current-password"
-                  />
-                  <button
-                    type="button"
-                    className="password-toggle"
-                    onClick={() => setShowPassword(v => !v)}
-                    tabIndex={-1}
-                    aria-label={showPassword ? 'Hide password' : 'Show password'}
-                  >
-                    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                  </button>
-                </div>
-                {errors.password && <span className="field-error">{errors.password}</span>}
+                <Input
+                  label="Password"
+                  icon={Lock}
+                  type={showPassword ? 'text' : 'password'}
+                  id="password"
+                  name="password"
+                  value={formData.password}
+                  onChange={handleChange}
+                  placeholder="••••••••"
+                  error={errors.password}
+                  autoComplete="current-password"
+                  rightAction={
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(v => !v)}
+                      tabIndex={-1}
+                      aria-label={showPassword ? 'Hide password' : 'Show password'}
+                    >
+                      {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                    </button>
+                  }
+                />
               </div>
 
               <div className="form-options">
@@ -148,18 +150,16 @@ function Login() {
                 <Link to="/forgot-password">Forgot Password?</Link>
               </div>
 
-              <button type="submit" className="btn-primary" disabled={isLoading}>
-                {isLoading ? (
-                  <span className="btn-loading">
-                    <span className="spinner"></span>
-                    Signing in...
-                  </span>
-                ) : (
-                  <>
-                    Sign In <ArrowRight size={20} />
-                  </>
-                )}
-              </button>
+              <Button
+                type="submit"
+                variant="primary"
+                size="lg"
+                fullWidth
+                loading={isLoading}
+                iconRight={!isLoading ? ArrowRight : undefined}
+              >
+                {isLoading ? 'Signing in...' : 'Sign In'}
+              </Button>
             </form>
 
             <div className="form-footer">

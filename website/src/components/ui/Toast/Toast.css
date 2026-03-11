@@ -1,0 +1,151 @@
+/* ============================================
+   Toast Component — UniLost Design System
+   Top-right stackable notification toasts
+   ============================================ */
+
+.ui-toast-container {
+  position: fixed;
+  top: var(--spacing-lg);
+  right: var(--spacing-lg);
+  z-index: var(--z-toast);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+  max-width: 420px;
+  width: calc(100% - 3rem);
+  pointer-events: none;
+}
+
+.ui-toast {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--spacing-md);
+  padding: var(--spacing-md) var(--spacing-lg);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.06);
+  animation: uiToastIn 0.35s var(--ease-bounce) forwards;
+  pointer-events: auto;
+  position: relative;
+  overflow: hidden;
+}
+
+[data-theme="dark"] .ui-toast {
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4), 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.ui-toast--exiting {
+  animation: uiToastOut 0.25s var(--ease-default) forwards;
+}
+
+.ui-toast__icon {
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.ui-toast__body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.ui-toast__title {
+  font-family: var(--font-display);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+}
+
+.ui-toast__message {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  line-height: var(--line-height-normal);
+  word-break: break-word;
+}
+
+.ui-toast__close {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--color-text-muted);
+  border-radius: var(--radius-xs);
+  transition: color var(--transition-fast), background var(--transition-fast);
+  padding: 0;
+}
+
+.ui-toast__close:hover {
+  color: var(--color-text-primary);
+  background: var(--color-bg-hover);
+}
+
+/* Progress bar */
+.ui-toast__progress {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  height: 3px;
+  width: 100%;
+  animation: uiToastProgress linear forwards;
+  transform-origin: left;
+}
+
+/* ── Toast Types ── */
+.ui-toast--success .ui-toast__icon { color: var(--color-success); }
+.ui-toast--success .ui-toast__progress { background: var(--color-success); }
+
+.ui-toast--error .ui-toast__icon { color: var(--color-error); }
+.ui-toast--error .ui-toast__progress { background: var(--color-error); }
+
+.ui-toast--warning .ui-toast__icon { color: var(--color-warning); }
+.ui-toast--warning .ui-toast__progress { background: var(--color-warning); }
+
+.ui-toast--info .ui-toast__icon { color: var(--color-info); }
+.ui-toast--info .ui-toast__progress { background: var(--color-info); }
+
+/* ── Animations ── */
+@keyframes uiToastIn {
+  from {
+    opacity: 0;
+    transform: translateX(100%) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+}
+
+@keyframes uiToastOut {
+  from {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: translateX(100%) scale(0.95);
+  }
+}
+
+@keyframes uiToastProgress {
+  from { transform: scaleX(1); }
+  to { transform: scaleX(0); }
+}
+
+/* ── Mobile ── */
+@media (max-width: 640px) {
+  .ui-toast-container {
+    top: var(--spacing-md);
+    right: var(--spacing-md);
+    left: var(--spacing-md);
+    max-width: none;
+    width: auto;
+  }
+}

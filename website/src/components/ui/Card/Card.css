@@ -1,0 +1,86 @@
+/* ============================================
+   Card Component — UniLost Design System
+   ============================================ */
+
+.ui-card {
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+  transition:
+    box-shadow var(--transition-normal),
+    transform var(--transition-normal),
+    border-color var(--transition-fast);
+  overflow: hidden;
+}
+
+/* Hover effect */
+.ui-card--hoverable {
+  cursor: pointer;
+}
+.ui-card--hoverable:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lg);
+  border-color: var(--color-border-strong);
+}
+
+/* Padding variants */
+.ui-card--padded {
+  padding: var(--spacing-lg);
+}
+
+.ui-card--compact {
+  padding: var(--spacing-md);
+}
+
+/* Elevated */
+.ui-card--elevated {
+  box-shadow: var(--shadow-md);
+}
+
+/* Glass variant */
+.ui-card--glass {
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+/* Sections */
+.ui-card__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--spacing-lg);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.ui-card__header-title {
+  font-family: var(--font-display);
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-primary);
+  margin: 0;
+}
+
+.ui-card__body {
+  padding: var(--spacing-lg);
+}
+
+.ui-card__footer {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-md) var(--spacing-lg);
+  border-top: 1px solid var(--color-border);
+}
+
+/* Image section */
+.ui-card__image {
+  width: 100%;
+  aspect-ratio: 16 / 10;
+  object-fit: cover;
+}
+
+/* Full-width variant */
+.ui-card--full {
+  width: 100%;
+}

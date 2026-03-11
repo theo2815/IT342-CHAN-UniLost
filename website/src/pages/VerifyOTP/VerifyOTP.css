@@ -92,55 +92,6 @@
     text-align: center;
 }
 
-.otp-card .btn-primary {
-    width: 100%;
-    padding: var(--spacing-md);
-    background: var(--color-primary);
-    color: white;
-    border-radius: var(--radius-md);
-    font-size: var(--font-size-base);
-    font-weight: 600;
-    cursor: pointer;
-    transition: transform var(--transition-fast), box-shadow var(--transition-fast), background-color var(--transition-fast);
-    border: none;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.5rem;
-}
-
-.otp-card .btn-primary:hover {
-    transform: translateY(-2px);
-    box-shadow: var(--shadow-md);
-    background: var(--color-primary-hover);
-}
-
-.otp-card .btn-primary:disabled {
-    opacity: 0.7;
-    cursor: not-allowed;
-    transform: none;
-}
-
-.otp-card .btn-loading {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.5rem;
-}
-
-.otp-card .spinner {
-    width: 18px;
-    height: 18px;
-    border: 2px solid rgba(255, 255, 255, 0.3);
-    border-top-color: #fff;
-    border-radius: 50%;
-    animation: otpSpin 0.6s linear infinite;
-}
-
-@keyframes otpSpin {
-    to { transform: rotate(360deg); }
-}
-
 /* Resend Section */
 .resend-section {
     display: flex;
