@@ -7,10 +7,10 @@ $envFile = ".env"
 if (Test-Path $envFile) {
     Write-Host "Loading secrets from $envFile..."
     Get-Content $envFile | ForEach-Object {
-        if ($_ -match "^\s*([^#=]+)\s*=\s*(.*)$") {
-            $key = $matches[1]
-            $value = $matches[2]
-            [System.Environment]::SetEnvironmentVariable($key, $value, "Process")
+        if ($_ -match "^\s*([^#=]+?)\s*=\s*(.*)$") {
+            $key = $matches[1].Trim()
+            $value = $matches[2].Trim()
+            Set-Item -Path "Env:$key" -Value $value
         }
     }
 }
