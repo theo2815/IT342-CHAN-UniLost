@@ -23,6 +23,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 
 import java.security.SecureRandom;
@@ -157,6 +158,30 @@ public class UserService {
             return true;
         }
         return false;
+    }
+
+    /**
+     * Public leaderboard: top users by karma score.
+     * Returns only active users, limited to the requested size.
+     * Optionally filtered by campus. Email is stripped for privacy.
+     */
+    public List<UserDTO> getLeaderboard(int size, String campusId) {
+        Pageable pageable = PageRequest.of(0, Math.min(Math.max(size, 1), 50));
+        List<UserEntity> topUsers;
+        if (campusId != null && !campusId.isEmpty()) {
+            topUsers = userRepository.findByUniversityTagAndAccountStatusAndKarmaScoreGreaterThanOrderByKarmaScoreDesc(
+                    campusId, AccountStatus.ACTIVE, 0, pageable);
+        } else {
+            topUsers = userRepository.findByAccountStatusAndKarmaScoreGreaterThanOrderByKarmaScoreDesc(
+                    AccountStatus.ACTIVE, 0, pageable);
+        }
+        return topUsers.stream().map(user -> {
+            UserDTO dto = convertToDTO(user);
+            dto.setEmail(null); // strip email for public endpoint
+            dto.setAccountStatus(null);
+            dto.setRole(null);
+            return dto;
+        }).collect(Collectors.toList());
     }
 
     // ── Password Reset Flow ────────────────────────────────────

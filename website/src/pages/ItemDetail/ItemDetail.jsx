@@ -215,7 +215,7 @@ function ItemDetail() {
                                                 )}
                                             </button>
                                         ) : (
-                                            <button className="action-btn primary" onClick={() => navigate('/login')}>
+                                            <button className="action-btn primary" onClick={() => navigate('/login', { state: { from: `/items/${id}` } })}>
                                                 Log in to Claim
                                             </button>
                                         )}

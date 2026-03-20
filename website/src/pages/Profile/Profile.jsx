@@ -1,97 +1,251 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-    PlusCircle,
-    Image as ImageIcon, Camera, Check,
-    GraduationCap, ShieldCheck, BadgeCheck, CheckCircle,
-    Package, FileText, History, Handshake, Smile, Search,
-    BellRing, Heart, Compass, Flame, Lock, Users,
-    Send, ArrowRight,
-    Award, MoreHorizontal
+    PlusCircle, GraduationCap, ShieldCheck, BadgeCheck, CheckCircle,
+    Package, FileText, ClipboardList, Smile, BellRing,
+    ArrowRight, Award, Loader, Edit3, X, Save, AlertCircle
 } from 'lucide-react';
 import Header from '../../components/Header';
 import StatusBadge from '../../components/StatusBadge';
-import EmptyState from '../../components/EmptyState';
 import authService from '../../services/authService';
 import itemService from '../../services/itemService';
+import userService from '../../services/userService';
+import claimService from '../../services/claimService';
 import { timeAgo } from '../../utils/timeAgo';
+import { PLACEHOLDER_IMAGE } from '../../constants/images';
 import './Profile.css';
 
 function Profile() {
     const navigate = useNavigate();
-    const [user] = useState(() => authService.getCurrentUser());
+    const storedUser = authService.getCurrentUser();
+
+    const [user, setUser] = useState(storedUser);
     const [activeTab, setActiveTab] = useState('LOST');
     const [myItems, setMyItems] = useState([]);
+    const [myClaims, setMyClaims] = useState([]);
+    const [leaderboard, setLeaderboard] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
 
+    const fetchProfileData = useCallback(async () => {
+        if (!storedUser?.id) return;
+        setLoading(true);
+        setError('');
+
+        const [userResult, itemsResult, claimsResult, leaderboardResult] = await Promise.all([
+            userService.getUserById(storedUser.id),
+            itemService.getItemsByUser(storedUser.id, { size: 50 }),
+            claimService.getMyClaims(0, 50),
+            userService.getLeaderboard(3, storedUser.campus?.id || undefined),
+        ]);
+
+        if (userResult.success) {
+            setUser(userResult.data);
+            localStorage.setItem('user', JSON.stringify(userResult.data));
+        } else {
+            setError(userResult.error);
+        }
+
+        if (itemsResult.success) {
+            setMyItems(itemsResult.data.content || []);
+        }
+
+        if (claimsResult.success) {
+            setMyClaims(claimsResult.data || []);
+        }
+
+        if (leaderboardResult.success) {
+            setLeaderboard(leaderboardResult.data || []);
+        }
+
+        setLoading(false);
+    }, [storedUser?.id, storedUser?.campus?.id]);
+
     useEffect(() => {
-        const fetchMyItems = async () => {
-            if (!user?.id) return;
-            setLoading(true);
-            setError('');
-            const result = await itemService.getItemsByUser(user.id, { size: 50 });
-            if (result.success) {
-                setMyItems(result.data.content || []);
-            } else {
-                setError(result.error);
-            }
-            setLoading(false);
-        };
-        fetchMyItems();
-    }, [user]);
+        fetchProfileData();
+    }, [fetchProfileData]);
 
     const lostItems = myItems.filter(item => item.type === 'LOST');
     const foundItems = myItems.filter(item => item.type === 'FOUND');
 
-    if (!user) {
-        return <div className="loading">Loading profile...</div>;
-    }
-
-    const getInitials = () => {
-        const parts = (user.fullName || '').split(' ');
+    const getInitials = (name) => {
+        const parts = (name || '').split(' ');
         return parts.map(p => p.charAt(0)).join('').substring(0, 2).toUpperCase();
     };
 
     const roleBadge = () => {
-        const role = user.role || 'STUDENT';
-        const labels = {
-            'STUDENT': 'Student',
-            'FACULTY': 'Faculty',
-            'ADMIN': 'Admin'
-        };
-        return labels[role] || 'Student';
+        const labels = { 'STUDENT': 'Student', 'FACULTY': 'Faculty', 'ADMIN': 'Admin' };
+        return labels[user?.role] || 'Student';
+    };
+
+    const formatMemberSince = (dateString) => {
+        if (!dateString) return 'Member';
+        const date = new Date(dateString);
+        return `Member since ${date.toLocaleString('default', { month: 'long', year: 'numeric' })}`;
+    };
+
+    const getKarmaProgress = () => {
+        const score = user?.karmaScore || 0;
+        const topScore = leaderboard[0]?.karmaScore || 100;
+        const maxScore = Math.max(topScore, 100);
+        return Math.min((score / maxScore) * 100, 100);
+    };
+
+    if (!storedUser) {
+        navigate('/login');
+        return null;
+    }
+
+    if (loading) {
+        return (
+            <div className="profile-page">
+                <Header />
+                <main className="profile-container">
+                    <div className="profile-loading">
+                        <Loader size={32} className="spin" />
+                        <p>Loading profile...</p>
+                    </div>
+                </main>
+            </div>
+        );
+    }
+
+    if (error && !user) {
+        return (
+            <div className="profile-page">
+                <Header />
+                <main className="profile-container">
+                    <div className="profile-error">
+                        <AlertCircle size={32} />
+                        <p>{error}</p>
+                        <button className="btn-primary-alt" onClick={fetchProfileData}>
+                            Try Again
+                        </button>
+                    </div>
+                </main>
+            </div>
+        );
+    }
+
+    const renderItemList = (items, type) => {
+        if (items.length === 0) {
+            const isLost = type === 'LOST';
+            return (
+                <div className="empty-state-large glass-panel">
+                    <div className="empty-icon-circle">
+                        <Smile size={40} />
+                    </div>
+                    <h2>{isLost ? 'No lost item reports' : 'No found items yet'}</h2>
+                    <p>{isLost
+                        ? "You haven't reported any lost items."
+                        : 'Help your community! Post any items you\'ve found on campus.'
+                    }</p>
+                    <button className="btn-primary-alt" onClick={() => navigate('/post-item')}>
+                        {isLost ? <BellRing size={18} /> : <PlusCircle size={18} />}
+                        {isLost ? 'Report Lost Item' : 'Post Found Item'}
+                    </button>
+                </div>
+            );
+        }
+
+        return items.map((item, index) => (
+            <div
+                key={item.id}
+                className="profile-row-card glass-panel animate-in"
+                style={{ animationDelay: `${index * 0.05}s` }}
+                onClick={() => navigate(`/items/${item.id}`)}
+            >
+                <div className="item-thumbnail">
+                    <img src={item.imageUrls?.[0] || PLACEHOLDER_IMAGE} alt={item.title} />
+                    <span className={`type-tag ${type === 'LOST' ? 'report' : 'found'}`}>
+                        {type === 'LOST' ? 'REPORT' : 'FOUND'}
+                    </span>
+                </div>
+                <div className="item-details">
+                    <div className="item-header-row">
+                        <h3>{item.title}</h3>
+                        <StatusBadge status={item.status} />
+                    </div>
+                    <p className="item-snippet">{item.description}</p>
+                    <div className="item-footer-meta">
+                        <span>{item.category}</span>
+                        <span className="dot-mid">&middot;</span>
+                        <span>{timeAgo(item.createdAt)}</span>
+                    </div>
+                </div>
+                <div className="item-row-arrow">
+                    <ArrowRight size={20} />
+                </div>
+            </div>
+        ));
+    };
+
+    const renderClaims = () => {
+        if (myClaims.length === 0) {
+            return (
+                <div className="empty-state-large glass-panel">
+                    <div className="empty-icon-circle">
+                        <ClipboardList size={40} />
+                    </div>
+                    <h2>No claims yet</h2>
+                    <p>You haven't submitted any claims. Browse items to find something you lost.</p>
+                    <button className="btn-primary-alt" onClick={() => navigate('/items')}>
+                        <Package size={18} />
+                        Browse Items
+                    </button>
+                </div>
+            );
+        }
+
+        return myClaims.map((claim, index) => (
+            <div
+                key={claim.id}
+                className="profile-row-card glass-panel animate-in"
+                style={{ animationDelay: `${index * 0.05}s` }}
+                onClick={() => navigate(`/items/${claim.itemId}`)}
+            >
+                <div className="item-thumbnail">
+                    <img src={claim.itemImageUrl || PLACEHOLDER_IMAGE} alt={claim.itemTitle} />
+                    <span className="type-tag claim">CLAIM</span>
+                </div>
+                <div className="item-details">
+                    <div className="item-header-row">
+                        <h3>{claim.itemTitle || 'Untitled Item'}</h3>
+                        <StatusBadge status={claim.status} />
+                    </div>
+                    <p className="item-snippet">{claim.message || claim.providedAnswer || 'No message provided'}</p>
+                    <div className="item-footer-meta">
+                        <span>{claim.itemType}</span>
+                        <span className="dot-mid">&middot;</span>
+                        <span>{timeAgo(claim.createdAt)}</span>
+                    </div>
+                </div>
+                <div className="item-row-arrow">
+                    <ArrowRight size={20} />
+                </div>
+            </div>
+        ));
     };
 
     return (
         <div className="profile-page">
             <Header />
-            
+
             <main className="profile-container">
-                {/* Hero / Header Section */}
+                {/* Hero Section */}
                 <div className="profile-hero-card glass-panel animate-in">
                     <div className="hero-banner banner-pattern">
                         <div className="banner-overlay"></div>
-                        <button className="change-cover-btn">
-                            <ImageIcon size={14} />
-                            Change Cover
-                        </button>
                     </div>
-                    
+
                     <div className="hero-content">
                         <div className="hero-main">
                             <div className="profile-avatar-group">
                                 <div className="profile-avatar">
-                                    <div className="avatar-placeholder">{getInitials()}</div>
-                                    <div className="avatar-camera-overlay">
-                                        <Camera size={24} color="white" />
-                                    </div>
-                                </div>
-                                <div className="online-status-indicator" title="Online">
-                                    <Check size={12} strokeWidth={4} />
+                                    <div className="avatar-placeholder">{getInitials(user.fullName)}</div>
                                 </div>
                             </div>
-                            
+
                             <div className="profile-name-section">
                                 <div className="name-row">
                                     <h1>{user.fullName}</h1>
@@ -102,35 +256,50 @@ function Profile() {
                                 </div>
                                 <p className="user-affiliation">
                                     <ShieldCheck size={16} className="text-gold" />
-                                    Verified Student &bull; {user.campus?.name || 'Cebu Institute of Technology - University'}
+                                    {user.campus?.name || 'University'}
                                 </p>
                                 <div className="user-stats-minimal">
-                                    <span>Member since 2024</span>
-                                    <span className="status-dot-group">
-                                        <span className="dot dot-success"></span>
-                                        Online Now
-                                    </span>
+                                    <span>{formatMemberSince(user.createdAt)}</span>
                                 </div>
                             </div>
                         </div>
-                        
+
                         <div className="hero-actions">
-                            <button className="btn-secondary-alt">Share Profile</button>
-                            <button className="btn-primary-alt">
-                                <PlusCircle size={18} />
+                            <button className="btn-primary-alt" onClick={() => navigate('/settings')}>
+                                <Edit3 size={16} />
                                 Edit Profile
                             </button>
                         </div>
                     </div>
                 </div>
 
+                {/* Stats Summary */}
+                <div className="profile-stats-row animate-in" style={{ animationDelay: '0.1s' }}>
+                    <div className="profile-stat-card glass-panel">
+                        <span className="stat-number">{lostItems.length}</span>
+                        <span className="stat-label">Lost Reports</span>
+                    </div>
+                    <div className="profile-stat-card glass-panel">
+                        <span className="stat-number">{foundItems.length}</span>
+                        <span className="stat-label">Found Items</span>
+                    </div>
+                    <div className="profile-stat-card glass-panel">
+                        <span className="stat-number">{myClaims.length}</span>
+                        <span className="stat-label">Claims Made</span>
+                    </div>
+                    <div className="profile-stat-card glass-panel highlight">
+                        <span className="stat-number">{user.karmaScore || 0}</span>
+                        <span className="stat-label">Karma Points</span>
+                    </div>
+                </div>
+
                 <div className="profile-grid-layout">
-                    {/* Left Column: Student Info & Goals */}
+                    {/* Left Column: Account Info & Karma */}
                     <aside className="profile-column column-left">
                         <div className="card glass-panel">
                             <h3 className="card-title">
                                 <BadgeCheck className="text-gold" size={18} />
-                                Student Info
+                                Account Info
                             </h3>
                             <div className="info-blocks">
                                 <div className="info-block">
@@ -141,311 +310,89 @@ function Profile() {
                                     </div>
                                 </div>
                                 <div className="info-block">
-                                    <label>Student ID</label>
-                                    <p className="font-mono">{user.studentIdNumber || '23-2578-976'}</p>
+                                    <label>Role</label>
+                                    <p>{roleBadge()}</p>
                                 </div>
                                 <div className="info-block">
-                                    <label>Department</label>
-                                    <p>College of Computer Studies</p>
+                                    <label>Campus</label>
+                                    <p>{user.campus?.name || 'Not assigned'}</p>
+                                </div>
+                                <div className="info-block">
+                                    <label>Account Status</label>
+                                    <p className="status-active">{user.accountStatus || 'ACTIVE'}</p>
                                 </div>
                             </div>
                         </div>
 
                         <div className="card glass-panel relative overflow-hidden">
-                            <div className="card-header-flex">
-                                <h3 className="card-title">Karma Level</h3>
-                                <button className="text-link">
-                                    History <ArrowRight size={12} />
-                                </button>
-                            </div>
+                            <h3 className="card-title">Karma Score</h3>
                             <div className="karma-display">
                                 <div className="karma-ring-container">
-                                    <div className="karma-ring-progress" style={{ '--progress': '85%' }}>
+                                    <div className="karma-ring-progress" style={{ '--progress': `${getKarmaProgress()}%` }}>
                                         <div className="karma-ring-inner">
-                                            <span className="karma-value">{user.karmaScore ?? 750}</span>
+                                            <span className="karma-value">{user.karmaScore || 0}</span>
                                             <span className="karma-label">Points</span>
                                         </div>
                                     </div>
                                 </div>
-                                <p className="karma-desc">You are in the top <strong className="text-gold">15%</strong> of finders at your university!</p>
                             </div>
-                            <div className="karma-leaderboard">
-                                <p className="section-subtitle">Campus Top 3</p>
-                                <div className="mini-leaderboard">
-                                    <div className="mini-user-row">
-                                        <div className="user-rank rank-1">1</div>
-                                        <div className="user-avatar-small"></div>
-                                        <span className="user-name">Maria S.</span>
-                                        <span className="user-points">1250 pts</span>
-                                    </div>
-                                    <div className="mini-user-row">
-                                        <div className="user-rank rank-2">2</div>
-                                        <div className="user-avatar-small"></div>
-                                        <span className="user-name">John D.</span>
-                                        <span className="user-points">980 pts</span>
-                                    </div>
-                                    <div className="mini-user-row active">
-                                        <div className="user-rank rank-3">3</div>
-                                        <div className="user-avatar-small"></div>
-                                        <span className="user-name">You</span>
-                                        <span className="user-points text-gold font-bold">{user.karmaScore ?? 750} pts</span>
+                            {leaderboard.length > 0 && (
+                                <div className="karma-leaderboard">
+                                    <p className="section-subtitle">Campus Top {leaderboard.length}</p>
+                                    <div className="mini-leaderboard">
+                                        {leaderboard.map((entry, index) => (
+                                            <div key={entry.id} className={`mini-user-row ${entry.id === user.id ? 'active' : ''}`}>
+                                                <div className={`user-rank rank-${index + 1}`}>{index + 1}</div>
+                                                <div className="user-avatar-small-initials">
+                                                    {getInitials(entry.fullName)}
+                                                </div>
+                                                <span className="user-name">
+                                                    {entry.id === user.id ? 'You' : entry.fullName}
+                                                </span>
+                                                <span className={`user-points ${entry.id === user.id ? 'text-gold font-bold' : ''}`}>
+                                                    {entry.karmaScore} pts
+                                                </span>
+                                            </div>
+                                        ))}
                                     </div>
                                 </div>
-                            </div>
+                            )}
                             <Award className="card-bg-icon" size={80} />
-                        </div>
-
-                        <div className="card glass-panel">
-                            <div className="card-header-flex">
-                                <h3 className="card-title">Monthly Goals</h3>
-                                <MoreHorizontal size={16} />
-                            </div>
-                            <div className="goals-list">
-                                <div className="goal-item">
-                                    <div className="goal-label-row">
-                                        <span className="goal-name">Items Returned</span>
-                                        <span className="goal-count">3 / 5</span>
-                                    </div>
-                                    <div className="progress-bar">
-                                        <div className="progress-fill bg-success" style={{ width: '60%' }}></div>
-                                    </div>
-                                </div>
-                                <div className="goal-item">
-                                    <div className="goal-label-row">
-                                        <span className="goal-name">Verify Lost Items</span>
-                                        <span className="goal-count">8 / 10</span>
-                                    </div>
-                                    <div className="progress-bar">
-                                        <div className="progress-fill bg-accent" style={{ width: '80%' }}></div>
-                                    </div>
-                                </div>
-                            </div>
                         </div>
                     </aside>
 
-                    {/* Center Column: Main Content */}
+                    {/* Main Column: Tabs & Content */}
                     <div className="profile-column column-center">
                         <div className="profile-main-tabs glass-panel">
-                            <button 
+                            <button
                                 className={`main-tab ${activeTab === 'LOST' ? 'active' : ''}`}
                                 onClick={() => setActiveTab('LOST')}
                             >
                                 <Package size={18} />
-                                Lost Items
+                                Lost Items ({lostItems.length})
                             </button>
-                            <button 
+                            <button
                                 className={`main-tab ${activeTab === 'FOUND' ? 'active' : ''}`}
                                 onClick={() => setActiveTab('FOUND')}
                             >
                                 <FileText size={18} />
-                                Found Items
+                                Found Items ({foundItems.length})
                             </button>
-                            <button className="main-tab">
-                                <History size={18} />
-                                Activity
+                            <button
+                                className={`main-tab ${activeTab === 'CLAIMS' ? 'active' : ''}`}
+                                onClick={() => setActiveTab('CLAIMS')}
+                            >
+                                <ClipboardList size={18} />
+                                My Claims ({myClaims.length})
                             </button>
                         </div>
 
-                        <div className="card glass-panel no-padding">
-                            <div className="card-p-header">
-                                <h4 className="text-sm font-bold">Recent Handover Activity</h4>
-                                <span className="text-muted text-xs">Last 7 days</span>
-                            </div>
-                            <div className="handover-list">
-                                <div className="handover-item">
-                                    <div className="handover-icon bg-success-light">
-                                        <Handshake size={20} className="text-success" />
-                                    </div>
-                                    <div className="handover-info">
-                                        <p>
-                                            <span className="font-bold">You</span> successfully returned a <span className="font-bold">Casio Calculator</span> to <span className="text-accent font-bold">Mark V.</span>
-                                        </p>
-                                        <span className="text-xs text-muted">2 days ago &bull; Library Lobby</span>
-                                    </div>
-                                </div>
-                                <div className="handover-item border-top">
-                                    <div className="handover-icon bg-accent-light">
-                                        <Search size={20} className="text-accent" />
-                                    </div>
-                                    <div className="handover-info">
-                                        <p>
-                                            <span className="font-bold">You</span> reported a lost <span className="font-bold">Hydroflask (Black)</span>.
-                                        </p>
-                                        <span className="text-xs text-muted">5 days ago &bull; Canteen Area</span>
-                                    </div>
-                                </div>
-                            </div>
+                        <div className="profile-list-container">
+                            {activeTab === 'LOST' && renderItemList(lostItems, 'LOST')}
+                            {activeTab === 'FOUND' && renderItemList(foundItems, 'FOUND')}
+                            {activeTab === 'CLAIMS' && renderClaims()}
                         </div>
-
-                        {activeTab === 'LOST' ? (
-                            <div className="profile-list-container">
-                                {lostItems.length > 0 ? (
-                                    lostItems.map((item, index) => (
-                                        <div key={item.id} className="profile-row-card glass-panel animate-in" style={{ animationDelay: `${index * 0.05}s` }}>
-                                            <div className="item-thumbnail">
-                                                <img src={item.imageUrls?.[0] || 'https://picsum.photos/seed/placeholder/100/100'} alt={item.title} />
-                                                <span className="type-tag report">REPORT</span>
-                                            </div>
-                                            <div className="item-details" onClick={() => navigate(`/items/${item.id}`)}>
-                                                <div className="item-header-row">
-                                                    <h3>{item.title}</h3>
-                                                    <StatusBadge status={item.status} />
-                                                </div>
-                                                <p className="item-snippet">{item.description}</p>
-                                                <div className="item-footer-meta">
-                                                    <span>{item.category}</span>
-                                                    <span className="dot-mid">&middot;</span>
-                                                    <span>{timeAgo(item.createdAt)}</span>
-                                                </div>
-                                            </div>
-                                            <div className="item-row-arrow">
-                                                <ArrowRight size={20} onClick={() => navigate(`/items/${item.id}`)} />
-                                            </div>
-                                        </div>
-                                    ))
-                                ) : (
-                                    <div className="empty-state-large glass-panel">
-                                        <div className="empty-icon-circle">
-                                            <Smile size={40} />
-                                        </div>
-                                        <h2>No active lost items</h2>
-                                        <p>That's great news! You haven't reported any lost items recently.</p>
-                                        <button className="btn-primary-alt" onClick={() => navigate('/post-item')}>
-                                            <BellRing size={18} />
-                                            Report Lost Item
-                                        </button>
-                                    </div>
-                                )}
-                            </div>
-                        ) : (
-                            <div className="profile-list-container">
-                                {foundItems.length > 0 ? (
-                                    foundItems.map((item, index) => (
-                                        <div key={item.id} className="profile-row-card glass-panel animate-in" style={{ animationDelay: `${index * 0.05}s` }}>
-                                            <div className="item-thumbnail">
-                                                <img src={item.imageUrls?.[0] || 'https://picsum.photos/seed/placeholder/100/100'} alt={item.title} />
-                                                <span className="type-tag found">FOUND</span>
-                                            </div>
-                                            <div className="item-details" onClick={() => navigate(`/items/${item.id}`)}>
-                                                <div className="item-header-row">
-                                                    <h3>{item.title}</h3>
-                                                    <StatusBadge status={item.status} />
-                                                </div>
-                                                <p className="item-snippet">{item.description}</p>
-                                                <div className="item-footer-meta">
-                                                    <span>{item.category}</span>
-                                                    <span className="dot-mid">&middot;</span>
-                                                    <span>{timeAgo(item.createdAt)}</span>
-                                                </div>
-                                            </div>
-                                            <div className="item-row-arrow">
-                                                <ArrowRight size={20} onClick={() => navigate(`/items/${item.id}`)} />
-                                            </div>
-                                        </div>
-                                    ))
-                                ) : (
-                                    <div className="empty-state-large glass-panel">
-                                        <div className="empty-icon-circle">
-                                            <Smile size={40} />
-                                        </div>
-                                        <h2>No found items yet</h2>
-                                        <p>Help your community! Post any items you've found on campus.</p>
-                                        <button className="btn-primary-alt" onClick={() => navigate('/post-item')}>
-                                            <PlusCircle size={18} />
-                                            Post Found Item
-                                        </button>
-                                    </div>
-                                )}
-                            </div>
-                        )}
                     </div>
-
-                    {/* Right Column: Insights & Badges */}
-                    <aside className="profile-column column-right">
-                        <div className="card glass-panel">
-                            <div className="card-header-flex">
-                                <h3 className="card-title">Collectibles</h3>
-                                <button className="text-link text-xs">View All</button>
-                            </div>
-                            <div className="badges-grid">
-                                <div className="badge-item tool-tip" data-tip="Helpful Hand: Returned 5 items">
-                                    <div className="badge-icon bg-blue-tint">
-                                        <Heart size={20} className="text-accent" />
-                                    </div>
-                                </div>
-                                <div className="badge-item tool-tip" data-tip="Explorer: Found items in 3 zones">
-                                    <div className="badge-icon bg-purple-tint">
-                                        <Compass size={20} className="text-purple" />
-                                    </div>
-                                </div>
-                                <div className="badge-item tool-tip" data-tip="Hot Streak: Active 7 days straight">
-                                    <div className="badge-icon bg-orange-tint">
-                                        <Flame size={20} className="text-gold" />
-                                    </div>
-                                </div>
-                                <div className="badge-item locked">
-                                    <div className="badge-icon bg-locked">
-                                        <Lock size={20} className="text-muted" />
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div className="card glass-panel">
-                            <h3 className="card-title">Activity Insights</h3>
-                            <div className="insight-rows">
-                                <div className="insight-row group">
-                                    <div className="insight-icon bg-success-light">
-                                        <CheckCircle size={20} />
-                                    </div>
-                                    <div>
-                                        <p className="insight-value">100%</p>
-                                        <p className="insight-label">Recovery Rate</p>
-                                    </div>
-                                </div>
-                                <div className="insight-row group">
-                                    <div className="insight-icon bg-accent-light">
-                                        <Users size={20} />
-                                    </div>
-                                    <div>
-                                        <p className="insight-value">12</p>
-                                        <p className="insight-label">Community Helps</p>
-                                    </div>
-                                </div>
-                            </div>
-                            <div className="weekly-chart-section">
-                                <div className="chart-header">
-                                    <p className="chart-title">Weekly Activity</p>
-                                    <span className="chart-trend">+15%</span>
-                                </div>
-                                <div className="bar-chart">
-                                    <div className="chart-bar" style={{ height: '30%' }} title="Mon"></div>
-                                    <div className="chart-bar" style={{ height: '50%' }} title="Tue"></div>
-                                    <div className="chart-bar active" style={{ height: '80%' }} title="Wed">
-                                        <div className="chart-tooltip">High Activity</div>
-                                    </div>
-                                    <div className="chart-bar" style={{ height: '40%' }} title="Thu"></div>
-                                    <div className="chart-bar" style={{ height: '20%' }} title="Fri"></div>
-                                    <div className="chart-bar" style={{ height: '60%' }} title="Sat"></div>
-                                    <div className="chart-bar" style={{ height: '45%' }} title="Sun"></div>
-                                </div>
-                                <div className="chart-labels">
-                                    <span>M</span><span>T</span><span>W</span><span>T</span><span>F</span><span>S</span><span>S</span>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div className="card promo-card glass-panel animate-pulse-subtle">
-                            <div className="promo-badge">Nearby Alert</div>
-                            <h4 className="promo-title">Help the Community</h4>
-                            <p className="promo-desc">There are <strong className="text-gold">3 lost items</strong> reported near the CIT Library in the last hour.</p>
-                            <button className="btn-glass">
-                                <Send size={16} />
-                                View Nearby Items
-                            </button>
-                            <Handshake size={100} className="promo-bg-icon" />
-                        </div>
-                    </aside>
                 </div>
             </main>
         </div>

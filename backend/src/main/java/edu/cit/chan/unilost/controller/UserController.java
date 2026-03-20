@@ -15,6 +15,8 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 /**
  * User profile management endpoints.
  *
@@ -26,6 +28,14 @@ import org.springframework.web.bind.annotation.*;
 public class UserController {
 
     private final UserService userService;
+
+    /** Public leaderboard — top users ranked by karma score. */
+    @GetMapping("/leaderboard")
+    public ResponseEntity<List<UserDTO>> getLeaderboard(
+            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(required = false) String campusId) {
+        return ResponseEntity.ok(userService.getLeaderboard(size, campusId));
+    }
 
     @GetMapping
     public ResponseEntity<Page<UserDTO>> getAllUsers(

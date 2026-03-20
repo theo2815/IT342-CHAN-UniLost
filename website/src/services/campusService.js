@@ -12,6 +12,17 @@ const campusService = {
         }
     },
 
+    // Get campus stats (active item counts per campus)
+    getCampusStats: async () => {
+        try {
+            const response = await api.get('/campuses/stats');
+            return { success: true, data: response.data };
+        } catch (error) {
+            const message = error.response?.data || error.message || 'Failed to fetch campus stats';
+            return { success: false, error: message };
+        }
+    },
+
     // Get campus by ID
     getCampusById: async (id) => {
         try {

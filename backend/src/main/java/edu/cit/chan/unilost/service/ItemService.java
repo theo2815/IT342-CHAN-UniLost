@@ -255,9 +255,15 @@ public class ItemService {
     public List<ItemDTO> getMapItems(String campusId, String type) {
         Query query = new Query();
         query.addCriteria(Criteria.where("isDeleted").is(false));
-        query.addCriteria(Criteria.where("latitude").ne(null));
-        query.addCriteria(Criteria.where("longitude").ne(null));
         query.addCriteria(Criteria.where("status").is(ItemStatus.ACTIVE.name()));
+
+        // When a specific campus is selected, include ALL items for that campus
+        // (items without coordinates will be placed at the campus center by the frontend).
+        // When no campus filter is set, require coordinates so items can be placed on the map.
+        if (campusId == null || campusId.isEmpty()) {
+            query.addCriteria(Criteria.where("latitude").ne(null));
+            query.addCriteria(Criteria.where("longitude").ne(null));
+        }
 
         if (campusId != null && !campusId.isEmpty()) {
             query.addCriteria(Criteria.where("campusId").is(campusId));

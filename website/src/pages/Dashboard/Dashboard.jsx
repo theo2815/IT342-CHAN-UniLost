@@ -9,12 +9,15 @@ import {
   Camera,
   ShieldCheck,
   TrendingUp,
+  Loader,
 } from "lucide-react";
 import Header from "../../components/Header";
 import Footer from "../../components/Footer";
 import ItemCard from "../../components/ItemCard";
 import authService from "../../services/authService";
 import itemService from "../../services/itemService";
+import userService from "../../services/userService";
+import campusService from "../../services/campusService";
 import "./Dashboard.css";
 
 function Dashboard() {
@@ -22,6 +25,10 @@ function Dashboard() {
   const [user, setUser] = useState(null);
   const [recentItems, setRecentItems] = useState([]);
   const [itemsError, setItemsError] = useState('');
+  const [leaderboard, setLeaderboard] = useState([]);
+  const [leaderboardLoaded, setLeaderboardLoaded] = useState(false);
+  const [campuses, setCampuses] = useState([]);
+  const [campusStats, setCampusStats] = useState([]);
 
   useEffect(() => {
     const currentUser = authService.getCurrentUser();
@@ -38,7 +45,40 @@ function Dashboard() {
       }
     };
     fetchRecentItems();
+
+    userService.getLeaderboard(5).then((result) => {
+      if (result.success) setLeaderboard(result.data);
+      setLeaderboardLoaded(true);
+    });
+
+    campusService.getAllCampuses().then((result) => {
+      if (result.success) setCampuses(result.data);
+    });
+
+    campusService.getCampusStats().then((result) => {
+      if (result.success) setCampusStats(result.data);
+    });
   }, []);
+
+  const getInitials = (fullName) => {
+    if (!fullName) return "?";
+    return fullName.split(" ").map((n) => n.charAt(0)).join("").substring(0, 2).toUpperCase();
+  };
+
+  const markerColors = ["ping-red", "ping-blue", "ping-orange", "ping-red", "ping-blue", "ping-orange"];
+  const dotColors = ["dot-red", "dot-blue", "dot-orange", "dot-red", "dot-blue", "dot-orange"];
+
+  const getActivityColor = (count) => {
+    if (count >= 5) return { ping: "ping-red", dot: "dot-red" };
+    if (count >= 1) return { ping: "ping-orange", dot: "dot-orange" };
+    return { ping: "ping-blue", dot: "dot-blue" };
+  };
+
+  // Merge campus stats into campus data for the Hot Zones widget
+  const campusesWithStats = campuses.slice(0, 6).map((campus) => {
+    const stats = campusStats.find((s) => s.id === campus.id);
+    return { ...campus, activeItems: stats?.activeItems || 0 };
+  });
 
   return (
     <div className="dashboard-page">
@@ -103,28 +143,37 @@ function Dashboard() {
               <div className="hot-zones-map">
                 <div className="map-grid-overlay"></div>
 
-                {/* Simulated Map Markers */}
-                <div className="map-marker marker-usc">
-                  <div className="marker-dot-container">
-                    <span className="marker-ping ping-red"></span>
-                    <span className="marker-dot dot-red"></span>
+                {campuses.length === 0 ? (
+                  <div className="hot-zones-loading">
+                    <Loader size={20} className="spin" />
+                    <span>Loading campuses...</span>
                   </div>
-                  <div className="marker-label">USC Talamban</div>
-                </div>
-                <div className="map-marker marker-it">
-                  <div className="marker-dot-container">
-                    <span className="marker-ping ping-blue"></span>
-                    <span className="marker-dot dot-blue"></span>
-                  </div>
-                  <div className="marker-label">Cebu IT Park</div>
-                </div>
-                <div className="map-marker marker-uc">
-                  <div className="marker-dot-container">
-                    <span className="marker-ping ping-orange"></span>
-                    <span className="marker-dot dot-orange"></span>
-                  </div>
-                  <div className="marker-label">UC Banilad</div>
-                </div>
+                ) : (
+                  campusesWithStats.map((campus, i) => {
+                    const colors = getActivityColor(campus.activeItems);
+                    return (
+                      <Link
+                        key={campus.id}
+                        to={`/items?campusId=${campus.id}`}
+                        className={`map-marker map-marker-dynamic marker-pos-${i}`}
+                      >
+                        <div className="marker-dot-container">
+                          <span className={`marker-ping ${colors.ping}`}></span>
+                          <span className={`marker-dot ${colors.dot}`}></span>
+                          {campus.activeItems > 0 && (
+                            <span className="marker-count">{campus.activeItems}</span>
+                          )}
+                        </div>
+                        <div className="marker-label">
+                          {campus.shortLabel || campus.name}
+                          {campus.activeItems > 0 && (
+                            <span className="marker-label-count">{campus.activeItems} active</span>
+                          )}
+                        </div>
+                      </Link>
+                    );
+                  })
+                )}
               </div>
             </div>
           </div>
@@ -145,98 +194,58 @@ function Dashboard() {
               </div>
 
               <div className="leaderboard-list">
-                {/* Top 1 */}
-                <div className="lb-item lb-1">
-                  <div className="lb-watermark">
-                    <Medal size={48} />
+                {!leaderboardLoaded ? (
+                  <div className="lb-loading">
+                    <Loader size={20} className="spin" />
+                    <span>Loading rankings...</span>
                   </div>
-                  <div className="lb-rank rank-1">1</div>
-                  <div className="lb-avatar avatar-1">
-                    <img
-                      alt="Maria"
-                      src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?ixlib=rb-4.0.3&auto=format&fit=crop&w=150&q=80"
-                    />
+                ) : leaderboard.length === 0 ? (
+                  <div className="lb-empty">
+                    <Trophy size={28} />
+                    <p>No ranked users yet.</p>
+                    <span>Return a found item to earn Karma and claim the top spot!</span>
                   </div>
-                  <div className="lb-info">
-                    <h4 className="lb-name">Maria Santos</h4>
-                    <div className="lb-meta">USC Main • 42 Returns</div>
-                  </div>
-                  <div className="lb-score">
-                    <div className="lb-points">1,250</div>
-                    <div className="lb-points-label">Karma</div>
-                  </div>
-                </div>
-
-                {/* Top 2 */}
-                <div className="lb-item">
-                  <div className="lb-rank rank-2">2</div>
-                  <div className="lb-avatar avatar-2">
-                    <img
-                      alt="Juan"
-                      src="https://images.unsplash.com/photo-1599566150163-29194dcaad36?ixlib=rb-4.0.3&auto=format&fit=crop&w=150&q=80"
-                    />
-                  </div>
-                  <div className="lb-info">
-                    <h4 className="lb-name">Juan Dela Cruz</h4>
-                    <div className="lb-meta">UC Banilad • 38 Returns</div>
-                  </div>
-                  <div className="lb-score">
-                    <div className="lb-points">1,100</div>
-                    <div className="lb-points-label">Karma</div>
-                  </div>
-                </div>
-
-                {/* Top 3 */}
-                <div className="lb-item">
-                  <div className="lb-rank rank-3">3</div>
-                  <div className="lb-avatar avatar-3">
-                    <img
-                      alt="Anna"
-                      src="https://images.unsplash.com/photo-1438761681033-6461ffad8d80?ixlib=rb-4.0.3&auto=format&fit=crop&w=150&q=80"
-                    />
-                  </div>
-                  <div className="lb-info">
-                    <h4 className="lb-name">Anna Lee</h4>
-                    <div className="lb-meta">CIT-U • 31 Returns</div>
-                  </div>
-                  <div className="lb-score">
-                    <div className="lb-points">950</div>
-                    <div className="lb-points-label">Karma</div>
-                  </div>
-                </div>
-
-                {/* List Items 4-5 */}
-                <div className="lb-item-compact">
-                  <div className="lb-rank-compact">4</div>
-                  <div className="lb-avatar-compact">
-                    <img
-                      alt="Pedro"
-                      src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-4.0.3&auto=format&fit=crop&w=150&q=80"
-                    />
-                  </div>
-                  <div className="lb-info">
-                    <h4 className="lb-name-compact">Pedro Penduko</h4>
-                  </div>
-                  <div className="lb-score-compact">
-                    <div className="lb-points-compact">800</div>
-                  </div>
-                </div>
-
-                <div className="lb-item-compact">
-                  <div className="lb-rank-compact">5</div>
-                  <div className="lb-avatar-compact">
-                    <img
-                      alt="Liza"
-                      src="https://images.unsplash.com/photo-1544005313-94ddf0286df2?ixlib=rb-4.0.3&auto=format&fit=crop&w=150&q=80"
-                    />
-                  </div>
-                  <div className="lb-info">
-                    <h4 className="lb-name-compact">Liza Soberano</h4>
-                  </div>
-                  <div className="lb-score-compact">
-                    <div className="lb-points-compact">650</div>
-                  </div>
-                </div>
+                ) : (
+                  leaderboard.map((entry, index) => {
+                    if (index < 3) {
+                      return (
+                        <div key={entry.id} className={`lb-item ${index === 0 ? "lb-1" : ""}`}>
+                          {index === 0 && (
+                            <div className="lb-watermark">
+                              <Medal size={48} />
+                            </div>
+                          )}
+                          <div className={`lb-rank rank-${index + 1}`}>{index + 1}</div>
+                          <div className={`lb-avatar avatar-${index + 1}`}>
+                            <div className="lb-avatar-initials">{getInitials(entry.fullName)}</div>
+                          </div>
+                          <div className="lb-info">
+                            <h4 className="lb-name">{entry.fullName}</h4>
+                            <div className="lb-meta">{entry.campus?.name || "Unknown"}</div>
+                          </div>
+                          <div className="lb-score">
+                            <div className="lb-points">{entry.karmaScore.toLocaleString()}</div>
+                            <div className="lb-points-label">Karma</div>
+                          </div>
+                        </div>
+                      );
+                    }
+                    return (
+                      <div key={entry.id} className="lb-item-compact">
+                        <div className="lb-rank-compact">{index + 1}</div>
+                        <div className="lb-avatar-compact">
+                          <div className="lb-avatar-initials small">{getInitials(entry.fullName)}</div>
+                        </div>
+                        <div className="lb-info">
+                          <h4 className="lb-name-compact">{entry.fullName}</h4>
+                        </div>
+                        <div className="lb-score-compact">
+                          <div className="lb-points-compact">{entry.karmaScore.toLocaleString()}</div>
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
               </div>
 
               <div className="leaderboard-footer">

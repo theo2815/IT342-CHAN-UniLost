@@ -27,4 +27,15 @@ public interface UserRepository extends MongoRepository<UserEntity, String> {
     long countByUniversityTag(String universityTag);
 
     long countByUniversityTagAndAccountStatus(String universityTag, AccountStatus accountStatus);
+
+    List<UserEntity> findByAccountStatusOrderByKarmaScoreDesc(AccountStatus accountStatus, Pageable pageable);
+
+    List<UserEntity> findByUniversityTagAndAccountStatusOrderByKarmaScoreDesc(
+            String universityTag, AccountStatus accountStatus, Pageable pageable);
+
+    List<UserEntity> findByAccountStatusAndKarmaScoreGreaterThanOrderByKarmaScoreDesc(
+            AccountStatus accountStatus, int minScore, Pageable pageable);
+
+    List<UserEntity> findByUniversityTagAndAccountStatusAndKarmaScoreGreaterThanOrderByKarmaScoreDesc(
+            String universityTag, AccountStatus accountStatus, int minScore, Pageable pageable);
 }

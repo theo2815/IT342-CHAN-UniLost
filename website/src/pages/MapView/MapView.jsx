@@ -145,8 +145,9 @@ function MapView() {
   const handleMarkerClick = (item) => {
     setSelectedItem(item);
     setSelectedCampusMarker(null);
-    if (map) {
-      map.panTo({ lat: item.latitude, lng: item.longitude });
+    const pos = resolvePosition(item);
+    if (map && pos) {
+      map.panTo({ lat: pos.lat, lng: pos.lng });
     }
   };
 
@@ -164,8 +165,9 @@ function MapView() {
   const handleItemCardClick = (item) => {
     setSelectedItem(item);
     setSelectedCampusMarker(null);
-    if (map && item.latitude && item.longitude) {
-      map.panTo({ lat: item.latitude, lng: item.longitude });
+    const pos = resolvePosition(item);
+    if (map && pos) {
+      map.panTo({ lat: pos.lat, lng: pos.lng });
       map.setZoom(CAMPUS_ZOOM);
     }
   };
@@ -175,6 +177,26 @@ function MapView() {
       map.panTo(userLocation);
       map.setZoom(CAMPUS_ZOOM);
     }
+  };
+
+  // Build a campus lookup map for fallback positioning
+  const campusMap = {};
+  campuses.forEach((c) => {
+    if (c.centerCoordinates) {
+      campusMap[c.id] = { lat: c.centerCoordinates[1], lng: c.centerCoordinates[0] };
+    }
+  });
+
+  // Resolve each item's map position: use its own coords, or fall back to campus center
+  const resolvePosition = (item) => {
+    if (item.latitude != null && item.longitude != null) {
+      return { lat: item.latitude, lng: item.longitude, exact: true };
+    }
+    const fallback = campusMap[item.campusId];
+    if (fallback) {
+      return { ...fallback, exact: false };
+    }
+    return null;
   };
 
   // Count items per campus for the info window
@@ -395,28 +417,38 @@ function MapView() {
               )}
 
               {/* Item Markers */}
-              {items.map((item) => (
-                <AdvancedMarker
-                  key={item.id}
-                  position={{ lat: item.latitude, lng: item.longitude }}
-                  onClick={() => handleMarkerClick(item)}
-                  zIndex={2}
-                >
-                  <svg viewBox="0 0 24 36" width="24" height="36">
-                    <path
-                      d="M12 0C5.4 0 0 5.4 0 12c0 9 12 24 12 24s12-15 12-24C24 5.4 18.6 0 12 0zm0 17c-2.8 0-5-2.2-5-5s2.2-5 5-5 5 2.2 5 5-2.2 5-5 5z"
-                      fill={item.type === "LOST" ? "#ef4444" : "#22c55e"}
-                      stroke="#ffffff"
-                      strokeWidth="1.5"
-                    />
-                  </svg>
-                </AdvancedMarker>
-              ))}
+              {items.map((item) => {
+                const pos = resolvePosition(item);
+                if (!pos) return null;
+                return (
+                  <AdvancedMarker
+                    key={item.id}
+                    position={{ lat: pos.lat, lng: pos.lng }}
+                    onClick={() => handleMarkerClick(item)}
+                    zIndex={2}
+                  >
+                    <div className={`adv-item-marker${!pos.exact ? " approximate" : ""}`}>
+                      <svg viewBox="0 0 24 36" width="24" height="36">
+                        <path
+                          d="M12 0C5.4 0 0 5.4 0 12c0 9 12 24 12 24s12-15 12-24C24 5.4 18.6 0 12 0zm0 17c-2.8 0-5-2.2-5-5s2.2-5 5-5 5 2.2 5 5-2.2 5-5 5z"
+                          fill={item.type === "LOST" ? "#ef4444" : "#22c55e"}
+                          stroke="#ffffff"
+                          strokeWidth="1.5"
+                          opacity={pos.exact ? 1 : 0.6}
+                        />
+                      </svg>
+                    </div>
+                  </AdvancedMarker>
+                );
+              })}
 
               {/* Item InfoWindow */}
-              {selectedItem && (
+              {selectedItem && resolvePosition(selectedItem) && (
                 <InfoWindow
-                  position={{ lat: selectedItem.latitude, lng: selectedItem.longitude }}
+                  position={{
+                    lat: resolvePosition(selectedItem).lat,
+                    lng: resolvePosition(selectedItem).lng,
+                  }}
                   onCloseClick={() => setSelectedItem(null)}
                   pixelOffset={[0, -38]}
                 >
@@ -433,6 +465,9 @@ function MapView() {
                       <span className={`info-badge ${selectedItem.type?.toLowerCase()}`}>
                         {selectedItem.type}
                       </span>
+                      {!resolvePosition(selectedItem).exact && (
+                        <span className="info-approx-badge">Approximate</span>
+                      )}
                     </p>
                     <p className="info-location">{selectedItem.location}</p>
                     <button

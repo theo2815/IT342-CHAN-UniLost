@@ -24,10 +24,12 @@ api.interceptors.response.use(
     (response) => response,
     (error) => {
         if (error.response?.status === 401) {
-            // Don't redirect for auth endpoints — let the login/register pages handle their own errors
             const url = error.config?.url || '';
             const isAuthRequest = url.includes('/auth/login') || url.includes('/auth/register');
-            if (!isAuthRequest) {
+            const hasToken = !!localStorage.getItem('token');
+            // Only redirect to login if the user had a token (session expired).
+            // Guest users (no token) browsing public pages should not be redirected.
+            if (!isAuthRequest && hasToken) {
                 localStorage.removeItem('user');
                 localStorage.removeItem('token');
                 window.location.href = '/login';

@@ -576,6 +576,18 @@
   gap: var(--spacing-lg);
 }
 
+.feed-loading,
+.feed-empty {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-2xl) 0;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+}
+
 @media (min-width: 640px) {
   .feed-grid {
     grid-template-columns: repeat(2, 1fr);

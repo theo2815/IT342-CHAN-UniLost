@@ -147,36 +147,38 @@ function Header() {
   return (
     <header className="main-header glass">
       <div className="header-left">
-        <Link to={user ? "/dashboard" : "/login"} className="logo">
+        <Link to={user ? "/dashboard" : "/"} className="logo">
           <Search className="logo-icon" size={28} />
           <span className="logo-text">UniLost</span>
         </Link>
       </div>
 
       <nav className="header-nav">
+        {user && (
+          <Link
+            to="/dashboard"
+            className={`nav-link ${location.pathname === "/dashboard" ? "active" : ""}`}
+          >
+            <Home size={16} />
+            Home
+          </Link>
+        )}
         <Link
-          to={user ? "/dashboard" : "/login"}
-          className={`nav-link ${location.pathname === "/dashboard" ? "active" : ""}`}
-        >
-          <Home size={16} />
-          Home
-        </Link>
-        <Link
-          to={user ? "/items" : "/login"}
+          to="/items"
           className={`nav-link ${location.pathname === "/items" ? "active" : ""}`}
         >
           <Search size={16} />
           Item Feed
         </Link>
         <Link
-          to={user ? "/map" : "/login"}
+          to="/map"
           className={`nav-link ${location.pathname === "/map" ? "active" : ""}`}
         >
           <Map size={16} />
           Map View
         </Link>
         <Link
-          to={user ? "/leaderboard" : "/login"}
+          to="/leaderboard"
           className={`nav-link ${location.pathname === "/leaderboard" ? "active" : ""}`}
         >
           <Trophy size={16} />
@@ -281,7 +283,7 @@ function Header() {
                     <span>My Items</span>
                   </Link>
                   <Link
-                    to="/profile"
+                    to="/my-claims"
                     className="dropdown-item"
                     onClick={() => setIsDropdownOpen(false)}
                   >

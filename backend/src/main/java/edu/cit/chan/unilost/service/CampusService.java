@@ -2,12 +2,16 @@ package edu.cit.chan.unilost.service;
 
 import edu.cit.chan.unilost.dto.CampusDTO;
 import edu.cit.chan.unilost.entity.CampusEntity;
+import edu.cit.chan.unilost.entity.ItemStatus;
 import edu.cit.chan.unilost.repository.CampusRepository;
+import edu.cit.chan.unilost.repository.ItemRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.mongodb.core.geo.GeoJsonPoint;
 import org.springframework.stereotype.Service;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -22,6 +26,7 @@ import java.util.stream.Collectors;
 public class CampusService {
 
     private final CampusRepository campusRepository;
+    private final ItemRepository itemRepository;
 
     public CampusDTO createCampus(CampusDTO campusDTO) {
         CampusEntity campus = new CampusEntity();
@@ -90,6 +95,25 @@ public class CampusService {
             return true;
         }
         return false;
+    }
+
+    public List<Map<String, Object>> getCampusStats() {
+        List<CampusEntity> allCampuses = campusRepository.findAll();
+        return allCampuses.stream().map(campus -> {
+            Map<String, Object> stat = new HashMap<>();
+            stat.put("id", campus.getId());
+            stat.put("name", campus.getName());
+            stat.put("shortLabel", campus.getShortLabel());
+            stat.put("activeItems", itemRepository.countByCampusIdAndStatusAndIsDeletedFalse(
+                    campus.getId(), ItemStatus.ACTIVE));
+            if (campus.getCenterCoordinates() != null) {
+                stat.put("centerCoordinates", new double[]{
+                        campus.getCenterCoordinates().getX(),
+                        campus.getCenterCoordinates().getY()
+                });
+            }
+            return stat;
+        }).collect(Collectors.toList());
     }
 
     private CampusDTO convertToDTO(CampusEntity campus) {

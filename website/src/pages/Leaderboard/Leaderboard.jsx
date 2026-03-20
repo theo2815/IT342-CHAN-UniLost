@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import {
   Trophy,
   CornerDownLeft,
@@ -6,97 +6,72 @@ import {
   Star,
   User,
   HeartHandshake,
+  Loader,
+  Search,
 } from "lucide-react";
+import { Link } from "react-router-dom";
 import Header from "../../components/Header";
+import userService from "../../services/userService";
+import campusService from "../../services/campusService";
+import authService from "../../services/authService";
 import "./Leaderboard.css";
 
-// Mock data matching the design
-const leaderboardData = [
-  {
-    rank: 1,
-    name: "Maria Santos",
-    subtext: "Top Finder",
-    school: "Cebu Institute of Technology",
-    score: 850,
-    img: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?ixlib=rb-4.0.3&auto=format&fit=crop&w=100&q=80",
-    isTop: true,
-    rankClass: "rank-badge-gold",
-    scoreClass: "score-gold",
-  },
-  {
-    rank: 2,
-    name: "John Doe",
-    subtext: "Consistent Returner",
-    school: "University of San Carlos",
-    score: 820,
-    img: "https://images.unsplash.com/photo-1599566150163-29194dcaad36?ixlib=rb-4.0.3&auto=format&fit=crop&w=100&q=80",
-    isTop: true,
-    rankClass: "rank-badge-silver",
-    scoreClass: "score-silver",
-  },
-  {
-    rank: 3,
-    name: "Sarah Lee",
-    subtext: "Community Helper",
-    school: "University of the Philippines",
-    score: 795,
-    img: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?ixlib=rb-4.0.3&auto=format&fit=crop&w=100&q=80",
-    isTop: true,
-    rankClass: "rank-badge-bronze",
-    scoreClass: "score-bronze",
-  },
-  {
-    rank: 4,
-    name: "Michael Tan",
-    school: "University of Cebu",
-    score: 750,
-    img: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?ixlib=rb-4.0.3&auto=format&fit=crop&w=100&q=80",
-  },
-  {
-    rank: 5,
-    name: "Lisa Wang",
-    school: "Southwestern University",
-    score: 710,
-    img: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?ixlib=rb-4.0.3&auto=format&fit=crop&w=100&q=80",
-  },
-  {
-    rank: 6,
-    name: "David Chen",
-    school: "Cebu Normal University",
-    score: 680,
-    img: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?ixlib=rb-4.0.3&auto=format&fit=crop&w=100&q=80",
-  },
-  {
-    rank: 7,
-    name: "Emily Rose",
-    school: "Velez College",
-    score: 650,
-    img: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?ixlib=rb-4.0.3&auto=format&fit=crop&w=100&q=80",
-  },
-  {
-    rank: 8,
-    name: "Mark Anthony",
-    school: "USJ - Recoletos",
-    score: 620,
-    img: "https://images.unsplash.com/photo-1527980965255-d3b416303d12?ixlib=rb-4.0.3&auto=format&fit=crop&w=100&q=80",
-  },
-  {
-    rank: 9,
-    name: "Sophia Grace",
-    school: "Cebu Doctors' University",
-    score: 600,
-    img: "https://images.unsplash.com/photo-1531746020798-e6953c6e8e04?ixlib=rb-4.0.3&auto=format&fit=crop&w=100&q=80",
-  },
-  {
-    rank: 10,
-    name: "Kevin Ray",
-    school: "Asian College of Tech",
-    score: 580,
-    img: "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?ixlib=rb-4.0.3&auto=format&fit=crop&w=100&q=80",
-  },
-];
-
 function Leaderboard() {
+  const [leaderboardData, setLeaderboardData] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [campuses, setCampuses] = useState([]);
+  const [activeCampus, setActiveCampus] = useState("");
+  const currentUser = authService.getCurrentUser();
+
+  // Load campuses once on mount
+  useEffect(() => {
+    campusService.getAllCampuses().then((result) => {
+      if (result.success) setCampuses(result.data);
+    });
+  }, []);
+
+  // Reload leaderboard when campus filter changes
+  useEffect(() => {
+    const loadLeaderboard = async () => {
+      setLoading(true);
+      const result = await userService.getLeaderboard(20, activeCampus || undefined);
+      if (result.success) setLeaderboardData(result.data);
+      setLoading(false);
+    };
+    loadLeaderboard();
+  }, [activeCampus]);
+
+  const topScore = leaderboardData[0]?.karmaScore || 0;
+
+  // Find current user's rank in the leaderboard
+  const currentUserRank = currentUser
+    ? leaderboardData.findIndex((u) => u.id === currentUser.id) + 1
+    : 0;
+  const currentUserEntry = currentUserRank > 0 ? leaderboardData[currentUserRank - 1] : null;
+  const nextRankScore = currentUserRank > 1 ? leaderboardData[currentUserRank - 2].karmaScore : null;
+  const pointsToNext = nextRankScore != null && currentUserEntry
+    ? nextRankScore - currentUserEntry.karmaScore
+    : null;
+
+  const getRankStyle = (index) => {
+    if (index === 0) return { rankClass: "rank-badge-gold", scoreClass: "score-gold" };
+    if (index === 1) return { rankClass: "rank-badge-silver", scoreClass: "score-silver" };
+    if (index === 2) return { rankClass: "rank-badge-bronze", scoreClass: "score-bronze" };
+    return { rankClass: "", scoreClass: "score-normal" };
+  };
+
+  const getInitials = (fullName) => {
+    if (!fullName) return "?";
+    return fullName.split(" ").map((n) => n.charAt(0)).join("").substring(0, 2).toUpperCase();
+  };
+
+  const getBorderColor = (index) => {
+    if (index === 0) return "#eab308";
+    if (index === 1) return "#9ca3af";
+    if (index === 2) return "#ea580c";
+    return "transparent";
+  };
+
   return (
     <div className="leaderboard-page">
       <Header />
@@ -105,15 +80,30 @@ function Leaderboard() {
         {/* Hero Section */}
         <section className="leaderboard-hero">
           <div className="hero-titles">
-            <h1 className="hero-heading">Global Karma Leaderboard</h1>
+            <h1 className="hero-heading">
+              {activeCampus
+                ? `${campuses.find((c) => c.id === activeCampus)?.name || "Campus"} Leaderboard`
+                : "Global Karma Leaderboard"}
+            </h1>
             <p className="hero-subheading">
               Recognizing the top finders making a difference across Cebu City
               universities. Your honesty builds our community.
             </p>
           </div>
-          <div className="season-badge">
-            <Trophy size={16} />
-            Season 4 Ends in 12 Days
+          <div className="leaderboard-filter">
+            <School size={16} />
+            <select
+              value={activeCampus}
+              onChange={(e) => setActiveCampus(e.target.value)}
+              className="campus-select"
+            >
+              <option value="">All Universities</option>
+              {campuses.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name}
+                </option>
+              ))}
+            </select>
           </div>
         </section>
 
@@ -124,9 +114,9 @@ function Leaderboard() {
               <div className="stat-icon-wrapper success">
                 <CornerDownLeft size={20} />
               </div>
-              <span className="stat-label">Total Returns</span>
+              <span className="stat-label">Ranked Users</span>
             </div>
-            <p className="stat-value">1,245</p>
+            <p className="stat-value">{leaderboardData.length}</p>
           </div>
 
           <div className="stat-card">
@@ -136,7 +126,7 @@ function Leaderboard() {
               </div>
               <span className="stat-label">Universities</span>
             </div>
-            <p className="stat-value">12</p>
+            <p className="stat-value">{campuses.length}</p>
           </div>
 
           <div className="stat-card">
@@ -146,7 +136,7 @@ function Leaderboard() {
               </div>
               <span className="stat-label">Top Score</span>
             </div>
-            <p className="stat-value">850</p>
+            <p className="stat-value">{topScore}</p>
           </div>
 
           <div className="stat-card rank-card">
@@ -157,99 +147,150 @@ function Leaderboard() {
               </div>
               <span className="stat-label">Your Rank</span>
             </div>
-            <p className="stat-value">#42</p>
+            <p className="stat-value">
+              {currentUserRank > 0 ? `#${currentUserRank}` : "\u2014"}
+            </p>
           </div>
         </section>
 
         {/* Table Section */}
         <section className="leaderboard-table-container">
           <div className="table-wrapper">
-            <div className="scroll-container">
-              <table className="leaderboard-table">
-                <thead>
-                  <tr className="table-head-row">
-                    <th className="table-header" style={{ width: "100px" }}>Rank</th>
-                    <th className="table-header">Finder</th>
-                    <th className="table-header">University</th>
-                    <th className="table-header text-right">Karma Score</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {leaderboardData.map((user, index) => (
-                    <tr key={index} className="table-row">
-                      <td className="table-cell">
-                        {user.isTop ? (
-                          <div className={`rank-badge-container ${user.rankClass}`}>
-                            {index === 0 ? <Trophy size={16} /> : <span>{user.rank}</span>}
-                          </div>
-                        ) : (
-                          <span className="rank-text-muted">{user.rank}</span>
-                        )}
-                      </td>
-                      <td className="table-cell">
-                        <div className="user-info">
-                          <div className="avatar-wrapper">
-                            <div 
-                              className="user-avatar" 
-                              style={{ 
-                                backgroundImage: `url(${user.img})`,
-                                borderColor: user.rankClass === 'rank-badge-gold' ? '#eab308' : 
-                                             user.rankClass === 'rank-badge-silver' ? '#9ca3af' :
-                                             user.rankClass === 'rank-badge-bronze' ? '#ea580c' : 'transparent'
-                              }}
-                            ></div>
-                            {index === 0 && <div className="avatar-rank-number">1</div>}
-                          </div>
-                          <div className="user-name-group">
-                            <span className="user-name">{user.name}</span>
-                            {user.subtext && <span className="user-subtext">{user.subtext}</span>}
+            {loading ? (
+              <div className="leaderboard-loading">
+                <Loader size={24} className="spin" />
+                <span>Loading leaderboard...</span>
+              </div>
+            ) : leaderboardData.length === 0 ? (
+              <div className="leaderboard-empty-state">
+                <div className="empty-icon-wrapper">
+                  <Trophy size={48} />
+                </div>
+                <h3 className="empty-title">
+                  {activeCampus
+                    ? `No rankings yet for ${campuses.find((c) => c.id === activeCampus)?.name || "this university"}`
+                    : "No rankings yet"}
+                </h3>
+                <p className="empty-description">
+                  {activeCampus
+                    ? "No one from this university has earned Karma points yet. Be the first to return a found item and claim the top spot!"
+                    : "The leaderboard is waiting for its first hero. Return a found item to earn Karma points and get recognized."}
+                </p>
+                <div className="empty-actions">
+                  <Link to="/items" className="btn btn-primary empty-cta">
+                    <Search size={16} />
+                    Browse Found Items
+                  </Link>
+                  {activeCampus && (
+                    <button
+                      className="btn btn-outline"
+                      onClick={() => setActiveCampus("")}
+                    >
+                      View All Universities
+                    </button>
+                  )}
+                </div>
+              </div>
+            ) : (
+              <>
+                <div className="scroll-container">
+                  <table className="leaderboard-table">
+                    <thead>
+                      <tr className="table-head-row">
+                        <th className="table-header" style={{ width: "100px" }}>Rank</th>
+                        <th className="table-header">Finder</th>
+                        <th className="table-header">University</th>
+                        <th className="table-header text-right">Karma Score</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {leaderboardData.map((user, index) => {
+                        const { rankClass, scoreClass } = getRankStyle(index);
+                        const isTop = index < 3;
+                        return (
+                          <tr
+                            key={user.id}
+                            className={`table-row ${currentUser && user.id === currentUser.id ? "current-user-row" : ""}`}
+                          >
+                            <td className="table-cell">
+                              {isTop ? (
+                                <div className={`rank-badge-container ${rankClass}`}>
+                                  {index === 0 ? <Trophy size={16} /> : <span>{index + 1}</span>}
+                                </div>
+                              ) : (
+                                <span className="rank-text-muted">{index + 1}</span>
+                              )}
+                            </td>
+                            <td className="table-cell">
+                              <div className="user-info">
+                                <div className="avatar-wrapper">
+                                  <div
+                                    className="user-avatar user-avatar-initials"
+                                    style={{ borderColor: getBorderColor(index) }}
+                                  >
+                                    {getInitials(user.fullName)}
+                                  </div>
+                                  {index === 0 && <div className="avatar-rank-number">1</div>}
+                                </div>
+                                <div className="user-name-group">
+                                  <span className="user-name">{user.fullName}</span>
+                                </div>
+                              </div>
+                            </td>
+                            <td className="table-cell">
+                              <span className="university-cell">
+                                {user.campus?.name || "Unknown"}
+                              </span>
+                            </td>
+                            <td className="table-cell text-right">
+                              <span className={`score-badge ${scoreClass}`}>
+                                {user.karmaScore} pts
+                              </span>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* Current User Strip */}
+                {currentUser && currentUserEntry && (
+                  <div className="current-user-strip">
+                    <div className="current-user-left">
+                      <div className="current-user-rank">{currentUserRank}</div>
+                      <div className="user-info">
+                        <div className="avatar-wrapper">
+                          <div
+                            className="user-avatar user-avatar-initials"
+                            style={{ borderColor: "var(--color-primary)" }}
+                          >
+                            {getInitials(currentUserEntry.fullName)}
                           </div>
                         </div>
-                      </td>
-                      <td className="table-cell">
-                        <span className="university-cell">{user.school}</span>
-                      </td>
-                      <td className="table-cell text-right">
-                        <span className={`score-badge ${user.scoreClass || 'score-normal'}`}>
-                          {user.score} pts
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-
-            {/* Sticky Current User Strip */}
-            <div className="current-user-strip">
-              <div className="current-user-left">
-                <div className="current-user-rank">42</div>
-                <div className="user-info">
-                  <div className="avatar-wrapper">
-                    <div 
-                      className="user-avatar" 
-                      style={{ 
-                        backgroundImage: `url('https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?ixlib=rb-4.0.3&auto=format&fit=crop&w=150&q=80')`,
-                        borderColor: 'var(--color-primary)'
-                      }}
-                    ></div>
-                  </div>
-                  <div className="user-name-group">
-                    <div className="user-name" style={{ fontWeight: '700' }}>
-                      You <span className="you-badge">Current Rank</span>
+                        <div className="user-name-group">
+                          <div className="user-name" style={{ fontWeight: "700" }}>
+                            You <span className="you-badge">Current Rank</span>
+                          </div>
+                          <span className="user-subtext">
+                            {currentUserEntry.campus?.name || ""}
+                          </span>
+                        </div>
+                      </div>
                     </div>
-                    <span className="user-subtext">University of Cebu</span>
+                    <div className="current-user-right">
+                      {pointsToNext != null && pointsToNext > 0 && (
+                        <div className="next-rank-info">
+                          <span className="next-rank-label">Points to next rank</span>
+                          <span className="next-rank-value">+{pointsToNext} pts</span>
+                        </div>
+                      )}
+                      <div className="current-user-score">{currentUserEntry.karmaScore} pts</div>
+                    </div>
                   </div>
-                </div>
-              </div>
-              <div className="current-user-right">
-                <div className="next-rank-info">
-                  <span className="next-rank-label">Points to next rank</span>
-                  <span className="next-rank-value">+25 pts</span>
-                </div>
-                <div className="current-user-score">350 pts</div>
-              </div>
-            </div>
+                )}
+              </>
+            )}
           </div>
         </section>
 
@@ -266,8 +307,9 @@ function Leaderboard() {
               </p>
             </div>
             <div className="cta-actions">
-              <button className="btn btn-outline">View Rules</button>
-              <button className="btn btn-primary">Start Finding</button>
+              <button className="btn btn-primary" onClick={() => window.location.href = "/items"}>
+                Start Finding
+              </button>
             </div>
           </div>
         </section>

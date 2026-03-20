@@ -54,14 +54,16 @@ function App() {
           <Route path="/verify-otp" element={<VerifyOTP />} />
           <Route path="/reset-password" element={<ResetPassword />} />
 
+          {/* Public browse routes (guests get read-only access) */}
+          <Route path="/items" element={<ItemFeed />} />
+          <Route path="/items/:id" element={<ItemDetail />} />
+          <Route path="/map" element={<MapView />} />
+          <Route path="/leaderboard" element={<Leaderboard />} />
+
           {/* Protected Routes */}
             <Route element={<ProtectedRoute />}>
               <Route path="/dashboard" element={<Dashboard />} />
-              <Route path="/items" element={<ItemFeed />} />
-              <Route path="/map" element={<MapView />} />
-              <Route path="/leaderboard" element={<Leaderboard />} />
               <Route path="/messages" element={<Messages />} />
-              <Route path="/items/:id" element={<ItemDetail />} />
             <Route path="/post-item" element={<PostItem />} />
             <Route path="/my-items/:itemId/claims" element={<IncomingClaims />} />
             <Route path="/my-claims" element={<MyClaims />} />

@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {
   Search,
@@ -9,18 +9,29 @@ import {
   Handshake,
   Activity,
   ArrowRight,
+  Loader,
 } from "lucide-react";
 import Header from "../../components/Header";
 import Footer from "../../components/Footer";
 import ItemCard from "../../components/ItemCard";
-import { mockItems } from "../../mockData/items";
+import itemService from "../../services/itemService";
 import "./Landing.css";
 
 const Landing = () => {
   const navigate = useNavigate();
-  const recentFoundItems = mockItems
-    .filter((item) => item.type === "FOUND")
-    .slice(0, 4);
+  const [recentFoundItems, setRecentFoundItems] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const loadRecentItems = async () => {
+      const result = await itemService.getItems({ type: "FOUND", size: 4 });
+      if (result.success) {
+        setRecentFoundItems(result.data.content || []);
+      }
+      setLoading(false);
+    };
+    loadRecentItems();
+  }, []);
 
   return (
     <div className="landing-page">
@@ -131,13 +142,24 @@ const Landing = () => {
               </div>
 
               <div className="feed-grid">
-                {recentFoundItems.map((item) => (
-                  <ItemCard
-                    key={item.id}
-                    item={item}
-                    onClick={(id) => navigate(`/items/${id}`)}
-                  />
-                ))}
+                {loading ? (
+                  <div className="feed-loading">
+                    <Loader size={24} className="spin" />
+                    <span>Loading recent items...</span>
+                  </div>
+                ) : recentFoundItems.length === 0 ? (
+                  <div className="feed-empty">
+                    <p>No found items yet. Be the first to report one!</p>
+                  </div>
+                ) : (
+                  recentFoundItems.map((item) => (
+                    <ItemCard
+                      key={item.id}
+                      item={item}
+                      onClick={(id) => navigate(`/items/${id}`)}
+                    />
+                  ))
+                )}
               </div>
             </section>
           </div>

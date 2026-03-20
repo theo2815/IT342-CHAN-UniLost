@@ -588,6 +588,23 @@
   animation: locationPulse 2s ease-out infinite;
 }
 
+/* Approximate location markers (items without exact coordinates) */
+.adv-item-marker.approximate {
+  opacity: 0.7;
+  filter: drop-shadow(0 0 4px rgba(0, 0, 0, 0.15));
+}
+
+.info-approx-badge {
+  display: inline-block;
+  font-size: 0.65rem;
+  padding: 0.1rem 0.4rem;
+  border-radius: 4px;
+  background: var(--warning-bg, #fef3c7);
+  color: var(--warning-text, #92400e);
+  margin-left: 0.4rem;
+  vertical-align: middle;
+}
+
 @keyframes locationPulse {
   0% { transform: translate(-50%, -50%) scale(1); opacity: 0.6; }
   100% { transform: translate(-50%, -50%) scale(3); opacity: 0; }

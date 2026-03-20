@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Plus } from 'lucide-react';
 import Header from '../../components/Header';
 import ItemCard from '../../components/ItemCard';
@@ -12,11 +12,12 @@ const ITEMS_PER_PAGE = 9;
 
 function ItemFeed() {
     const navigate = useNavigate();
+    const [searchParams] = useSearchParams();
     const [searchQuery, setSearchQuery] = useState('');
     const [debouncedSearch, setDebouncedSearch] = useState('');
     const [activeType, setActiveType] = useState('All');
     const [activeCategory, setActiveCategory] = useState('');
-    const [activeSchool, setActiveSchool] = useState('');
+    const [activeSchool, setActiveSchool] = useState(() => searchParams.get('campusId') || '');
     const [items, setItems] = useState([]);
     const [totalItems, setTotalItems] = useState(0);
     const [page, setPage] = useState(0);

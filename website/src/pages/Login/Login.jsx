@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { Search, Mail, Lock, CheckSquare, Square, AlertTriangle, ArrowRight, ShieldCheck, MapPin, Eye, EyeOff } from 'lucide-react';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { Search, Mail, Lock, CheckSquare, Square, AlertTriangle, ArrowLeft, ArrowRight, ShieldCheck, MapPin, Eye, EyeOff } from 'lucide-react';
 import authService from '../../services/authService';
 import { useToast } from '../../components/Toast';
 import { Input, Button, Alert } from '../../components/ui';
@@ -17,7 +17,9 @@ function Login() {
   const [errors, setErrors] = useState({});
   const [apiError, setApiError] = useState('');
   const navigate = useNavigate();
+  const location = useLocation();
   const toast = useToast();
+  const redirectTo = location.state?.from || '/dashboard';
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -57,7 +59,7 @@ function Login() {
       const result = await authService.login(formData.email, formData.password);
       if (result.success) {
         toast.success('Welcome back! Redirecting...', { title: 'Login Successful', duration: 2000 });
-        setTimeout(() => navigate('/dashboard'), 600);
+        setTimeout(() => navigate(redirectTo), 600);
       } else {
         const msg = typeof result.error === 'string' ? result.error : 'Login failed. Please check your credentials.';
         setApiError(msg);
@@ -164,6 +166,14 @@ function Login() {
 
             <div className="form-footer">
               <p>New to UniLost? <Link to="/register">Create Account</Link></p>
+              <Button
+                variant="ghost"
+                size="sm"
+                icon={ArrowLeft}
+                onClick={() => navigate('/')}
+              >
+                Back to landing page
+              </Button>
             </div>
           </div>
         </div>

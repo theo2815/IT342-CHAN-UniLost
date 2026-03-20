@@ -1,8 +1,10 @@
 package edu.cit.chan.unilost.config;
 
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.Ordered;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -15,6 +17,7 @@ import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+import org.springframework.web.filter.CorsFilter;
 
 import java.util.List;
 
@@ -63,6 +66,9 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.PUT, "/api/campuses/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.DELETE, "/api/campuses/**").hasRole("ADMIN")
 
+                        // Public leaderboard
+                        .requestMatchers(HttpMethod.GET, "/api/users/leaderboard").permitAll()
+
                         // User list (GET all) requires ADMIN or FACULTY
                         .requestMatchers(HttpMethod.GET, "/api/users").hasAnyRole("ADMIN", "FACULTY")
 
@@ -79,6 +85,19 @@ public class SecurityConfig {
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
+    }
+
+    /**
+     * Top-level servlet CorsFilter registered at HIGHEST_PRECEDENCE.
+     * This guarantees CORS headers are on every response even if
+     * Spring Security or any downstream filter throws an exception.
+     */
+    @Bean
+    public FilterRegistrationBean<CorsFilter> corsFilterRegistration() {
+        FilterRegistrationBean<CorsFilter> bean = new FilterRegistrationBean<>(
+                new CorsFilter(corsConfigurationSource()));
+        bean.setOrder(Ordered.HIGHEST_PRECEDENCE);
+        return bean;
     }
 
     @Bean

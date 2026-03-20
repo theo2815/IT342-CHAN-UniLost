@@ -63,6 +63,28 @@
   color: var(--color-primary);
 }
 
+.leaderboard-filter {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--color-text-secondary);
+}
+
+.campus-select {
+  padding: 0.4rem 0.75rem;
+  border-radius: var(--radius-md, 0.5rem);
+  border: 1px solid var(--color-border);
+  background-color: var(--color-bg-card);
+  color: var(--color-text-primary);
+  font-size: 0.875rem;
+  cursor: pointer;
+  outline: none;
+}
+
+.campus-select:focus {
+  border-color: var(--color-primary);
+}
+
 /* Stats Cards Grid */
 .stats-grid {
   display: grid;
@@ -307,6 +329,16 @@
   border: 2px solid transparent;
 }
 
+.user-avatar-initials {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--color-bg-elevated, #f3f4f6);
+  color: var(--color-text-secondary, #6b7280);
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
 .avatar-rank-number {
   position: absolute;
   bottom: -0.25rem;
@@ -527,4 +559,69 @@
 
 .btn-primary:hover {
   filter: brightness(1.1);
+}
+
+/* Loading & empty states */
+.leaderboard-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-sm, 0.5rem);
+  padding: var(--spacing-2xl, 3rem) 0;
+  color: var(--color-text-muted, #9ca3af);
+  font-size: var(--font-size-sm, 0.875rem);
+}
+
+.leaderboard-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 3.5rem 2rem;
+  gap: 1rem;
+}
+
+.empty-icon-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 5rem;
+  height: 5rem;
+  border-radius: 50%;
+  background-color: rgba(245, 158, 11, 0.1);
+  color: #f59e0b;
+  margin-bottom: 0.5rem;
+}
+
+.empty-title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--color-text-primary);
+}
+
+.empty-description {
+  font-size: 0.9375rem;
+  color: var(--color-text-muted);
+  max-width: 28rem;
+  line-height: 1.6;
+}
+
+.empty-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-top: 0.5rem;
+  justify-content: center;
+}
+
+.empty-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* Highlight current user row in table */
+.current-user-row {
+  background-color: rgba(99, 102, 241, 0.06);
 }

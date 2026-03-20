@@ -8,6 +8,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * Campus CRUD endpoints.
@@ -30,6 +31,11 @@ public class CampusController {
     @GetMapping
     public ResponseEntity<List<CampusDTO>> getAllCampuses() {
         return ResponseEntity.ok(campusService.getAllCampuses());
+    }
+
+    @GetMapping("/stats")
+    public ResponseEntity<List<Map<String, Object>>> getCampusStats() {
+        return ResponseEntity.ok(campusService.getCampusStats());
     }
 
     @GetMapping("/{id}")
