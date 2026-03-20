@@ -12,9 +12,9 @@ public interface ChatRepository extends MongoRepository<ChatEntity, String> {
 
     List<ChatEntity> findByItemId(String itemId);
 
-    List<ChatEntity> findByFinderIdOrOwnerId(String finderId, String ownerId);
+    List<ChatEntity> findByFinderIdOrOwnerIdOrderByLastMessageAtDesc(String finderId, String ownerId);
 
     Optional<ChatEntity> findByItemIdAndFinderIdAndOwnerId(String itemId, String finderId, String ownerId);
 
-    // TODO: [Phase 6] Add query ordered by updatedAt for chat list
+    Optional<ChatEntity> findByClaimId(String claimId);
 }

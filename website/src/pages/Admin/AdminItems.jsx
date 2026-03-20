@@ -1,50 +1,50 @@
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { Package, Search, Eye, Trash2, ChevronLeft, ChevronRight, X, AlertTriangle } from 'lucide-react';
+import { Package, Search, Eye, Trash2, ChevronLeft, ChevronRight, X, AlertTriangle, Loader2, Flag, EyeOff, RotateCcw } from 'lucide-react';
 import Header from '../../components/Header';
-import { mockAdminItems, timeAgo } from '../../mockData/adminData';
+import adminService from '../../services/adminService';
 import './AdminItems.css';
 
-const statusOptions = ['All', 'ACTIVE', 'CLAIMED', 'HANDED_OVER', 'EXPIRED', 'CANCELLED'];
+const statusOptions = ['All', 'ACTIVE', 'CLAIMED', 'HANDED_OVER', 'EXPIRED', 'TURNED_OVER_TO_OFFICE', 'RETURNED', 'HIDDEN'];
 const typeOptions = ['All', 'LOST', 'FOUND'];
-const schoolOptions = ['All', 'CIT-U', 'USC', 'UP Cebu', 'USJ-R', 'UC', 'SWU', 'CNU', 'CTU'];
 
 const AdminItems = () => {
     const navigate = useNavigate();
     const [search, setSearch] = useState('');
     const [typeFilter, setTypeFilter] = useState('All');
     const [statusFilter, setStatusFilter] = useState('All');
-    const [schoolFilter, setSchoolFilter] = useState('All');
-    const [selectedIds, setSelectedIds] = useState([]);
+    const [items, setItems] = useState([]);
+    const [totalElements, setTotalElements] = useState(0);
+    const [currentPage, setCurrentPage] = useState(0);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState('');
     const [showRemoveModal, setShowRemoveModal] = useState(false);
     const [removeTarget, setRemoveTarget] = useState(null);
     const [removeReason, setRemoveReason] = useState('');
-    const [items, setItems] = useState(mockAdminItems);
-    const [currentPage, setCurrentPage] = useState(1);
+    const [actionLoading, setActionLoading] = useState(false);
     const perPage = 10;
 
-    const filtered = items.filter(item => {
-        if (search && !item.title.toLowerCase().includes(search.toLowerCase()) && !item.postedBy.email.toLowerCase().includes(search.toLowerCase())) return false;
-        if (typeFilter !== 'All' && item.type !== typeFilter) return false;
-        if (statusFilter !== 'All' && item.status !== statusFilter) return false;
-        if (schoolFilter !== 'All' && item.school.shortName !== schoolFilter) return false;
-        return true;
-    });
+    const fetchItems = useCallback(async () => {
+        setLoading(true);
+        setError('');
+        const params = { page: currentPage, size: perPage };
+        if (search) params.keyword = search;
+        if (typeFilter !== 'All') params.type = typeFilter;
+        if (statusFilter !== 'All') params.status = statusFilter;
 
-    const totalPages = Math.ceil(filtered.length / perPage);
-    const paginated = filtered.slice((currentPage - 1) * perPage, currentPage * perPage);
-
-    const toggleSelect = (id) => {
-        setSelectedIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
-    };
-
-    const toggleSelectAll = () => {
-        if (selectedIds.length === paginated.length) {
-            setSelectedIds([]);
+        const result = await adminService.getCampusItems(params);
+        if (result.success) {
+            setItems(result.data.content || []);
+            setTotalElements(result.data.totalElements || 0);
         } else {
-            setSelectedIds(paginated.map(i => i.id));
+            setError(result.error);
         }
-    };
+        setLoading(false);
+    }, [currentPage, search, typeFilter, statusFilter]);
+
+    useEffect(() => { fetchItems(); }, [fetchItems]);
+
+    const totalPages = Math.ceil(totalElements / perPage);
 
     const handleRemove = (item) => {
         setRemoveTarget(item);
@@ -52,18 +52,45 @@ const AdminItems = () => {
         setShowRemoveModal(true);
     };
 
-    const confirmRemove = () => {
-        if (removeTarget) {
-            setItems(prev => prev.filter(i => i.id !== removeTarget.id));
-            setSelectedIds(prev => prev.filter(id => id !== removeTarget.id));
+    const confirmRemove = async () => {
+        if (!removeTarget) return;
+        setActionLoading(true);
+        const result = await adminService.forceDeleteItem(removeTarget.id);
+        if (result.success) {
+            fetchItems();
+        } else {
+            setError(result.error);
         }
+        setActionLoading(false);
         setShowRemoveModal(false);
         setRemoveTarget(null);
     };
 
-    const handleBulkRemove = () => {
-        setItems(prev => prev.filter(i => !selectedIds.includes(i.id)));
-        setSelectedIds([]);
+    const handleStatusChange = async (itemId, newStatus) => {
+        setActionLoading(true);
+        const result = await adminService.updateItemStatus(itemId, newStatus);
+        if (result.success) {
+            fetchItems();
+        } else {
+            setError(result.error);
+        }
+        setActionLoading(false);
+    };
+
+    const timeAgo = (dateStr) => {
+        if (!dateStr) return '-';
+        const date = new Date(dateStr);
+        const now = new Date();
+        const diff = Math.floor((now - date) / 1000);
+        if (diff < 60) return 'just now';
+        if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+        if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+        return `${Math.floor(diff / 86400)}d ago`;
+    };
+
+    const handleSearchSubmit = () => {
+        setCurrentPage(0);
+        fetchItems();
     };
 
     return (
@@ -71,7 +98,6 @@ const AdminItems = () => {
             <Header />
             <div className="main-content">
                 <div className="content-wrapper">
-                    {/* Breadcrumb */}
                     <div className="breadcrumb">
                         <Link to="/admin">Admin</Link>
                         <span>/</span>
@@ -82,7 +108,7 @@ const AdminItems = () => {
                         <div className="page-header-top">
                             <Package size={24} />
                             <h1>Item Management</h1>
-                            <span className="count-badge">{filtered.length} items</span>
+                            <span className="count-badge">{totalElements} items</span>
                         </div>
                     </div>
 
@@ -92,77 +118,105 @@ const AdminItems = () => {
                             <Search size={18} />
                             <input
                                 type="text"
-                                placeholder="Search by title or email..."
+                                placeholder="Search by title or description..."
                                 value={search}
-                                onChange={(e) => { setSearch(e.target.value); setCurrentPage(1); }}
+                                onChange={(e) => setSearch(e.target.value)}
+                                onKeyDown={(e) => e.key === 'Enter' && handleSearchSubmit()}
                             />
                         </div>
-                        <select value={typeFilter} onChange={(e) => { setTypeFilter(e.target.value); setCurrentPage(1); }}>
+                        <select value={typeFilter} onChange={(e) => { setTypeFilter(e.target.value); setCurrentPage(0); }}>
                             {typeOptions.map(o => <option key={o} value={o}>{o === 'All' ? 'All Types' : o}</option>)}
                         </select>
-                        <select value={statusFilter} onChange={(e) => { setStatusFilter(e.target.value); setCurrentPage(1); }}>
-                            {statusOptions.map(o => <option key={o} value={o}>{o === 'All' ? 'All Statuses' : o.replace('_', ' ')}</option>)}
-                        </select>
-                        <select value={schoolFilter} onChange={(e) => { setSchoolFilter(e.target.value); setCurrentPage(1); }}>
-                            {schoolOptions.map(o => <option key={o} value={o}>{o === 'All' ? 'All Schools' : o}</option>)}
+                        <select value={statusFilter} onChange={(e) => { setStatusFilter(e.target.value); setCurrentPage(0); }}>
+                            {statusOptions.map(o => <option key={o} value={o}>{o === 'All' ? 'All Statuses' : o.replace(/_/g, ' ')}</option>)}
                         </select>
                     </div>
 
-                    {/* Bulk Action Bar */}
-                    {selectedIds.length > 0 && (
-                        <div className="bulk-bar">
-                            <span>{selectedIds.length} item{selectedIds.length > 1 ? 's' : ''} selected</span>
-                            <button className="btn-danger-sm" onClick={handleBulkRemove}>
-                                <Trash2 size={14} /> Remove Selected
-                            </button>
+                    {error && (
+                        <div className="error-state">
+                            <AlertTriangle size={18} />
+                            <span>{error}</span>
                         </div>
                     )}
 
                     {/* Table */}
                     <div className="admin-table glass">
-                        <table>
-                            <thead>
-                                <tr>
-                                    <th><input type="checkbox" checked={selectedIds.length === paginated.length && paginated.length > 0} onChange={toggleSelectAll} /></th>
-                                    <th>Image</th>
-                                    <th>Title</th>
-                                    <th>Type</th>
-                                    <th>Status</th>
-                                    <th>School</th>
-                                    <th>Posted By</th>
-                                    <th>Date</th>
-                                    <th>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {paginated.map((item, i) => (
-                                    <tr key={item.id} style={{ animationDelay: `${i * 0.03}s` }}>
-                                        <td><input type="checkbox" checked={selectedIds.includes(item.id)} onChange={() => toggleSelect(item.id)} /></td>
-                                        <td>
-                                            <img src={item.imageUrl} alt="" className="table-thumb" />
-                                        </td>
-                                        <td className="td-title">{item.title}</td>
-                                        <td><span className={`type-badge ${item.type.toLowerCase()}`}>{item.type}</span></td>
-                                        <td><span className={`status-badge ${item.status.toLowerCase().replace('_', '-')}`}>{item.status.replace('_', ' ')}</span></td>
-                                        <td>{item.school.shortName}</td>
-                                        <td className="td-poster">
-                                            <span>{item.postedBy.firstName} {item.postedBy.lastName}</span>
-                                        </td>
-                                        <td className="td-date">{timeAgo(item.createdAt)}</td>
-                                        <td className="td-actions">
-                                            <button className="action-btn" title="View" onClick={() => navigate(`/items/${item.id}`)}>
-                                                <Eye size={16} />
-                                            </button>
-                                            <button className="action-btn danger" title="Remove" onClick={() => handleRemove(item)}>
-                                                <Trash2 size={16} />
-                                            </button>
-                                        </td>
+                        {loading ? (
+                            <div className="table-empty">
+                                <Loader2 size={32} className="spinner" />
+                                <p>Loading items...</p>
+                            </div>
+                        ) : (
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Image</th>
+                                        <th>Title</th>
+                                        <th>Type</th>
+                                        <th>Status</th>
+                                        <th>Posted By</th>
+                                        <th>Flags</th>
+                                        <th>Date</th>
+                                        <th>Actions</th>
                                     </tr>
-                                ))}
-                            </tbody>
-                        </table>
+                                </thead>
+                                <tbody>
+                                    {items.map((item, i) => (
+                                        <tr key={item.id} style={{ animationDelay: `${i * 0.03}s` }}>
+                                            <td>
+                                                <img
+                                                    src={item.imageUrls?.[0] || '/placeholder.png'}
+                                                    alt=""
+                                                    className="table-thumb"
+                                                />
+                                            </td>
+                                            <td className="td-title">{item.title}</td>
+                                            <td><span className={`type-badge ${item.type?.toLowerCase()}`}>{item.type}</span></td>
+                                            <td><span className={`status-badge ${item.status?.toLowerCase().replace(/_/g, '-')}`}>{item.status?.replace(/_/g, ' ')}</span></td>
+                                            <td className="td-poster">
+                                                <span>{item.reporter?.fullName || '-'}</span>
+                                            </td>
+                                            <td>
+                                                {item.flagCount > 0 ? (
+                                                    <span className="flag-count"><Flag size={14} /> {item.flagCount}</span>
+                                                ) : '-'}
+                                            </td>
+                                            <td className="td-date">{timeAgo(item.createdAt)}</td>
+                                            <td className="td-actions">
+                                                <button className="action-btn" title="View" onClick={() => navigate(`/items/${item.id}`)}>
+                                                    <Eye size={16} />
+                                                </button>
+                                                {item.status === 'ACTIVE' && (
+                                                    <button className="action-btn warning" title="Hide" onClick={() => handleStatusChange(item.id, 'HIDDEN')} disabled={actionLoading}>
+                                                        <EyeOff size={16} />
+                                                    </button>
+                                                )}
+                                                {item.status === 'HIDDEN' && (
+                                                    <button className="action-btn success" title="Unhide" onClick={() => handleStatusChange(item.id, 'ACTIVE')} disabled={actionLoading}>
+                                                        <RotateCcw size={16} />
+                                                    </button>
+                                                )}
+                                                {item.status === 'ACTIVE' && (
+                                                    <button className="action-btn info" title="Turn Over to Office" onClick={() => handleStatusChange(item.id, 'TURNED_OVER_TO_OFFICE')} disabled={actionLoading}>
+                                                        <Package size={16} />
+                                                    </button>
+                                                )}
+                                                {item.status === 'TURNED_OVER_TO_OFFICE' && (
+                                                    <button className="action-btn success" title="Confirm Return" onClick={() => handleStatusChange(item.id, 'RETURNED')} disabled={actionLoading}>
+                                                        ✓
+                                                    </button>
+                                                )}
+                                                <button className="action-btn danger" title="Remove" onClick={() => handleRemove(item)}>
+                                                    <Trash2 size={16} />
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        )}
 
-                        {paginated.length === 0 && (
+                        {!loading && items.length === 0 && (
                             <div className="table-empty">
                                 <Package size={40} />
                                 <p>No items match your filters</p>
@@ -173,12 +227,12 @@ const AdminItems = () => {
                     {/* Pagination */}
                     {totalPages > 1 && (
                         <div className="pagination">
-                            <span>Showing {(currentPage - 1) * perPage + 1}-{Math.min(currentPage * perPage, filtered.length)} of {filtered.length}</span>
+                            <span>Showing {currentPage * perPage + 1}-{Math.min((currentPage + 1) * perPage, totalElements)} of {totalElements}</span>
                             <div className="pagination-btns">
-                                <button disabled={currentPage === 1} onClick={() => setCurrentPage(p => p - 1)}>
+                                <button disabled={currentPage === 0} onClick={() => setCurrentPage(p => p - 1)}>
                                     <ChevronLeft size={16} /> Prev
                                 </button>
-                                <button disabled={currentPage === totalPages} onClick={() => setCurrentPage(p => p + 1)}>
+                                <button disabled={currentPage >= totalPages - 1} onClick={() => setCurrentPage(p => p + 1)}>
                                     Next <ChevronRight size={16} />
                                 </button>
                             </div>
@@ -198,10 +252,10 @@ const AdminItems = () => {
                                 </div>
                                 <div className="modal-body">
                                     <div className="remove-item-summary">
-                                        <img src={removeTarget.imageUrl} alt="" />
+                                        <img src={removeTarget.imageUrls?.[0] || '/placeholder.png'} alt="" />
                                         <div>
                                             <strong>{removeTarget.title}</strong>
-                                            <span>Posted by {removeTarget.postedBy.firstName} {removeTarget.postedBy.lastName}</span>
+                                            <span>Posted by {removeTarget.reporter?.fullName || '-'}</span>
                                         </div>
                                     </div>
                                     <label>Reason for removal</label>
@@ -214,7 +268,9 @@ const AdminItems = () => {
                                 </div>
                                 <div className="modal-footer">
                                     <button className="btn-secondary" onClick={() => setShowRemoveModal(false)}>Cancel</button>
-                                    <button className="btn-danger" onClick={confirmRemove}>Confirm Remove</button>
+                                    <button className="btn-danger" onClick={confirmRemove} disabled={actionLoading}>
+                                        {actionLoading ? 'Removing...' : 'Confirm Remove'}
+                                    </button>
                                 </div>
                             </div>
                         </div>

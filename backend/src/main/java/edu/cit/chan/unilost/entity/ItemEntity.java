@@ -34,11 +34,15 @@ public class ItemEntity {
 
     private String type;
 
-    private String status = "ACTIVE";
+    private ItemStatus status = ItemStatus.ACTIVE;
 
     private String category;
 
     private String location;
+
+    private Double latitude;
+
+    private Double longitude;
 
     private List<String> imageUrls = new ArrayList<>();
 
@@ -55,4 +59,11 @@ public class ItemEntity {
     private boolean isDeleted = false;
 
     private LocalDateTime deletedAt;
+
+    // Flagging system
+    private int flagCount = 0;
+
+    private List<String> flaggedBy = new ArrayList<>();
+
+    private List<String> flagReasons = new ArrayList<>();
 }

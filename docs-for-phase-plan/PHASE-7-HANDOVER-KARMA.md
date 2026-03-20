@@ -2,7 +2,7 @@
 
 > **Status:** PENDING
 > **Priority:** MUST HAVE (Handover) / SHOULD HAVE (Karma)
-> **Depends On:** Phase 4 (Claim & Verification)
+> **Depends On:** Phase 4 (Claim & Verification), Phase 6 (Messaging — for chat-based meetup coordination)
 
 ---
 
@@ -14,9 +14,13 @@ Implement the dual-confirmation handover process where both parties confirm the 
 
 ## Pre-Existing Work
 
-- **Backend:** `HandoverEntity.java` and `HandoverRepository.java` already exist (no controller/service yet)
-- **Website:** Mock data includes handover status fields in items and claims
-- **User Entity:** `karmaPoints` field already exists in `UserEntity.java`
+- **Backend:** `HandoverEntity.java` and `HandoverRepository.java` already exist (entity + repo only, no controller/service)
+- **Backend:** `UserEntity.java` already has `karmaScore` field (int, default 0) — ready for increment logic
+- **Backend:** Claim accept flow (Phase 4) and auto-chat creation (Phase 6) are complete — handover initiation should hook into claim acceptance
+- **Backend:** `ClaimService.java` has `acceptClaim()` which auto-rejects other claims and sets item to `CLAIMED` — handover creation should trigger here
+- **Website:** `ClaimDetail.jsx` has a mock handover stepper (needs wiring to real API)
+- **Website:** `Leaderboard/Leaderboard.jsx` exists with mock data (needs wiring to real API)
+- **Website:** `Profile/Profile.jsx` already displays `karmaScore` from user data
 
 ---
 
@@ -26,11 +30,12 @@ Implement the dual-confirmation handover process where both parties confirm the 
 |---|------|---------|
 | 1 | Create `HandoverService.java` | Business logic for handover lifecycle |
 | 2 | Create `HandoverController.java` | REST endpoints for handover operations |
-| 3 | Dual-confirmation logic | Both finder and claimant must confirm before item is marked Returned |
+| 3 | Dual-confirmation logic | Both finder and owner must confirm before item is marked Returned |
 | 4 | Admin override for office returns | Admin can single-handedly confirm returns for office turnovers |
-| 5 | Karma points increment | Auto-increment finder's karma on successful handover |
+| 5 | Karma score increment | Auto-increment finder's `karmaScore` on successful handover |
 | 6 | Leaderboard queries | Global and per-campus karma rankings |
 | 7 | Item status update on completion | Auto-update item status to `RETURNED` after confirmed handover |
+| 8 | Hook into `ClaimService.acceptClaim()` | Auto-create handover record when a claim is accepted |
 
 ### API Endpoints
 
@@ -49,10 +54,10 @@ Implement the dual-confirmation handover process where both parties confirm the 
 
 | # | Task | Details |
 |---|------|---------|
-| 1 | Build Handover Status Screen | Show confirmation status for both parties |
+| 1 | Wire handover stepper in `ClaimDetail` | Replace mock stepper with real API data |
 | 2 | Implement "Confirm Handover" button | Each party clicks independently |
 | 3 | Wire `Leaderboard` page to real API | Replace mock data with real rankings |
-| 4 | Show karma score on Profile page | Display user's karma and rank |
+| 4 | Karma score already on Profile | Already displayed from `user.karmaScore` — verify updates after handover |
 | 5 | Create `handoverService.js` | API service for handover endpoints |
 | 6 | Create `leaderboardService.js` | API service for leaderboard endpoints |
 
@@ -60,48 +65,51 @@ Implement the dual-confirmation handover process where both parties confirm the 
 
 ## Technical Details
 
-### Handover Entity Fields
+### Handover Entity Fields (Current Implementation)
 | Field | Type | Description |
 |-------|------|-------------|
 | `id` | String | MongoDB ObjectId |
-| `itemId` | String | Reference to the item |
 | `claimId` | String | Reference to the accepted claim |
-| `finderId` | String | User who found the item |
-| `claimantId` | String | User who claimed the item |
-| `finderConfirmed` | Boolean | Has the finder confirmed the handover? |
-| `claimantConfirmed` | Boolean | Has the claimant confirmed the handover? |
-| `adminConfirmed` | Boolean | Has an admin confirmed (office returns only)? |
-| `status` | Enum | `PENDING`, `IN_PROGRESS`, `COMPLETED`, `CANCELLED` |
+| `itemId` | String | Reference to the item |
+| `finderConfirmed` | boolean | Has the finder confirmed the handover? |
+| `ownerConfirmed` | boolean | Has the owner/claimant confirmed the handover? |
 | `completedAt` | LocalDateTime | When both parties confirmed |
 | `createdAt` | LocalDateTime | Handover initiation timestamp |
+
+**Note:** Current entity uses `ownerConfirmed` (not `claimantConfirmed`). It does not yet have `finderId`/`claimantId` fields (must be resolved via claim), `adminConfirmed` field (for office returns), or a `status` enum. These may need to be added during implementation.
+
+### Handover Repository (Current Implementation)
+| Method | Description |
+|--------|-------------|
+| `findByClaimId(String claimId)` | Get handover for a specific claim |
+| `findByItemId(String itemId)` | Get handover for a specific item |
 
 ### Handover Workflow
 
 ```
 PEER-TO-PEER HANDOVER:
 1. Claim is ACCEPTED by finder (Phase 4)
-2. System creates Handover with status: PENDING
-3. Finder and claimant arrange meeting (via chat - Phase 6)
+2. System creates Handover record (hook into ClaimService.acceptClaim())
+3. Finder and claimant arrange meeting via Chat (Phase 6)
 4. After physical exchange:
    - Finder clicks "Confirm Handover" -> finderConfirmed = true
-   - Claimant clicks "Confirm Handover" -> claimantConfirmed = true
+   - Owner clicks "Confirm Handover" -> ownerConfirmed = true
 5. When BOTH confirmed:
-   - Handover status -> COMPLETED
+   - completedAt = now
    - Item status -> RETURNED
-   - Finder's karmaPoints += 10
+   - Finder's karmaScore += 10
 
 OFFICE TURNOVER:
 1. Finder brings item to Campus Security Office
 2. Admin marks item as "Turned Over to Office" (Phase 5)
 3. Owner comes to office and provides identification
 4. Admin clicks "Admin Confirm Return"
-   - adminConfirmed = true
-   - Handover status -> COMPLETED
+   - Both confirmations set to true (or adminConfirmed field added)
    - Item status -> RETURNED
-   - Finder's karmaPoints += 10
+   - Finder's karmaScore += 10
 ```
 
-### Karma Points System
+### Karma Score System
 
 | Action | Points |
 |--------|--------|
@@ -109,23 +117,25 @@ OFFICE TURNOVER:
 | Successful office turnover (finder) | +10 |
 | Helpful flag that leads to moderation | +2 |
 
+**Field name:** `karmaScore` (not `karmaPoints`) in `UserEntity.java`
+
 ### Leaderboard Query
 ```
-// Global: Top 50 users by karmaPoints
-db.users.find({status: "ACTIVE"}).sort({karmaPoints: -1}).limit(50)
+// Global: Top 50 users by karmaScore
+db.users.find({accountStatus: "ACTIVE"}).sort({karmaScore: -1}).limit(50)
 
 // Campus: Top 50 within a specific campus
-db.users.find({campusId: "xxx", status: "ACTIVE"}).sort({karmaPoints: -1}).limit(50)
+db.users.find({universityTag: "xxx", accountStatus: "ACTIVE"}).sort({karmaScore: -1}).limit(50)
 ```
 
 ---
 
 ## Acceptance Criteria
 
-- [ ] Handover record is created when a claim is accepted
+- [ ] Handover record is auto-created when a claim is accepted
 - [ ] Both parties can independently confirm the handover
 - [ ] Item status auto-updates to RETURNED after dual confirmation
 - [ ] Admin can single-handedly confirm office returns
-- [ ] Finder receives karma points on successful handover
+- [ ] Finder receives karma score on successful handover
 - [ ] Global and campus-specific leaderboards display correctly
-- [ ] User profile shows karma score and rank
+- [ ] User profile shows karma score (already displayed, verify live updates)

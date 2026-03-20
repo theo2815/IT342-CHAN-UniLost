@@ -59,6 +59,21 @@
   color: #ef4444;
 }
 
+.status-turned-over {
+  background: rgba(99, 102, 241, 0.12);
+  color: #6366f1;
+}
+
+.status-returned {
+  background: rgba(5, 150, 105, 0.12);
+  color: #059669;
+}
+
+.status-hidden {
+  background: rgba(107, 114, 128, 0.12);
+  color: #6b7280;
+}
+
 .status-default {
   background: var(--color-border);
   color: var(--color-text-secondary);

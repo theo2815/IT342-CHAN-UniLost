@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Upload, X, Eye, Image, MapPin, Calendar, Lock, ArrowLeft, Loader } from 'lucide-react';
 import Header from '../../components/Header';
 import ItemCard from '../../components/ItemCard';
+import LocationPicker from '../../components/LocationPicker';
 import { ITEM_CATEGORIES, CATEGORY_LABELS } from '../../constants/categories';
 import authService from '../../services/authService';
 import itemService from '../../services/itemService';
@@ -19,6 +20,8 @@ function PostItem() {
         description: '',
         category: '',
         locationDescription: '',
+        latitude: null,
+        longitude: null,
         date: '',
         secretDetail: '',
     });
@@ -44,14 +47,22 @@ function PostItem() {
         setFormData((prev) => ({ ...prev, type, secretDetail: '' }));
     };
 
+    const MAX_FILE_SIZE_MB = 5;
+
     const handleImageDrop = (e) => {
         e.preventDefault();
         const files = Array.from(e.dataTransfer?.files || e.target?.files || []);
         const imageFiles = files.filter((f) => f.type.startsWith('image/'));
         if (images.length + imageFiles.length > 3) {
-            alert('Maximum 3 images allowed');
+            setError('Maximum 3 images allowed');
             return;
         }
+        const oversized = imageFiles.find((f) => f.size > MAX_FILE_SIZE_MB * 1024 * 1024);
+        if (oversized) {
+            setError(`"${oversized.name}" exceeds the ${MAX_FILE_SIZE_MB}MB limit. Please choose a smaller file.`);
+            return;
+        }
+        setError('');
         const newImages = imageFiles.map((file) => ({
             file,
             preview: URL.createObjectURL(file),
@@ -80,6 +91,8 @@ function PostItem() {
             type: formData.type,
             category: formData.category,
             location: formData.locationDescription,
+            latitude: formData.latitude,
+            longitude: formData.longitude,
             secretDetailQuestion: formData.type === 'FOUND' ? formData.secretDetail : null,
             dateLostFound: formData.date ? `${formData.date}T00:00:00` : null,
         };
@@ -235,6 +248,13 @@ function PostItem() {
                                         value={formData.locationDescription}
                                         onChange={handleChange}
                                         required
+                                    />
+                                    <LocationPicker
+                                        latitude={formData.latitude}
+                                        longitude={formData.longitude}
+                                        onChange={({ latitude, longitude }) =>
+                                            setFormData((prev) => ({ ...prev, latitude, longitude }))
+                                        }
                                     />
                                 </div>
 

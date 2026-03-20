@@ -15,8 +15,6 @@ import java.time.LocalDateTime;
  * - Many-to-One: Message → Chat (chat_id)
  * - Many-to-One: Message → User (sender_id)
  */
-// TODO: [Phase 6] Add WebSocket broadcast on new message creation
-// TODO: [Phase 6] Implement read receipt tracking
 @Data
 @NoArgsConstructor
 @AllArgsConstructor

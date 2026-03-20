@@ -1,4 +1,5 @@
 import api from './api';
+import { ROLES } from '../constants/roles';
 
 const authService = {
     // Register a new user
@@ -55,9 +56,24 @@ const authService = {
         }
     },
 
-    // Check if user is logged in
+    // Check if user is logged in and token is not expired
     isAuthenticated: () => {
-        return !!localStorage.getItem('token');
+        const token = localStorage.getItem('token');
+        if (!token) return false;
+        try {
+            const payload = JSON.parse(atob(token.split('.')[1]));
+            if (payload.exp && payload.exp * 1000 < Date.now()) {
+                localStorage.removeItem('user');
+                localStorage.removeItem('token');
+                return false;
+            }
+            return true;
+        } catch {
+            // Malformed token — treat as unauthenticated
+            localStorage.removeItem('user');
+            localStorage.removeItem('token');
+            return false;
+        }
     },
 
     // Get current user's role
@@ -66,7 +82,7 @@ const authService = {
             const user = localStorage.getItem('user');
             if (user) {
                 const parsed = JSON.parse(user);
-                return parsed.role || 'STUDENT';
+                return parsed.role || ROLES.STUDENT;
             }
             return null;
         } catch {
@@ -78,12 +94,12 @@ const authService = {
     // Check if current user is admin
     isAdmin: () => {
         const role = authService.getUserRole();
-        return role === 'ADMIN';
+        return role === ROLES.ADMIN;
     },
 
     // Check if current user is faculty
     isFaculty: () => {
-        return authService.getUserRole() === 'FACULTY';
+        return authService.getUserRole() === ROLES.FACULTY;
     },
 
     // Password reset flow

@@ -18,6 +18,25 @@
     margin-bottom: var(--spacing-xl);
 }
 
+.sa-loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--spacing-sm);
+    padding: var(--spacing-2xl);
+    color: var(--color-text-secondary);
+}
+
+.sa-error-banner {
+    padding: var(--spacing-md);
+    background: rgba(239, 68, 68, 0.1);
+    border: 1px solid rgba(239, 68, 68, 0.3);
+    border-radius: var(--radius-md);
+    color: #ef4444;
+    margin-bottom: var(--spacing-lg);
+    font-size: var(--font-size-sm);
+}
+
 .superadmin-page .page-header-top {
     display: flex;
     align-items: center;

@@ -85,6 +85,19 @@ const itemService = {
   },
 
   /**
+   * Get items with coordinates for map view
+   * @param {Object} params - { campusId, type }
+   */
+  async getMapItems(params = {}) {
+    try {
+      const response = await api.get('/items/map', { params });
+      return { success: true, data: response.data };
+    } catch (err) {
+      return { success: false, error: err.response?.data?.error || err.response?.data || 'Failed to fetch map items' };
+    }
+  },
+
+  /**
    * Get all items for a specific campus
    */
   async getItemsByCampus(campusId) {

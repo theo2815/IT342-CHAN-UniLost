@@ -12,6 +12,9 @@ const statusConfig = {
   ACCEPTED: { label: "Accepted", className: "status-approved" },
   APPROVED: { label: "Approved", className: "status-approved" },
   REJECTED: { label: "Rejected", className: "status-rejected" },
+  TURNED_OVER_TO_OFFICE: { label: "At Office", className: "status-turned-over" },
+  RETURNED: { label: "Returned", className: "status-returned" },
+  HIDDEN: { label: "Hidden", className: "status-hidden" },
 };
 
 function StatusBadge({ status, type }) {

@@ -40,10 +40,12 @@ public class CampusController {
     }
 
     @GetMapping("/domain/{domain}")
-    public ResponseEntity<CampusDTO> getCampusByDomain(@PathVariable String domain) {
-        return campusService.getCampusByDomain(domain)
-                .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.notFound().build());
+    public ResponseEntity<List<CampusDTO>> getCampusesByDomain(@PathVariable String domain) {
+        List<CampusDTO> campuses = campusService.getCampusesByDomain(domain);
+        if (campuses.isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+        return ResponseEntity.ok(campuses);
     }
 
     @PutMapping("/{id}")

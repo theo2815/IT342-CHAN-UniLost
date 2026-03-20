@@ -23,13 +23,13 @@ const campusService = {
         }
     },
 
-    // Get campus by email domain
-    getCampusByDomain: async (domain) => {
+    // Get campuses by email domain (returns array — may be multiple for multi-campus universities)
+    getCampusesByDomain: async (domain) => {
         try {
             const response = await api.get(`/campuses/domain/${domain}`);
             return { success: true, data: response.data };
         } catch (error) {
-            const message = error.response?.data || error.message || 'Failed to fetch campus';
+            const message = error.response?.data || error.message || 'Failed to fetch campuses';
             return { success: false, error: message };
         }
     },

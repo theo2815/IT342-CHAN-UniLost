@@ -19,6 +19,8 @@ public class ItemDTO {
     private String status;
     private String category;
     private String location;
+    private Double latitude;
+    private Double longitude;
     private List<String> imageUrls;
     private String secretDetailQuestion;
     private LocalDateTime dateLostFound;
@@ -30,4 +32,8 @@ public class ItemDTO {
     private String campusId;
     private UserDTO reporter;
     private CampusDTO campus;
+
+    // Flagging info (admin views)
+    private int flagCount;
+    private List<String> flagReasons;
 }

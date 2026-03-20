@@ -114,7 +114,8 @@
   color: var(--color-primary);
 }
 
-.notification-badge {
+.notification-badge,
+.message-badge {
   position: absolute;
   top: 0;
   right: 0;
@@ -129,6 +130,14 @@
   align-items: center;
   justify-content: center;
   border: 2px solid var(--color-bg-card);
+}
+
+.message-btn {
+  position: relative;
+}
+
+.message-badge {
+  background: var(--color-primary);
 }
 
 /* User Menu */

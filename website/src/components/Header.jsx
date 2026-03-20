@@ -16,10 +16,15 @@ import {
   MessageSquare,
   PlusCircle,
 } from "lucide-react";
+import { Client } from "@stomp/stompjs";
+import SockJS from "sockjs-client";
 import authService from "../services/authService";
+import chatService from "../services/chatService";
+import notificationService from "../services/notificationService";
 import NotificationDropdown from "./NotificationDropdown";
-import { getUnreadCount } from "../mockData/notifications";
 import "./Header.css";
+
+const WS_URL = import.meta.env.VITE_API_URL?.replace("/api", "") || "http://localhost:8080";
 
 function Header() {
   const navigate = useNavigate();
@@ -27,10 +32,75 @@ function Header() {
   const [user] = useState(() => authService.getCurrentUser());
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
-  const [unreadCount, setUnreadCount] = useState(() => getUnreadCount());
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [unreadMessages, setUnreadMessages] = useState(0);
   const dropdownRef = useRef(null);
   const notificationRef = useRef(null);
+  const stompClientRef = useRef(null);
   const isAdmin = authService.isAdmin();
+
+  // Fetch unread counts from real API
+  useEffect(() => {
+    if (!user) return;
+
+    const fetchUnread = () => {
+      chatService.getUnreadCount().then(result => {
+        if (result.success) setUnreadMessages(result.data);
+      });
+      notificationService.getUnreadCount().then(result => {
+        if (result.success) setUnreadCount(result.data);
+      });
+    };
+
+    fetchUnread();
+
+    // Poll every 30 seconds, but only when tab is visible
+    const interval = setInterval(() => {
+      if (document.visibilityState === "visible") {
+        fetchUnread();
+      }
+    }, 30000);
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") fetchUnread();
+    };
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, []);
+
+  // WebSocket subscription for real-time notifications
+  useEffect(() => {
+    if (!user) return;
+
+    const token = localStorage.getItem("token");
+    if (!token) return;
+
+    const client = new Client({
+      webSocketFactory: () => new SockJS(`${WS_URL}/ws`),
+      connectHeaders: { Authorization: `Bearer ${token}` },
+      reconnectDelay: 5000,
+      onConnect: () => {
+        client.subscribe("/user/queue/notifications", (msg) => {
+          // Increment unread count on new notification
+          setUnreadCount((prev) => prev + 1);
+        });
+      },
+      onStompError: () => {},
+    });
+
+    client.activate();
+    stompClientRef.current = client;
+
+    return () => {
+      if (stompClientRef.current?.active) {
+        stompClientRef.current.deactivate();
+      }
+    };
+  }, []);
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -52,6 +122,9 @@ function Header() {
   }, []);
 
   const handleLogout = () => {
+    if (stompClientRef.current?.active) {
+      stompClientRef.current.deactivate();
+    }
     authService.logout();
     navigate("/login");
   };
@@ -60,9 +133,15 @@ function Header() {
     setIsDropdownOpen(!isDropdownOpen);
   };
 
+  const refreshUnreadCount = () => {
+    notificationService.getUnreadCount().then(result => {
+      if (result.success) setUnreadCount(result.data);
+    });
+  };
+
   const getInitials = () => {
-    if (!user) return "G";
-    return `${user.firstName?.charAt(0) || ""}${user.lastName?.charAt(0) || ""}`.toUpperCase();
+    if (!user?.fullName) return "G";
+    return user.fullName.split(' ').map(n => n.charAt(0)).join('').substring(0, 2).toUpperCase();
   };
 
   return (
@@ -119,6 +198,9 @@ function Header() {
           <>
             <Link to="/messages" className="icon-btn message-btn">
               <MessageSquare size={20} />
+              {unreadMessages > 0 && (
+                <span className="message-badge">{unreadMessages}</span>
+              )}
             </Link>
 
             <div className="notification-wrapper" ref={notificationRef}>
@@ -134,7 +216,7 @@ function Header() {
               {isNotificationOpen && (
                 <NotificationDropdown
                   onClose={() => setIsNotificationOpen(false)}
-                  onCountChange={() => setUnreadCount(getUnreadCount())}
+                  onCountChange={refreshUnreadCount}
                 />
               )}
             </div>
@@ -152,7 +234,7 @@ function Header() {
               <button className="user-btn" onClick={toggleDropdown}>
                 <div className="user-avatar">{getInitials()}</div>
                 <span className="user-name">
-                  {user ? `Hello, ${user.firstName}` : "Guest"}
+                  {user ? `Hello, ${user.fullName?.split(' ')[0] || 'User'}` : "Guest"}
                 </span>
                 <ChevronDown
                   size={16}
@@ -164,9 +246,7 @@ function Header() {
                 <div className="dropdown-menu glass">
                   <div className="dropdown-header">
                     <p className="dropdown-name">
-                      {user
-                        ? `${user.firstName} ${user.lastName}`
-                        : "Guest User"}
+                      {user?.fullName || "Guest User"}
                     </p>
                     <p className="dropdown-email">{user?.email || ""}</p>
                     {user?.role && user.role !== "STUDENT" && (

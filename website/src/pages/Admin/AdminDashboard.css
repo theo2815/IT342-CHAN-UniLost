@@ -210,6 +210,30 @@
     color: var(--color-text-muted);
 }
 
+/* Loading & Error States */
+.loading-state,
+.error-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--spacing-sm);
+    padding: var(--spacing-2xl);
+    color: var(--color-text-secondary);
+}
+
+.error-state {
+    color: #ef4444;
+}
+
+.spinner {
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
 /* Responsive */
 @media (max-width: 900px) {
     .stat-grid {

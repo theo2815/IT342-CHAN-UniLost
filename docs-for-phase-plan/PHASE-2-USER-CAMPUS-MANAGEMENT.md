@@ -12,11 +12,11 @@ Build the foundational data layer for users and campuses, including CRUD operati
 
 ---
 
-## Backend (Spring Boot)
+## Backend (Spring Boot) — Implemented
 
 | Task | Endpoint / Component | Status |
 |------|---------------------|--------|
-| List all users | `GET /api/users` | DONE |
+| List all users (paginated, admin/faculty only) | `GET /api/users` | DONE |
 | Get user by ID | `GET /api/users/{id}` | DONE |
 | Update user profile | `PUT /api/users/{id}` | DONE |
 | Delete user | `DELETE /api/users/{id}` | DONE |
@@ -29,63 +29,50 @@ Build the foundational data layer for users and campuses, including CRUD operati
 | Campus service with GeoJSON coordinates | `CampusService.java` | DONE |
 | Data seeder (8 universities + admin account) | `DataSeeder.java` | DONE |
 
-## Website (React + Vite)
+## Website (React + Vite) — Implemented
 
 | Task | Page / Component | Status |
 |------|-----------------|--------|
-| Profile page | `Profile/Profile.jsx` | DONE (mock data) |
-| Settings page | `Settings/Settings.jsx` | DONE (mock data) |
+| Profile page (wired to API) | `Profile/Profile.jsx` | DONE |
+| Settings page (wired to API) | `Settings/Settings.jsx` | DONE |
 | Campus service API calls | `services/campusService.js` | DONE |
+| User service API calls | `services/userService.js` | DONE |
 
 ---
 
 ## Technical Details
 
-### User Entity Fields
+### User Entity Fields (Actual Implementation)
 | Field | Type | Description |
 |-------|------|-------------|
 | `id` | String (MongoDB ObjectId) | Primary key |
 | `fullName` | String | User's full name |
 | `email` | String (unique) | University email address |
-| `password` | String | BCrypt hashed |
-| `studentId` | String | Student/Faculty ID number |
-| `role` | Enum | `STUDENT`, `FACULTY`, `ADMIN` |
-| `campusId` | String | Reference to CampusEntity |
-| `karmaPoints` | Integer | Starts at 0, incremented on handover |
-| `status` | Enum | `ACTIVE`, `SUSPENDED`, `DEACTIVATED` |
+| `passwordHash` | String | BCrypt hashed (`@JsonIgnore`) |
+| `role` | `Role` enum | `STUDENT`, `FACULTY`, `ADMIN` |
+| `universityTag` | String | Reference to CampusEntity ID |
+| `karmaScore` | Integer | Starts at 0, incremented on handover |
+| `accountStatus` | `AccountStatus` enum | `ACTIVE`, `SUSPENDED`, `DEACTIVATED` |
 | `lastLogin` | LocalDateTime | Updated on each login |
 | `createdAt` | LocalDateTime | Account creation timestamp |
+| `passwordResetToken` | String | BCrypt-encoded OTP (`@JsonIgnore`) |
+| `passwordResetExpiry` | LocalDateTime | OTP expiry (`@JsonIgnore`) |
+| `otpAttempts` | int | Failed OTP attempts counter |
+| `otpLockoutUntil` | LocalDateTime | Lockout expiry timestamp |
+| `otpVerified` | boolean | Whether OTP was verified for password reset |
 
 ### Campus Entity Fields
 | Field | Type | Description |
 |-------|------|-------------|
 | `id` | String (MongoDB ObjectId) | Primary key |
 | `name` | String | Full university name |
-| `shortName` | String | Abbreviation (e.g., CIT-U) |
-| `emailDomain` | String | Domain for validation (e.g., `cit.edu`) |
-| `address` | String | Physical address |
-| `coordinates` | GeoJsonPoint | Latitude/Longitude for map |
+| `domainWhitelist` | String | Email domain for validation (e.g., `cit.edu`) |
+| `centerCoordinates` | GeoJsonPoint | Latitude/Longitude for map |
 
 ### Seeded Data (8 Universities)
-1. Cebu Institute of Technology - University (CIT-U)
-2. University of San Carlos (USC)
-3. University of San Jose - Recoletos (USJ-R)
-4. University of Cebu (UC)
-5. University of the Philippines Cebu (UP Cebu)
-6. Southwestern University (SWU)
-7. Cebu Normal University (CNU)
-8. Cebu Technological University (CTU)
+CIT-U, USC, USJ-R, UC, UP Cebu, SWU, CNU, CTU
 
 ### Seeded Admin Account
 - **Email:** `admin@cit.edu`
 - **Password:** `admin123456`
 - **Role:** `ADMIN`
-
----
-
-## Outstanding Items (Deferred)
-
-| Item | Deferred To |
-|------|------------|
-| Wire Profile page to real API (replace mock data) | Phase 3 |
-| Wire Settings page to real API | Phase 3 |

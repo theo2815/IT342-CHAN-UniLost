@@ -17,7 +17,6 @@ import java.time.LocalDateTime;
  * - Many-to-One: Chat → User (owner_id)
  * - One-to-Many: Chat → Messages (resolved via MessageEntity.chatId)
  */
-// TODO: [Phase 6] Implement WebSocket support for real-time messaging
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -30,6 +29,9 @@ public class ChatEntity {
     /** Reference to items.id — the item this chat is about */
     private String itemId;
 
+    /** Reference to claims.id — the claim that triggered this chat */
+    private String claimId;
+
     /** Reference to users.id — the person who found/reported the item */
     private String finderId;
 
@@ -38,6 +40,8 @@ public class ChatEntity {
 
     /** Preview of the last message for chat list display */
     private String lastMessagePreview;
+
+    private LocalDateTime lastMessageAt;
 
     private LocalDateTime createdAt;
 

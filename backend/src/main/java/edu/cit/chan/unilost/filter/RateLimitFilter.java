@@ -20,14 +20,18 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedDeque;
 
 /**
- * In-memory sliding window rate limiter for authentication endpoints.
- * Limits to 10 requests per minute per IP address on /api/auth/** paths.
+ * In-memory sliding window rate limiter.
+ * - Auth endpoints: 10 requests/minute per IP
+ * - Write endpoints (POST/PUT/DELETE): 30 requests/minute per IP
+ * - Read endpoints (GET): 60 requests/minute per IP
  */
 @Component
 @Order(Ordered.HIGHEST_PRECEDENCE + 1)
 public class RateLimitFilter extends OncePerRequestFilter {
 
-    private static final int MAX_REQUESTS = 10;
+    private static final int AUTH_MAX = 10;
+    private static final int WRITE_MAX = 30;
+    private static final int READ_MAX = 60;
     private static final long WINDOW_MS = 60_000; // 1 minute
 
     private final ConcurrentHashMap<String, Deque<Long>> requestCounts = new ConcurrentHashMap<>();
@@ -37,24 +41,51 @@ public class RateLimitFilter extends OncePerRequestFilter {
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response,
                                     FilterChain filterChain) throws ServletException, IOException {
         String path = request.getRequestURI();
-        if (!path.startsWith("/api/auth/")) {
+        String method = request.getMethod();
+
+        // Skip CORS preflight requests and WebSocket endpoints
+        if ("OPTIONS".equalsIgnoreCase(method) || path.startsWith("/ws")) {
             filterChain.doFilter(request, response);
             return;
         }
 
+        // Determine rate limit tier
+        int maxRequests;
+        String tierKey;
+
+        if (path.startsWith("/api/auth/")) {
+            maxRequests = AUTH_MAX;
+            tierKey = "auth";
+        } else if ("GET".equals(method) || "OPTIONS".equals(method) || "HEAD".equals(method)) {
+            maxRequests = READ_MAX;
+            tierKey = "read";
+        } else {
+            maxRequests = WRITE_MAX;
+            tierKey = "write";
+        }
+
         String clientIp = getClientIp(request);
+        String bucketKey = clientIp + ":" + tierKey;
         long now = System.currentTimeMillis();
 
-        Deque<Long> timestamps = requestCounts.computeIfAbsent(clientIp, k -> new ConcurrentLinkedDeque<>());
+        Deque<Long> timestamps = requestCounts.computeIfAbsent(bucketKey, k -> new ConcurrentLinkedDeque<>());
 
         // Remove entries outside the window
         while (!timestamps.isEmpty() && timestamps.peekFirst() < now - WINDOW_MS) {
             timestamps.pollFirst();
         }
 
-        if (timestamps.size() >= MAX_REQUESTS) {
+        int remaining = maxRequests - timestamps.size();
+
+        // Add rate limit headers (L4)
+        response.setIntHeader("X-RateLimit-Limit", maxRequests);
+        response.setIntHeader("X-RateLimit-Remaining", Math.max(remaining - 1, 0));
+        response.setHeader("X-RateLimit-Reset", String.valueOf((now + WINDOW_MS) / 1000));
+
+        if (timestamps.size() >= maxRequests) {
             response.setStatus(HttpStatus.TOO_MANY_REQUESTS.value());
             response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+            response.setHeader("Retry-After", String.valueOf(WINDOW_MS / 1000));
             objectMapper.writeValue(response.getWriter(),
                     Map.of("error", "Too many requests. Please try again later."));
             return;
@@ -65,9 +96,6 @@ public class RateLimitFilter extends OncePerRequestFilter {
     }
 
     private String getClientIp(HttpServletRequest request) {
-        // Only use remoteAddr to prevent X-Forwarded-For spoofing.
-        // If running behind a trusted reverse proxy, configure
-        // server.forward-headers-strategy=NATIVE in application.properties instead.
         return request.getRemoteAddr();
     }
 

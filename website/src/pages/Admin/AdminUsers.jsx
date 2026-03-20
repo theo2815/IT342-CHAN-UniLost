@@ -1,12 +1,12 @@
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
-import { Users, Search, Eye, ShieldOff, ShieldCheck, ChevronLeft, ChevronRight, X, AlertTriangle } from 'lucide-react';
+import { Users, Search, ShieldOff, ShieldCheck, ChevronLeft, ChevronRight, X, AlertTriangle, Loader2 } from 'lucide-react';
 import Header from '../../components/Header';
-import { mockAdminUsers, timeAgo } from '../../mockData/adminData';
+import adminService from '../../services/adminService';
 import './AdminUsers.css';
 
 const roleOptions = ['All', 'STUDENT', 'FACULTY', 'ADMIN'];
-const statusOptions = ['All', 'Active', 'Banned'];
+const statusOptions = ['All', 'ACTIVE', 'SUSPENDED'];
 
 const roleLabels = { STUDENT: 'Student', FACULTY: 'Faculty', ADMIN: 'Admin' };
 
@@ -14,26 +14,38 @@ const AdminUsers = () => {
     const [search, setSearch] = useState('');
     const [roleFilter, setRoleFilter] = useState('All');
     const [statusFilter, setStatusFilter] = useState('All');
-    const [users, setUsers] = useState(mockAdminUsers);
+    const [users, setUsers] = useState([]);
+    const [totalElements, setTotalElements] = useState(0);
+    const [currentPage, setCurrentPage] = useState(0);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState('');
     const [showBanModal, setShowBanModal] = useState(false);
     const [banTarget, setBanTarget] = useState(null);
     const [banReason, setBanReason] = useState('');
-    const [currentPage, setCurrentPage] = useState(1);
+    const [actionLoading, setActionLoading] = useState(false);
     const perPage = 10;
 
-    const filtered = users.filter(user => {
-        if (search) {
-            const q = search.toLowerCase();
-            if (!user.fullName.toLowerCase().includes(q) && !user.email.toLowerCase().includes(q)) return false;
-        }
-        if (roleFilter !== 'All' && user.role !== roleFilter) return false;
-        if (statusFilter === 'Active' && user.isBanned) return false;
-        if (statusFilter === 'Banned' && !user.isBanned) return false;
-        return true;
-    });
+    const fetchUsers = useCallback(async () => {
+        setLoading(true);
+        setError('');
+        const params = { page: currentPage, size: perPage };
+        if (search) params.keyword = search;
+        if (roleFilter !== 'All') params.role = roleFilter;
+        if (statusFilter !== 'All') params.accountStatus = statusFilter;
 
-    const totalPages = Math.ceil(filtered.length / perPage);
-    const paginated = filtered.slice((currentPage - 1) * perPage, currentPage * perPage);
+        const result = await adminService.getCampusUsers(params);
+        if (result.success) {
+            setUsers(result.data.content || []);
+            setTotalElements(result.data.totalElements || 0);
+        } else {
+            setError(result.error);
+        }
+        setLoading(false);
+    }, [currentPage, search, roleFilter, statusFilter]);
+
+    useEffect(() => { fetchUsers(); }, [fetchUsers]);
+
+    const totalPages = Math.ceil(totalElements / perPage);
 
     const handleBanToggle = (user) => {
         setBanTarget(user);
@@ -41,13 +53,33 @@ const AdminUsers = () => {
         setShowBanModal(true);
     };
 
-    const confirmBanToggle = () => {
-        if (banTarget) {
-            setUsers(prev => prev.map(u => u.id === banTarget.id ? { ...u, isBanned: !u.isBanned } : u));
+    const confirmBanToggle = async () => {
+        if (!banTarget) return;
+        setActionLoading(true);
+        const newStatus = banTarget.accountStatus === 'SUSPENDED' ? 'ACTIVE' : 'SUSPENDED';
+        const result = await adminService.updateUserStatus(banTarget.id, newStatus);
+        if (result.success) {
+            fetchUsers();
+        } else {
+            setError(result.error);
         }
+        setActionLoading(false);
         setShowBanModal(false);
         setBanTarget(null);
     };
+
+    const timeAgo = (dateStr) => {
+        if (!dateStr) return '-';
+        const date = new Date(dateStr);
+        const now = new Date();
+        const diff = Math.floor((now - date) / 1000);
+        if (diff < 60) return 'just now';
+        if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+        if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+        return `${Math.floor(diff / 86400)}d ago`;
+    };
+
+    const isBanned = (user) => user.accountStatus === 'SUSPENDED';
 
     return (
         <div className="admin-users-page">
@@ -64,7 +96,7 @@ const AdminUsers = () => {
                         <div className="page-header-top">
                             <Users size={24} />
                             <h1>User Management</h1>
-                            <span className="count-badge">{filtered.length} users</span>
+                            <span className="count-badge">{totalElements} users</span>
                         </div>
                     </div>
 
@@ -74,77 +106,91 @@ const AdminUsers = () => {
                             <Search size={18} />
                             <input
                                 type="text"
-                                placeholder="Search by name, email, or student ID..."
+                                placeholder="Search by name or email..."
                                 value={search}
-                                onChange={(e) => { setSearch(e.target.value); setCurrentPage(1); }}
+                                onChange={(e) => setSearch(e.target.value)}
+                                onKeyDown={(e) => {
+                                    if (e.key === 'Enter') { setCurrentPage(0); fetchUsers(); }
+                                }}
                             />
                         </div>
-                        <select value={roleFilter} onChange={(e) => { setRoleFilter(e.target.value); setCurrentPage(1); }}>
+                        <select value={roleFilter} onChange={(e) => { setRoleFilter(e.target.value); setCurrentPage(0); }}>
                             {roleOptions.map(o => <option key={o} value={o}>{o === 'All' ? 'All Roles' : roleLabels[o] || o}</option>)}
                         </select>
-                        <select value={statusFilter} onChange={(e) => { setStatusFilter(e.target.value); setCurrentPage(1); }}>
+                        <select value={statusFilter} onChange={(e) => { setStatusFilter(e.target.value); setCurrentPage(0); }}>
                             {statusOptions.map(o => <option key={o} value={o}>{o === 'All' ? 'All Statuses' : o}</option>)}
                         </select>
                     </div>
 
+                    {error && (
+                        <div className="error-state">
+                            <AlertTriangle size={18} />
+                            <span>{error}</span>
+                        </div>
+                    )}
+
                     {/* Table */}
                     <div className="admin-table glass">
-                        <table>
-                            <thead>
-                                <tr>
-                                    <th>User</th>
-                                    <th>Email</th>
-                                    <th>School</th>
-                                    <th>Role</th>
-                                    <th>Karma</th>
-                                    <th>Status</th>
-                                    <th>Joined</th>
-                                    <th>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {paginated.map((user, i) => (
-                                    <tr key={user.id} style={{ animationDelay: `${i * 0.03}s` }}>
-                                        <td>
-                                            <div className="user-cell">
-                                                <div className="user-avatar">{user.fullName.split(' ').map(n => n[0]).join('').substring(0, 2)}</div>
-                                                <span className="user-name">{user.fullName}</span>
-                                            </div>
-                                        </td>
-                                        <td className="td-email">{user.email}</td>
-                                        <td>{user.campus?.id || '-'}</td>
-                                        <td>
-                                            <span className={`role-chip ${user.role.toLowerCase().replace('_', '-')}`}>
-                                                {roleLabels[user.role]}
-                                            </span>
-                                        </td>
-                                        <td className="td-karma">{user.karmaScore}</td>
-                                        <td>
-                                            <span className={`status-dot ${user.isBanned ? 'banned' : 'active'}`}>
-                                                {user.isBanned ? 'Banned' : 'Active'}
-                                            </span>
-                                        </td>
-                                        <td className="td-date">{timeAgo(user.createdAt)}</td>
-                                        <td className="td-actions">
-                                            <button className="action-btn" title="View Profile">
-                                                <Eye size={16} />
-                                            </button>
-                                            {user.role === 'STUDENT' && (
-                                                <button
-                                                    className={`action-btn ${user.isBanned ? 'success' : 'danger'}`}
-                                                    title={user.isBanned ? 'Unban' : 'Ban'}
-                                                    onClick={() => handleBanToggle(user)}
-                                                >
-                                                    {user.isBanned ? <ShieldCheck size={16} /> : <ShieldOff size={16} />}
-                                                </button>
-                                            )}
-                                        </td>
+                        {loading ? (
+                            <div className="table-empty">
+                                <Loader2 size={32} className="spinner" />
+                                <p>Loading users...</p>
+                            </div>
+                        ) : (
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>User</th>
+                                        <th>Email</th>
+                                        <th>School</th>
+                                        <th>Role</th>
+                                        <th>Karma</th>
+                                        <th>Status</th>
+                                        <th>Joined</th>
+                                        <th>Actions</th>
                                     </tr>
-                                ))}
-                            </tbody>
-                        </table>
+                                </thead>
+                                <tbody>
+                                    {users.map((user, i) => (
+                                        <tr key={user.id} style={{ animationDelay: `${i * 0.03}s` }}>
+                                            <td>
+                                                <div className="user-cell">
+                                                    <div className="user-avatar">{user.fullName?.split(' ').map(n => n[0]).join('').substring(0, 2)}</div>
+                                                    <span className="user-name">{user.fullName}</span>
+                                                </div>
+                                            </td>
+                                            <td className="td-email">{user.email}</td>
+                                            <td>{user.campus?.name || '-'}</td>
+                                            <td>
+                                                <span className={`role-chip ${user.role?.toLowerCase()}`}>
+                                                    {roleLabels[user.role] || user.role}
+                                                </span>
+                                            </td>
+                                            <td className="td-karma">{user.karmaScore}</td>
+                                            <td>
+                                                <span className={`status-dot ${isBanned(user) ? 'banned' : 'active'}`}>
+                                                    {isBanned(user) ? 'Suspended' : 'Active'}
+                                                </span>
+                                            </td>
+                                            <td className="td-date">{timeAgo(user.createdAt)}</td>
+                                            <td className="td-actions">
+                                                {user.role === 'STUDENT' && (
+                                                    <button
+                                                        className={`action-btn ${isBanned(user) ? 'success' : 'danger'}`}
+                                                        title={isBanned(user) ? 'Reactivate' : 'Suspend'}
+                                                        onClick={() => handleBanToggle(user)}
+                                                    >
+                                                        {isBanned(user) ? <ShieldCheck size={16} /> : <ShieldOff size={16} />}
+                                                    </button>
+                                                )}
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        )}
 
-                        {paginated.length === 0 && (
+                        {!loading && users.length === 0 && (
                             <div className="table-empty">
                                 <Users size={40} />
                                 <p>No users match your filters</p>
@@ -155,12 +201,12 @@ const AdminUsers = () => {
                     {/* Pagination */}
                     {totalPages > 1 && (
                         <div className="pagination">
-                            <span>Showing {(currentPage - 1) * perPage + 1}-{Math.min(currentPage * perPage, filtered.length)} of {filtered.length}</span>
+                            <span>Showing {currentPage * perPage + 1}-{Math.min((currentPage + 1) * perPage, totalElements)} of {totalElements}</span>
                             <div className="pagination-btns">
-                                <button disabled={currentPage === 1} onClick={() => setCurrentPage(p => p - 1)}>
+                                <button disabled={currentPage === 0} onClick={() => setCurrentPage(p => p - 1)}>
                                     <ChevronLeft size={16} /> Prev
                                 </button>
-                                <button disabled={currentPage === totalPages} onClick={() => setCurrentPage(p => p + 1)}>
+                                <button disabled={currentPage >= totalPages - 1} onClick={() => setCurrentPage(p => p + 1)}>
                                     Next <ChevronRight size={16} />
                                 </button>
                             </div>
@@ -172,36 +218,37 @@ const AdminUsers = () => {
                         <div className="modal-overlay" onClick={() => setShowBanModal(false)}>
                             <div className="modal-card glass" onClick={(e) => e.stopPropagation()}>
                                 <div className="modal-header">
-                                    <AlertTriangle size={20} color={banTarget.isBanned ? '#10b981' : '#ef4444'} />
-                                    <h3>{banTarget.isBanned ? 'Unban User' : 'Ban User'}</h3>
+                                    <AlertTriangle size={20} color={isBanned(banTarget) ? '#10b981' : '#ef4444'} />
+                                    <h3>{isBanned(banTarget) ? 'Reactivate User' : 'Suspend User'}</h3>
                                     <button className="modal-close" onClick={() => setShowBanModal(false)}>
                                         <X size={18} />
                                     </button>
                                 </div>
                                 <div className="modal-body">
                                     <div className="ban-user-summary">
-                                        <div className="user-avatar lg">{banTarget.fullName.split(' ').map(n => n[0]).join('').substring(0, 2)}</div>
+                                        <div className="user-avatar lg">{banTarget.fullName?.split(' ').map(n => n[0]).join('').substring(0, 2)}</div>
                                         <div>
                                             <strong>{banTarget.fullName}</strong>
                                             <span>{banTarget.email}</span>
-                                            <span>{banTarget.campus?.id || '-'} &middot; Karma: {banTarget.karmaScore}</span>
+                                            <span>{banTarget.campus?.name || '-'} &middot; Karma: {banTarget.karmaScore}</span>
                                         </div>
                                     </div>
                                     <label>Reason</label>
                                     <textarea
                                         value={banReason}
                                         onChange={(e) => setBanReason(e.target.value)}
-                                        placeholder={banTarget.isBanned ? 'Reason for unbanning...' : 'Reason for banning this user...'}
+                                        placeholder={isBanned(banTarget) ? 'Reason for reactivating...' : 'Reason for suspending this user...'}
                                         rows={3}
                                     />
                                 </div>
                                 <div className="modal-footer">
                                     <button className="btn-secondary" onClick={() => setShowBanModal(false)}>Cancel</button>
                                     <button
-                                        className={banTarget.isBanned ? 'btn-success' : 'btn-danger'}
+                                        className={isBanned(banTarget) ? 'btn-success' : 'btn-danger'}
                                         onClick={confirmBanToggle}
+                                        disabled={actionLoading}
                                     >
-                                        {banTarget.isBanned ? 'Confirm Unban' : 'Confirm Ban'}
+                                        {actionLoading ? 'Processing...' : (isBanned(banTarget) ? 'Confirm Reactivate' : 'Confirm Suspend')}
                                     </button>
                                 </div>
                             </div>

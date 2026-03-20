@@ -17,7 +17,6 @@ public class UserDTO {
     private String universityTag;
     private int karmaScore;
     private String role;
-    private boolean emailVerified;
     private String accountStatus;
     private LocalDateTime createdAt;
 

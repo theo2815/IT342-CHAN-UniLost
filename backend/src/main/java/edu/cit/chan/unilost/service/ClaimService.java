@@ -6,6 +6,7 @@ import edu.cit.chan.unilost.entity.*;
 import edu.cit.chan.unilost.exception.ForbiddenException;
 import edu.cit.chan.unilost.exception.ResourceNotFoundException;
 import edu.cit.chan.unilost.repository.CampusRepository;
+import edu.cit.chan.unilost.repository.ChatRepository;
 import edu.cit.chan.unilost.repository.ClaimRepository;
 import edu.cit.chan.unilost.repository.ItemRepository;
 import edu.cit.chan.unilost.repository.UserRepository;
@@ -16,6 +17,8 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import org.springframework.dao.OptimisticLockingFailureException;
+
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.function.Function;
@@ -25,12 +28,13 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class ClaimService {
 
-    private static final String ROLE_ADMIN = "ADMIN";
-
     private final ClaimRepository claimRepository;
     private final ItemRepository itemRepository;
     private final UserRepository userRepository;
     private final CampusRepository campusRepository;
+    private final ChatRepository chatRepository;
+    private final ChatService chatService;
+    private final NotificationService notificationService;
 
     public ClaimDTO submitClaim(ClaimRequest request, String claimantEmail) {
         UserEntity claimant = userRepository.findByEmail(claimantEmail)
@@ -39,7 +43,7 @@ public class ClaimService {
         ItemEntity item = itemRepository.findByIdAndIsDeletedFalse(request.getItemId())
                 .orElseThrow(() -> new ResourceNotFoundException("Item not found"));
 
-        if (!"ACTIVE".equals(item.getStatus())) {
+        if (item.getStatus() != ItemStatus.ACTIVE) {
             throw new IllegalArgumentException("This item is no longer accepting claims");
         }
 
@@ -64,6 +68,13 @@ public class ClaimService {
         claim.setUpdatedAt(LocalDateTime.now());
 
         ClaimEntity saved = claimRepository.save(claim);
+
+        // Auto-create a chat room between finder and claimant
+        chatService.createChatForClaim(item.getId(), saved.getId(), item.getReporterId(), claimant.getId());
+
+        // Notify the item poster about the new claim
+        notificationService.notifyClaimReceived(item.getReporterId(), claimant.getFullName(), item.getTitle(), saved.getId());
+
         return convertToDTO(saved, item, claimant, null, null, false);
     }
 
@@ -76,13 +87,21 @@ public class ClaimService {
 
         boolean isClaimant = currentUser.getId().equals(claim.getClaimantId());
         boolean isFinder = currentUser.getId().equals(claim.getFinderId());
-        boolean isAdmin = ROLE_ADMIN.equals(currentUser.getRole());
+        boolean isAdmin = currentUser.getRole() == Role.ADMIN;
 
         if (!isClaimant && !isFinder && !isAdmin) {
             throw new ForbiddenException("You do not have permission to view this claim");
         }
 
-        return convertToDTO(claim, null, null, null, null, isFinder || isAdmin);
+        // Pre-load entities to avoid N+1 fallback queries in convertToDTO
+        ItemEntity item = claim.getItemId() != null
+                ? itemRepository.findByIdAndIsDeletedFalse(claim.getItemId()).orElse(null) : null;
+        UserEntity claimant = claim.getClaimantId() != null
+                ? userRepository.findById(claim.getClaimantId()).orElse(null) : null;
+        UserEntity finder = claim.getFinderId() != null
+                ? userRepository.findById(claim.getFinderId()).orElse(null) : null;
+
+        return convertToDTO(claim, item, claimant, finder, null, isFinder || isAdmin);
     }
 
     public Page<ClaimDTO> getMyClaims(String claimantEmail, Pageable pageable) {
@@ -109,7 +128,7 @@ public class ClaimService {
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
         boolean isFinder = caller.getId().equals(item.getReporterId());
-        boolean isAdmin = ROLE_ADMIN.equals(caller.getRole());
+        boolean isAdmin = caller.getRole() == Role.ADMIN;
         if (!isFinder && !isAdmin) {
             throw new ForbiddenException("Only the item poster can view claims on this item");
         }
@@ -135,13 +154,28 @@ public class ClaimService {
 
         claim.setStatus(ClaimStatus.ACCEPTED);
         claim.setUpdatedAt(LocalDateTime.now());
-        ClaimEntity saved = claimRepository.save(claim);
+
+        ClaimEntity saved;
+        try {
+            saved = claimRepository.save(claim);
+        } catch (OptimisticLockingFailureException e) {
+            throw new IllegalArgumentException("This claim was modified by another request. Please refresh and try again.");
+        }
+
+        // Resolve item title for notifications
+        String itemTitle = itemRepository.findByIdAndIsDeletedFalse(claim.getItemId())
+                .map(ItemEntity::getTitle).orElse("an item");
+
+        // Notify the accepted claimant
+        notificationService.notifyClaimAccepted(claim.getClaimantId(), itemTitle, saved.getId());
 
         // Auto-reject all other PENDING claims on the same item
         List<ClaimEntity> otherPending = claimRepository.findByItemIdAndStatus(claim.getItemId(), ClaimStatus.PENDING);
         for (ClaimEntity other : otherPending) {
             other.setStatus(ClaimStatus.REJECTED);
             other.setUpdatedAt(LocalDateTime.now());
+            // Notify each auto-rejected claimant
+            notificationService.notifyClaimAutoRejected(other.getClaimantId(), itemTitle, other.getId());
         }
         if (!otherPending.isEmpty()) {
             claimRepository.saveAll(otherPending);
@@ -149,7 +183,7 @@ public class ClaimService {
 
         // Update item status to CLAIMED
         itemRepository.findByIdAndIsDeletedFalse(claim.getItemId()).ifPresent(i -> {
-            i.setStatus("CLAIMED");
+            i.setStatus(ItemStatus.CLAIMED);
             i.setUpdatedAt(LocalDateTime.now());
             itemRepository.save(i);
         });
@@ -173,6 +207,12 @@ public class ClaimService {
         claim.setStatus(ClaimStatus.REJECTED);
         claim.setUpdatedAt(LocalDateTime.now());
         ClaimEntity saved = claimRepository.save(claim);
+
+        // Notify rejected claimant
+        String rejItemTitle = itemRepository.findByIdAndIsDeletedFalse(claim.getItemId())
+                .map(ItemEntity::getTitle).orElse("an item");
+        notificationService.notifyClaimRejected(claim.getClaimantId(), rejItemTitle, saved.getId());
+
         return convertToDTO(saved, null, null, finder, null, true);
     }
 
@@ -211,6 +251,7 @@ public class ClaimService {
         });
 
         Map<String, ItemEntity> itemsById = itemRepository.findAllById(itemIds).stream()
+                .filter(item -> !item.isDeleted())
                 .collect(Collectors.toMap(ItemEntity::getId, Function.identity()));
         Map<String, UserEntity> usersById = userRepository.findAllById(userIds).stream()
                 .collect(Collectors.toMap(UserEntity::getId, Function.identity()));
@@ -294,12 +335,16 @@ public class ClaimService {
             dto.setFinderName(resolvedFinder.getFullName());
         }
 
+        // Resolve associated chat ID
+        chatRepository.findByClaimId(claim.getId())
+                .ifPresent(chat -> dto.setChatId(chat.getId()));
+
         return dto;
     }
 
     private void verifyFinderOrAdmin(ClaimEntity claim, UserEntity user) {
         boolean isFinder = user.getId().equals(claim.getFinderId());
-        boolean isAdmin = ROLE_ADMIN.equals(user.getRole());
+        boolean isAdmin = user.getRole() == Role.ADMIN;
         if (!isFinder && !isAdmin) {
             throw new ForbiddenException("Only the item poster can perform this action");
         }

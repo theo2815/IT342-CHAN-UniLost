@@ -1,6 +1,8 @@
 package edu.cit.chan.unilost.repository;
 
 import edu.cit.chan.unilost.entity.MessageEntity;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.mongodb.repository.MongoRepository;
 import org.springframework.stereotype.Repository;
 
@@ -11,9 +13,11 @@ public interface MessageRepository extends MongoRepository<MessageEntity, String
 
     List<MessageEntity> findByChatIdOrderByCreatedAtAsc(String chatId);
 
+    Page<MessageEntity> findByChatIdOrderByCreatedAtDesc(String chatId, Pageable pageable);
+
     List<MessageEntity> findByChatIdAndIsReadFalse(String chatId);
 
-    long countByChatIdAndIsReadFalseAndSenderIdNot(String chatId, String userId);
+    List<MessageEntity> findByChatIdAndIsReadFalseAndSenderIdNot(String chatId, String userId);
 
-    // TODO: [Phase 6] Add pagination for message history
+    long countByChatIdAndIsReadFalseAndSenderIdNot(String chatId, String userId);
 }

@@ -2,6 +2,7 @@ package edu.cit.chan.unilost.controller;
 
 import edu.cit.chan.unilost.dto.ItemDTO;
 import edu.cit.chan.unilost.dto.ItemRequest;
+import edu.cit.chan.unilost.service.AdminService;
 import edu.cit.chan.unilost.service.ItemService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -17,6 +18,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/items")
@@ -24,6 +26,7 @@ import java.util.List;
 public class ItemController {
 
     private final ItemService itemService;
+    private final AdminService adminService;
 
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<ItemDTO> createItem(
@@ -50,6 +53,13 @@ public class ItemController {
         PageRequest pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
         Page<ItemDTO> items = itemService.searchItems(keyword, campusId, category, type, status, pageable);
         return ResponseEntity.ok(items);
+    }
+
+    @GetMapping("/map")
+    public ResponseEntity<List<ItemDTO>> getMapItems(
+            @RequestParam(required = false) String campusId,
+            @RequestParam(required = false) String type) {
+        return ResponseEntity.ok(itemService.getMapItems(campusId, type));
     }
 
     @GetMapping("/{id}")
@@ -100,6 +110,17 @@ public class ItemController {
         size = Math.min(Math.max(size, 1), 50);
         PageRequest pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
         return ResponseEntity.ok(itemService.getItemsByCampus(campusId, pageable));
+    }
+
+    @PostMapping("/{id}/flag")
+    public ResponseEntity<Void> flagItem(
+            @PathVariable String id,
+            @RequestBody Map<String, String> body,
+            Authentication authentication) {
+        String email = (String) authentication.getPrincipal();
+        String reason = body.get("reason");
+        adminService.flagItem(id, reason, email);
+        return ResponseEntity.ok().build();
     }
 
     /**

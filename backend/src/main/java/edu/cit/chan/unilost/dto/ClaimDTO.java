@@ -35,4 +35,7 @@ public class ClaimDTO {
 
     // Only populated for finder/admin views
     private String secretDetailQuestion;
+
+    // Chat room associated with this claim
+    private String chatId;
 }

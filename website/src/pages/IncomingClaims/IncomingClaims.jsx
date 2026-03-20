@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, AlertTriangle, Check, X, Lock, MessageSquare, User } from 'lucide-react';
+import { ArrowLeft, AlertTriangle, Check, X, Lock, MessageSquare, User, ChevronLeft, ChevronRight } from 'lucide-react';
 import Header from '../../components/Header';
 import StatusBadge from '../../components/StatusBadge';
 import EmptyState from '../../components/EmptyState';
@@ -18,6 +18,18 @@ function IncomingClaims() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     const [actionLoading, setActionLoading] = useState(null);
+    const [page, setPage] = useState(0);
+    const [totalPages, setTotalPages] = useState(0);
+
+    const fetchClaims = async (targetPage) => {
+        const claimsResult = await claimService.getClaimsForItem(itemId, targetPage, 10);
+        if (claimsResult.success) {
+            setClaims(claimsResult.data);
+            setTotalPages(claimsResult.totalPages || 0);
+        } else {
+            setError(claimsResult.error);
+        }
+    };
 
     useEffect(() => {
         const controller = new AbortController();
@@ -35,19 +47,14 @@ function IncomingClaims() {
                 return;
             }
 
-            const claimsResult = await claimService.getClaimsForItem(itemId);
+            await fetchClaims(page);
             if (controller.signal.aborted) return;
-            if (claimsResult.success) {
-                setClaims(claimsResult.data);
-            } else {
-                setError(claimsResult.error);
-            }
 
             setLoading(false);
         };
         fetchData();
         return () => controller.abort();
-    }, [itemId]);
+    }, [itemId, page]);
 
     const hasAccepted = claims.some((c) => c.status === 'ACCEPTED' || c.status === 'HANDED_OVER');
 
@@ -93,8 +100,7 @@ function IncomingClaims() {
         setActionLoading(claimId);
         const result = await claimService.acceptClaim(claimId);
         if (result.success) {
-            const claimsResult = await claimService.getClaimsForItem(itemId);
-            if (claimsResult.success) setClaims(claimsResult.data);
+            await fetchClaims(page);
         } else {
             setError(result.error);
         }
@@ -106,8 +112,7 @@ function IncomingClaims() {
         setActionLoading(claimId);
         const result = await claimService.rejectClaim(claimId);
         if (result.success) {
-            const claimsResult = await claimService.getClaimsForItem(itemId);
-            if (claimsResult.success) setClaims(claimsResult.data);
+            await fetchClaims(page);
         } else {
             setError(result.error);
         }
@@ -234,6 +239,28 @@ function IncomingClaims() {
                             actionLabel="Back to Profile"
                             onAction={() => navigate('/profile')}
                         />
+                    )}
+
+                    {totalPages > 1 && (
+                        <div className="ic-pagination">
+                            <button
+                                className="ic-page-btn"
+                                disabled={page === 0}
+                                onClick={() => setPage((p) => p - 1)}
+                            >
+                                <ChevronLeft size={16} /> Previous
+                            </button>
+                            <span className="ic-page-info">
+                                Page {page + 1} of {totalPages}
+                            </span>
+                            <button
+                                className="ic-page-btn"
+                                disabled={page >= totalPages - 1}
+                                onClick={() => setPage((p) => p + 1)}
+                            >
+                                Next <ChevronRight size={16} />
+                            </button>
+                        </div>
                     )}
                 </div>
             </main>

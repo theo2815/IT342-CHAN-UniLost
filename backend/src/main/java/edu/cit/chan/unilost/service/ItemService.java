@@ -6,6 +6,8 @@ import edu.cit.chan.unilost.dto.ItemRequest;
 import edu.cit.chan.unilost.dto.UserDTO;
 import edu.cit.chan.unilost.entity.CampusEntity;
 import edu.cit.chan.unilost.entity.ItemEntity;
+import edu.cit.chan.unilost.entity.ItemStatus;
+import edu.cit.chan.unilost.entity.Role;
 import edu.cit.chan.unilost.entity.UserEntity;
 import edu.cit.chan.unilost.exception.ForbiddenException;
 import edu.cit.chan.unilost.exception.ResourceNotFoundException;
@@ -21,6 +23,7 @@ import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
@@ -56,9 +59,14 @@ public class ItemService {
         item.setTitle(request.getTitle());
         item.setDescription(request.getDescription());
         item.setType(request.getType());
-        item.setStatus("ACTIVE");
+        item.setStatus(ItemStatus.ACTIVE);
         item.setCategory(request.getCategory());
         item.setLocation(request.getLocation());
+        if ((request.getLatitude() == null) != (request.getLongitude() == null)) {
+            throw new IllegalArgumentException("Both latitude and longitude must be provided together, or both omitted");
+        }
+        item.setLatitude(request.getLatitude());
+        item.setLongitude(request.getLongitude());
         item.setSecretDetailQuestion(request.getSecretDetailQuestion());
         item.setCreatedAt(LocalDateTime.now());
         item.setUpdatedAt(LocalDateTime.now());
@@ -85,14 +93,20 @@ public class ItemService {
     public Optional<ItemDTO> getItemById(String id, String currentEmail) {
         return itemRepository.findByIdAndIsDeletedFalse(id)
                 .map(item -> {
-                    ItemDTO dto = convertToDTO(item, null, null);
+                    // Pre-load entities to avoid N+1 fallback queries in convertToDTO
+                    UserEntity reporter = item.getReporterId() != null
+                            ? userRepository.findById(item.getReporterId()).orElse(null) : null;
+                    CampusEntity campus = item.getCampusId() != null
+                            ? campusRepository.findById(item.getCampusId()).orElse(null) : null;
+
+                    ItemDTO dto = convertToDTO(item, reporter, campus);
                     // Hide secretDetailQuestion from non-owners
                     if (currentEmail != null) {
                         Optional<UserEntity> currentUser = userRepository.findByEmail(currentEmail);
                         boolean isOwner = currentUser.isPresent()
                                 && currentUser.get().getId().equals(item.getReporterId());
                         boolean isAdmin = currentUser.isPresent()
-                                && "ADMIN".equals(currentUser.get().getRole());
+                                && currentUser.get().getRole() == Role.ADMIN;
                         if (!isOwner && !isAdmin) {
                             dto.setSecretDetailQuestion(null);
                         }
@@ -158,6 +172,7 @@ public class ItemService {
         return new PageImpl<>(dtos, pageable, page.getTotalElements());
     }
 
+    @Transactional
     public Optional<ItemDTO> updateItem(String id, ItemRequest request, String currentEmail,
                                         List<MultipartFile> newImages) throws IOException {
         return itemRepository.findByIdAndIsDeletedFalse(id)
@@ -167,8 +182,8 @@ public class ItemService {
                     verifyOwnershipOrAdmin(existingItem, currentUser);
 
                     // Prevent editing items that are no longer ACTIVE
-                    if (!"ACTIVE".equals(existingItem.getStatus())) {
-                        throw new IllegalArgumentException("Cannot edit an item that is " + existingItem.getStatus().toLowerCase());
+                    if (existingItem.getStatus() != ItemStatus.ACTIVE) {
+                        throw new IllegalArgumentException("Cannot edit an item that is " + existingItem.getStatus().name().toLowerCase());
                     }
 
                     if (newImages != null && newImages.size() > MAX_IMAGES) {
@@ -179,6 +194,8 @@ public class ItemService {
                     if (request.getDescription() != null) existingItem.setDescription(request.getDescription());
                     if (request.getCategory() != null) existingItem.setCategory(request.getCategory());
                     if (request.getLocation() != null) existingItem.setLocation(request.getLocation());
+                    if (request.getLatitude() != null) existingItem.setLatitude(request.getLatitude());
+                    if (request.getLongitude() != null) existingItem.setLongitude(request.getLongitude());
                     if (request.getSecretDetailQuestion() != null)
                         existingItem.setSecretDetailQuestion(request.getSecretDetailQuestion());
                     if (request.getDateLostFound() != null && !request.getDateLostFound().isEmpty()) {
@@ -213,8 +230,17 @@ public class ItemService {
                     verifyOwnershipOrAdmin(item, currentUser);
 
                     // Prevent deleting items that have been claimed
-                    if ("CLAIMED".equals(item.getStatus()) || "HANDED_OVER".equals(item.getStatus())) {
-                        throw new IllegalArgumentException("Cannot delete an item that has been " + item.getStatus().toLowerCase());
+                    if (item.getStatus() == ItemStatus.CLAIMED || item.getStatus() == ItemStatus.HANDED_OVER) {
+                        throw new IllegalArgumentException("Cannot delete an item that has been " + item.getStatus().name().toLowerCase());
+                    }
+
+                    // Clean up Cloudinary images
+                    if (item.getImageUrls() != null && !item.getImageUrls().isEmpty()) {
+                        try {
+                            cloudinaryService.deleteImages(item.getImageUrls());
+                        } catch (Exception e) {
+                            // Log but don't block deletion
+                        }
                     }
 
                     item.setDeleted(true);
@@ -224,6 +250,32 @@ public class ItemService {
                     return true;
                 })
                 .orElse(false);
+    }
+
+    public List<ItemDTO> getMapItems(String campusId, String type) {
+        Query query = new Query();
+        query.addCriteria(Criteria.where("isDeleted").is(false));
+        query.addCriteria(Criteria.where("latitude").ne(null));
+        query.addCriteria(Criteria.where("longitude").ne(null));
+        query.addCriteria(Criteria.where("status").is(ItemStatus.ACTIVE.name()));
+
+        if (campusId != null && !campusId.isEmpty()) {
+            query.addCriteria(Criteria.where("campusId").is(campusId));
+        }
+        if (type != null && !type.isEmpty()) {
+            if (!type.equals("LOST") && !type.equals("FOUND")) {
+                throw new IllegalArgumentException("Type must be LOST or FOUND");
+            }
+            query.addCriteria(Criteria.where("type").is(type));
+        }
+
+        query.with(Sort.by(Sort.Direction.DESC, "createdAt"));
+        query.limit(200);
+
+        List<ItemEntity> items = mongoTemplate.find(query, ItemEntity.class);
+        List<ItemDTO> dtos = convertToDTOs(items);
+        dtos.forEach(dto -> dto.setSecretDetailQuestion(null));
+        return dtos;
     }
 
     // --- Batch DTO conversion to fix N+1 queries ---
@@ -259,9 +311,11 @@ public class ItemService {
         dto.setTitle(item.getTitle());
         dto.setDescription(item.getDescription());
         dto.setType(item.getType());
-        dto.setStatus(item.getStatus());
+        dto.setStatus(item.getStatus().name());
         dto.setCategory(item.getCategory());
         dto.setLocation(item.getLocation());
+        dto.setLatitude(item.getLatitude());
+        dto.setLongitude(item.getLongitude());
         dto.setImageUrls(item.getImageUrls());
         dto.setSecretDetailQuestion(item.getSecretDetailQuestion());
         dto.setDateLostFound(item.getDateLostFound());
@@ -269,6 +323,8 @@ public class ItemService {
         dto.setUpdatedAt(item.getUpdatedAt());
         dto.setReporterId(item.getReporterId());
         dto.setCampusId(item.getCampusId());
+        dto.setFlagCount(item.getFlagCount());
+        dto.setFlagReasons(item.getFlagReasons());
 
         // Resolve reporter — use provided entity or fetch if needed
         UserEntity resolvedReporter = reporter;
@@ -282,7 +338,7 @@ public class ItemService {
             userDTO.setFullName(resolvedReporter.getFullName());
             userDTO.setUniversityTag(resolvedReporter.getUniversityTag());
             userDTO.setKarmaScore(resolvedReporter.getKarmaScore());
-            userDTO.setRole(resolvedReporter.getRole());
+            userDTO.setRole(resolvedReporter.getRole().name());
             dto.setReporter(userDTO);
         }
 
@@ -294,7 +350,11 @@ public class ItemService {
         if (resolvedCampus != null) {
             CampusDTO campusDTO = new CampusDTO();
             campusDTO.setId(resolvedCampus.getId());
+            campusDTO.setUniversityCode(resolvedCampus.getUniversityCode());
+            campusDTO.setCampusName(resolvedCampus.getCampusName());
             campusDTO.setName(resolvedCampus.getName());
+            campusDTO.setShortLabel(resolvedCampus.getShortLabel());
+            campusDTO.setAddress(resolvedCampus.getAddress());
             campusDTO.setDomainWhitelist(resolvedCampus.getDomainWhitelist());
             if (resolvedCampus.getCenterCoordinates() != null) {
                 campusDTO.setCenterCoordinates(new double[]{
@@ -310,7 +370,7 @@ public class ItemService {
 
     private void verifyOwnershipOrAdmin(ItemEntity item, UserEntity currentUser) {
         boolean isOwner = item.getReporterId().equals(currentUser.getId());
-        boolean isAdmin = "ADMIN".equals(currentUser.getRole());
+        boolean isAdmin = currentUser.getRole() == Role.ADMIN;
         if (!isOwner && !isAdmin) {
             throw new ForbiddenException("You do not have permission to modify this item");
         }

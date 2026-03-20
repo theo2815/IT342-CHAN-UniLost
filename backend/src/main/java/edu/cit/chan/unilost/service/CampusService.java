@@ -26,7 +26,11 @@ public class CampusService {
     public CampusDTO createCampus(CampusDTO campusDTO) {
         CampusEntity campus = new CampusEntity();
         campus.setId(campusDTO.getId());
+        campus.setUniversityCode(campusDTO.getUniversityCode());
+        campus.setCampusName(campusDTO.getCampusName());
         campus.setName(campusDTO.getName());
+        campus.setShortLabel(campusDTO.getShortLabel());
+        campus.setAddress(campusDTO.getAddress());
         campus.setDomainWhitelist(campusDTO.getDomainWhitelist());
         if (campusDTO.getCenterCoordinates() != null && campusDTO.getCenterCoordinates().length == 2) {
             campus.setCenterCoordinates(new GeoJsonPoint(
@@ -55,11 +59,22 @@ public class CampusService {
                 .map(this::convertToDTO);
     }
 
+    public List<CampusDTO> getCampusesByDomain(String domain) {
+        return campusRepository.findAllByDomainWhitelist(domain)
+                .stream()
+                .map(this::convertToDTO)
+                .collect(Collectors.toList());
+    }
+
     public Optional<CampusDTO> updateCampus(String id, CampusDTO campusDTO) {
         return campusRepository.findById(id)
                 .map(existing -> {
-                    existing.setName(campusDTO.getName());
-                    existing.setDomainWhitelist(campusDTO.getDomainWhitelist());
+                    if (campusDTO.getUniversityCode() != null) existing.setUniversityCode(campusDTO.getUniversityCode());
+                    if (campusDTO.getCampusName() != null) existing.setCampusName(campusDTO.getCampusName());
+                    if (campusDTO.getName() != null) existing.setName(campusDTO.getName());
+                    if (campusDTO.getShortLabel() != null) existing.setShortLabel(campusDTO.getShortLabel());
+                    if (campusDTO.getAddress() != null) existing.setAddress(campusDTO.getAddress());
+                    if (campusDTO.getDomainWhitelist() != null) existing.setDomainWhitelist(campusDTO.getDomainWhitelist());
                     if (campusDTO.getCenterCoordinates() != null && campusDTO.getCenterCoordinates().length == 2) {
                         existing.setCenterCoordinates(new GeoJsonPoint(
                                 campusDTO.getCenterCoordinates()[0],
@@ -80,7 +95,11 @@ public class CampusService {
     private CampusDTO convertToDTO(CampusEntity campus) {
         CampusDTO dto = new CampusDTO();
         dto.setId(campus.getId());
+        dto.setUniversityCode(campus.getUniversityCode());
+        dto.setCampusName(campus.getCampusName());
         dto.setName(campus.getName());
+        dto.setShortLabel(campus.getShortLabel());
+        dto.setAddress(campus.getAddress());
         dto.setDomainWhitelist(campus.getDomainWhitelist());
         if (campus.getCenterCoordinates() != null) {
             dto.setCenterCoordinates(new double[]{

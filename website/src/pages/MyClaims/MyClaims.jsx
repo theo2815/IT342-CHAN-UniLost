@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, ChevronLeft, ChevronRight } from 'lucide-react';
 import Header from '../../components/Header';
 import StatusBadge from '../../components/StatusBadge';
 import EmptyState from '../../components/EmptyState';
@@ -13,16 +13,19 @@ function MyClaims() {
     const [claims, setClaims] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
+    const [page, setPage] = useState(0);
+    const [totalPages, setTotalPages] = useState(0);
 
     useEffect(() => {
         const controller = new AbortController();
         const fetchClaims = async () => {
             setLoading(true);
             setError('');
-            const result = await claimService.getMyClaims();
+            const result = await claimService.getMyClaims(page, 10);
             if (controller.signal.aborted) return;
             if (result.success) {
                 setClaims(result.data);
+                setTotalPages(result.totalPages || 0);
             } else {
                 setError(result.error);
             }
@@ -30,7 +33,7 @@ function MyClaims() {
         };
         fetchClaims();
         return () => controller.abort();
-    }, []);
+    }, [page]);
 
     const getInitials = (name) => {
         if (!name) return '??';
@@ -92,6 +95,28 @@ function MyClaims() {
                             actionLabel="Browse Items"
                             onAction={() => navigate('/items')}
                         />
+                    )}
+
+                    {totalPages > 1 && (
+                        <div className="mc-pagination">
+                            <button
+                                className="mc-page-btn"
+                                disabled={page === 0}
+                                onClick={() => setPage((p) => p - 1)}
+                            >
+                                <ChevronLeft size={16} /> Previous
+                            </button>
+                            <span className="mc-page-info">
+                                Page {page + 1} of {totalPages}
+                            </span>
+                            <button
+                                className="mc-page-btn"
+                                disabled={page >= totalPages - 1}
+                                onClick={() => setPage((p) => p + 1)}
+                            >
+                                Next <ChevronRight size={16} />
+                            </button>
+                        </div>
                     )}
                 </div>
             </main>

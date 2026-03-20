@@ -284,6 +284,81 @@
     color: #fff;
 }
 
+.action-btn.warning:hover {
+    background: #f59e0b;
+    color: #fff;
+}
+
+.action-btn.success:hover {
+    background: #10b981;
+    color: #fff;
+}
+
+.action-btn.info:hover {
+    background: #6366f1;
+    color: #fff;
+}
+
+.action-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+/* Flag Count */
+.flag-count {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    color: #ef4444;
+    font-size: var(--font-size-sm);
+    font-weight: 600;
+}
+
+/* Error State */
+.error-state {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    padding: var(--spacing-sm) var(--spacing-md);
+    background: rgba(239, 68, 68, 0.08);
+    border: 1px solid rgba(239, 68, 68, 0.2);
+    border-radius: var(--radius-md);
+    color: #ef4444;
+    font-size: var(--font-size-sm);
+    margin-bottom: var(--spacing-md);
+}
+
+/* Spinner */
+.spinner {
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+/* New status badges */
+.status-badge.turned-over-to-office {
+    background: rgba(99, 102, 241, 0.1);
+    color: #6366f1;
+}
+
+.status-badge.returned {
+    background: rgba(5, 150, 105, 0.1);
+    color: #059669;
+}
+
+.status-badge.hidden {
+    background: rgba(107, 114, 128, 0.1);
+    color: #6b7280;
+}
+
+.btn-danger:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
 /* Table Empty State */
 .table-empty {
     display: flex;

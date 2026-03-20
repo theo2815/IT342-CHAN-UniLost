@@ -4,7 +4,9 @@ import edu.cit.chan.unilost.dto.CampusDTO;
 import edu.cit.chan.unilost.dto.RegisterRequest;
 import edu.cit.chan.unilost.dto.UpdateUserRequest;
 import edu.cit.chan.unilost.dto.UserDTO;
+import edu.cit.chan.unilost.entity.AccountStatus;
 import edu.cit.chan.unilost.entity.CampusEntity;
+import edu.cit.chan.unilost.entity.Role;
 import edu.cit.chan.unilost.entity.UserEntity;
 import edu.cit.chan.unilost.exception.AuthenticationException;
 import edu.cit.chan.unilost.exception.ForbiddenException;
@@ -12,8 +14,16 @@ import edu.cit.chan.unilost.exception.ResourceNotFoundException;
 import edu.cit.chan.unilost.repository.CampusRepository;
 import edu.cit.chan.unilost.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.mongodb.core.FindAndModifyOptions;
+import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.query.Criteria;
+import org.springframework.data.mongodb.core.query.Query;
+import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 import java.security.SecureRandom;
 import java.time.LocalDateTime;
@@ -34,6 +44,7 @@ public class UserService {
     private final CampusRepository campusRepository;
     private final PasswordEncoder passwordEncoder;
     private final EmailService emailService;
+    private final MongoTemplate mongoTemplate;
 
     private static final int OTP_LENGTH = 6;
     private static final int OTP_EXPIRY_MINUTES = 10;
@@ -46,17 +57,38 @@ public class UserService {
         // Validate email domain against campus whitelist
         String email = registrationDTO.getEmail();
         String domain = extractEmailDomain(email);
-        CampusEntity campus = campusRepository.findByDomainWhitelist(domain)
-                .orElseThrow(() -> new IllegalArgumentException(
-                        "Email domain '" + domain + "' is not recognized. Please use your university email."));
+        List<CampusEntity> matchingCampuses = campusRepository.findAllByDomainWhitelist(domain);
+
+        if (matchingCampuses.isEmpty()) {
+            throw new IllegalArgumentException(
+                    "Email domain '" + domain + "' is not recognized. Please use your university email.");
+        }
+
+        CampusEntity campus;
+        if (matchingCampuses.size() == 1) {
+            // Single campus for this domain — auto-assign
+            campus = matchingCampuses.get(0);
+        } else {
+            // Multiple campuses share this domain — campusId is required
+            String campusId = registrationDTO.getCampusId();
+            if (campusId == null || campusId.isBlank()) {
+                throw new IllegalArgumentException(
+                        "Multiple campuses use this email domain. Please select your campus.");
+            }
+            campus = matchingCampuses.stream()
+                    .filter(c -> c.getId().equals(campusId))
+                    .findFirst()
+                    .orElseThrow(() -> new IllegalArgumentException(
+                            "Invalid campus selection for domain '" + domain + "'."));
+        }
 
         UserEntity user = new UserEntity();
         user.setEmail(registrationDTO.getEmail().trim().toLowerCase());
         user.setPasswordHash(passwordEncoder.encode(registrationDTO.getPassword()));
         user.setFullName(registrationDTO.getFullName());
         user.setUniversityTag(campus.getId());
-        user.setRole("STUDENT");
-        user.setAccountStatus("ACTIVE");
+        user.setRole(Role.STUDENT);
+        user.setAccountStatus(AccountStatus.ACTIVE);
         user.setCreatedAt(LocalDateTime.now());
 
         UserEntity saved = userRepository.save(user);
@@ -67,11 +99,11 @@ public class UserService {
         UserEntity user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new AuthenticationException("Invalid email or password"));
 
-        if ("SUSPENDED".equals(user.getAccountStatus())) {
+        if (user.getAccountStatus() == AccountStatus.SUSPENDED) {
             throw new ForbiddenException("Your account has been suspended. Contact your campus admin.");
         }
 
-        if ("DEACTIVATED".equals(user.getAccountStatus())) {
+        if (user.getAccountStatus() == AccountStatus.DEACTIVATED) {
             throw new ForbiddenException("This account has been deactivated.");
         }
 
@@ -79,18 +111,21 @@ public class UserService {
             throw new AuthenticationException("Invalid email or password");
         }
 
-        // Update last login timestamp
+        // Update last login timestamp and clear any pending password reset
         user.setLastLogin(LocalDateTime.now());
+        user.setPasswordResetToken(null);
+        user.setPasswordResetExpiry(null);
+        user.setOtpAttempts(0);
+        user.setOtpLockoutUntil(null);
+        user.setOtpVerified(false);
         userRepository.save(user);
 
         return convertToDTO(user);
     }
 
-    public List<UserDTO> getAllUsers() {
-        return userRepository.findAll()
-                .stream()
-                .map(this::convertToDTO)
-                .collect(Collectors.toList());
+    public Page<UserDTO> getAllUsers(Pageable pageable) {
+        return userRepository.findAll(pageable)
+                .map(this::convertToDTO);
     }
 
     public Optional<UserDTO> getUserById(String id) {
@@ -167,12 +202,23 @@ public class UserService {
         }
 
         if (!passwordEncoder.matches(otp, user.getPasswordResetToken())) {
-            user.setOtpAttempts(user.getOtpAttempts() + 1);
-            if (user.getOtpAttempts() >= MAX_OTP_ATTEMPTS) {
-                user.setOtpLockoutUntil(LocalDateTime.now().plusMinutes(OTP_LOCKOUT_MINUTES));
-                user.setOtpAttempts(0);
+            // Atomically increment OTP attempts to prevent race conditions
+            Update update = new Update().inc("otpAttempts", 1);
+            UserEntity updated = mongoTemplate.findAndModify(
+                    Query.query(Criteria.where("id").is(user.getId())),
+                    update,
+                    FindAndModifyOptions.options().returnNew(true),
+                    UserEntity.class
+            );
+            if (updated != null && updated.getOtpAttempts() >= MAX_OTP_ATTEMPTS) {
+                mongoTemplate.updateFirst(
+                        Query.query(Criteria.where("id").is(user.getId())),
+                        new Update()
+                                .set("otpLockoutUntil", LocalDateTime.now().plusMinutes(OTP_LOCKOUT_MINUTES))
+                                .set("otpAttempts", 0),
+                        UserEntity.class
+                );
             }
-            userRepository.save(user);
             throw new AuthenticationException("Invalid verification code. Please try again.");
         }
 
@@ -219,9 +265,8 @@ public class UserService {
         dto.setFullName(user.getFullName());
         dto.setUniversityTag(user.getUniversityTag());
         dto.setKarmaScore(user.getKarmaScore());
-        dto.setRole(user.getRole());
-        dto.setEmailVerified(user.isEmailVerified());
-        dto.setAccountStatus(user.getAccountStatus());
+        dto.setRole(user.getRole().name());
+        dto.setAccountStatus(user.getAccountStatus().name());
         dto.setCreatedAt(user.getCreatedAt());
 
         // Resolve campus details

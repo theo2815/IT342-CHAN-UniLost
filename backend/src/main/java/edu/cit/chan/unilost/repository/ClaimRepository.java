@@ -28,4 +28,11 @@ public interface ClaimRepository extends MongoRepository<ClaimEntity, String> {
     Page<ClaimEntity> findByFinderId(String finderId, Pageable pageable);
 
     Optional<ClaimEntity> findByItemIdAndClaimantIdAndStatusIn(String itemId, String claimantId, List<ClaimStatus> statuses);
+
+    // Admin: find claims by item IDs (for campus-scoped queries)
+    List<ClaimEntity> findByItemIdIn(List<String> itemIds);
+
+    Page<ClaimEntity> findByItemIdIn(List<String> itemIds, Pageable pageable);
+
+    long countByItemIdInAndStatus(List<String> itemIds, ClaimStatus status);
 }

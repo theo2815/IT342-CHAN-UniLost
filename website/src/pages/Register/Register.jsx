@@ -12,6 +12,7 @@ function Register() {
     const toast = useToast();
     const [campuses, setCampuses] = useState([]);
     const [detectedCampus, setDetectedCampus] = useState(null);
+    const [matchingCampuses, setMatchingCampuses] = useState([]);
     const [showPassword, setShowPassword] = useState(false);
     const [showConfirm, setShowConfirm] = useState(false);
 
@@ -20,6 +21,7 @@ function Register() {
         email: '',
         password: '',
         confirmPassword: '',
+        campusId: '',
         agreeToTerms: false
     });
 
@@ -57,21 +59,38 @@ function Register() {
         fetchCampuses();
     }, []);
 
-    // Auto-detect campus from email domain
+    // Auto-detect campus from email domain (supports multi-campus domains)
     useEffect(() => {
         const email = formData.email;
         if (email && email.includes('@')) {
             const domain = email.split('@')[1]?.toLowerCase();
             if (domain) {
-                const matched = campuses.find(c =>
+                const matched = campuses.filter(c =>
                     c.domainWhitelist && c.domainWhitelist.toLowerCase() === domain
                 );
-                setDetectedCampus(matched || null);
+                setMatchingCampuses(matched);
+                if (matched.length === 1) {
+                    setDetectedCampus(matched[0]);
+                    setFormData(prev => ({ ...prev, campusId: matched[0].id }));
+                } else if (matched.length > 1) {
+                    // Multiple campuses — user must pick
+                    setDetectedCampus(null);
+                    // Auto-select if previously chosen campus still matches
+                    const stillValid = matched.find(c => c.id === formData.campusId);
+                    if (stillValid) {
+                        setDetectedCampus(stillValid);
+                    }
+                } else {
+                    setDetectedCampus(null);
+                    setFormData(prev => ({ ...prev, campusId: '' }));
+                }
             } else {
                 setDetectedCampus(null);
+                setMatchingCampuses([]);
             }
         } else {
             setDetectedCampus(null);
+            setMatchingCampuses([]);
         }
     }, [formData.email, campuses]);
 
@@ -94,8 +113,10 @@ function Register() {
             newErrors.email = 'Email is required';
         } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
             newErrors.email = 'Please enter a valid email address';
-        } else if (!detectedCampus) {
+        } else if (matchingCampuses.length === 0) {
             newErrors.email = 'Use your university email (e.g., name@cit.edu)';
+        } else if (matchingCampuses.length > 1 && !formData.campusId) {
+            newErrors.email = 'Please select your campus below';
         }
 
         if (!formData.password) {
@@ -124,7 +145,13 @@ function Register() {
         setApiError('');
 
         try {
-            const result = await authService.register(formData);
+            const payload = {
+                fullName: formData.fullName,
+                email: formData.email,
+                password: formData.password,
+                ...(formData.campusId && { campusId: formData.campusId }),
+            };
+            const result = await authService.register(payload);
             if (result.success) {
                 toast.success('Your account has been created. Please sign in.', { title: 'Registration Successful', duration: 3000 });
                 setTimeout(() => navigate('/login'), 800);
@@ -199,9 +226,28 @@ function Register() {
                                         <CheckCircle size={14} /> {detectedCampus.name}
                                     </span>
                                 )}
-                                {!detectedCampus && formData.email.includes('@') && !errors.email && (
+                                {matchingCampuses.length > 1 && (
+                                    <div className="campus-picker">
+                                        <select
+                                            name="campusId"
+                                            value={formData.campusId}
+                                            onChange={(e) => {
+                                                const selected = matchingCampuses.find(c => c.id === e.target.value);
+                                                setFormData(prev => ({ ...prev, campusId: e.target.value }));
+                                                setDetectedCampus(selected || null);
+                                            }}
+                                            className="campus-select"
+                                        >
+                                            <option value="">Select your campus...</option>
+                                            {matchingCampuses.map(c => (
+                                                <option key={c.id} value={c.id}>{c.name}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                )}
+                                {matchingCampuses.length === 0 && formData.email.includes('@') && !errors.email && (
                                     <span className="email-hint">
-                                        Supported: cit.edu, usc.edu.ph, usjr.edu.ph, uc.edu.ph, up.edu.ph, swu.edu.ph, cnu.edu.ph, ctu.edu.ph
+                                        Supported: cit.edu, usc.edu.ph, usjr.edu.ph, uc.edu.ph, up.edu.ph, swu.edu.ph, cnu.edu.ph, ctu.edu.ph, iau.edu.ph
                                     </span>
                                 )}
                             </div>
@@ -304,7 +350,7 @@ function Register() {
                 <div className="register-branding">
                     <div className="branding-content">
                         <h1>Never Lose<br />Track Again.</h1>
-                        <p>Connect with students across <strong>8 Cebu City universities</strong> to recover lost items safely.</p>
+                        <p>Connect with students across <strong>13 Cebu campuses</strong> to recover lost items safely.</p>
 
                         <div className="benefits-list">
                             <div className="benefit-item">

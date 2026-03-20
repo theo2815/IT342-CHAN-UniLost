@@ -1,0 +1,22 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(./mvnw compile:*)",
+      "Bash(npx vite:*)",
+      "Bash(xargs grep:*)",
+      "Bash(./mvnw clean:*)",
+      "Bash(npm install:*)",
+      "Bash(find 'C:/Users/Theo Cedric Chan/Documents/Start Up project/IT342-CHAN-UniLost/website/src' -type f \\\\\\(-name *MapView* -o -name *Notifications* -o -name *NotificationDropdown* -o -name *Leaderboard* \\\\\\))",
+      "Bash(grep -r \"cit.edu\\\\|usc.edu.ph\\\\|usjr.edu.ph\\\\|uc.edu.ph\\\\|up.edu.ph\\\\|swu.edu.ph\\\\|cnu.edu.ph\\\\|ctu.edu.ph\" '/c/Users/Theo Cedric Chan/Documents/Start Up project/IT342-CHAN-UniLost' --include=*.java --include=*.js --include=*.jsx)",
+      "WebSearch",
+      "Bash(node:*)",
+      "WebFetch(domain:plus.codes)",
+      "WebFetch(domain:wutools.com)",
+      "WebFetch(domain:www.coordinatesfinder.com)",
+      "WebFetch(domain:mapcarta.com)",
+      "WebFetch(domain:www.distancesfrom.com)",
+      "Bash(npm uninstall:*)"
+    ]
+  },
+  "defaultMode": "acceptEdits"
+}

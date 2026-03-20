@@ -28,18 +28,17 @@ public class UserEntity {
     private String fullName;
 
     // Reference to campuses.id
+    @Indexed
     private String universityTag;
 
     private int karmaScore = 0;
 
-    // STUDENT, FACULTY, ADMIN
-    private String role = "STUDENT";
+    private Role role = Role.STUDENT;
 
     // Auth & account management
     private boolean emailVerified = false;
 
-    // ACTIVE, SUSPENDED, DEACTIVATED
-    private String accountStatus = "ACTIVE";
+    private AccountStatus accountStatus = AccountStatus.ACTIVE;
 
     private LocalDateTime createdAt;
 

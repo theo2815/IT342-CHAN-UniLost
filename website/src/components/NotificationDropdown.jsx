@@ -1,46 +1,92 @@
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Bell,
   CheckCircle,
   XCircle,
   Clock,
-  Package,
   Search,
   AlertTriangle,
   Check,
+  MessageSquare,
+  Loader,
 } from "lucide-react";
-import {
-  getRecentNotifications,
-  markAllAsRead,
-  markAsRead,
-  timeAgo,
-} from "../mockData/notifications";
+import notificationService from "../services/notificationService";
 import "./NotificationDropdown.css";
 
 const typeConfig = {
   CLAIM_RECEIVED: { icon: <Bell size={16} />, color: "#a855f7" },
-  CLAIM_APPROVED: { icon: <CheckCircle size={16} />, color: "#22c55e" },
+  CLAIM_ACCEPTED: { icon: <CheckCircle size={16} />, color: "#22c55e" },
   CLAIM_REJECTED: { icon: <XCircle size={16} />, color: "#ef4444" },
   HANDOVER_CONFIRMED: { icon: <Check size={16} />, color: "#10b981" },
   HANDOVER_REMINDER: { icon: <Clock size={16} />, color: "#f59e0b" },
   ITEM_EXPIRED: { icon: <AlertTriangle size={16} />, color: "#94a3b8" },
   ITEM_MATCH: { icon: <Search size={16} />, color: "#3b82f6" },
+  ITEM_FLAGGED: { icon: <AlertTriangle size={16} />, color: "#f59e0b" },
+  NEW_MESSAGE: { icon: <MessageSquare size={16} />, color: "#3b82f6" },
 };
+
+function getNotifRoute(notif) {
+  switch (notif.type) {
+    case "CLAIM_RECEIVED":
+    case "CLAIM_ACCEPTED":
+    case "CLAIM_REJECTED":
+      return `/claims/${notif.linkId}`;
+    case "NEW_MESSAGE":
+      return `/messages`;
+    case "ITEM_FLAGGED":
+    case "ITEM_EXPIRED":
+    case "ITEM_MATCH":
+      return `/items/${notif.linkId}`;
+    default:
+      return "/notifications";
+  }
+}
+
+function timeAgo(dateStr) {
+  if (!dateStr) return "";
+  const diff = Date.now() - new Date(dateStr).getTime();
+  if (diff < 0) return "just now";
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return "just now";
+  if (mins < 60) return `${mins}m ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs}h ago`;
+  const days = Math.floor(hrs / 24);
+  if (days < 7) return `${days}d ago`;
+  const weeks = Math.floor(days / 7);
+  return `${weeks}w ago`;
+}
 
 function NotificationDropdown({ onClose, onCountChange }) {
   const navigate = useNavigate();
-  const notifications = getRecentNotifications(5);
+  const [notifications, setNotifications] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  const handleMarkAllRead = () => {
-    markAllAsRead();
+  useEffect(() => {
+    const load = async () => {
+      const result = await notificationService.getNotifications(0, 5);
+      if (result.success) {
+        setNotifications(result.data.content || []);
+      }
+      setLoading(false);
+    };
+    load();
+  }, []);
+
+  const handleMarkAllRead = async () => {
+    await notificationService.markAllAsRead();
+    setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
     if (onCountChange) onCountChange();
   };
 
-  const handleClick = (notif) => {
-    markAsRead(notif.id);
-    if (onCountChange) onCountChange();
+  const handleClick = async (notif) => {
+    if (!notif.read) {
+      await notificationService.markAsRead(notif.id);
+      if (onCountChange) onCountChange();
+    }
     onClose();
-    navigate(notif.linkTo);
+    navigate(getNotifRoute(notif));
   };
 
   return (
@@ -53,13 +99,17 @@ function NotificationDropdown({ onClose, onCountChange }) {
       </div>
 
       <div className="nd-list">
-        {notifications.length > 0 ? (
+        {loading ? (
+          <div className="nd-empty">
+            <Loader size={20} className="spin" />
+          </div>
+        ) : notifications.length > 0 ? (
           notifications.map((notif) => {
             const config = typeConfig[notif.type] || typeConfig.ITEM_MATCH;
             return (
               <div
                 key={notif.id}
-                className={`nd-item ${!notif.isRead ? "unread" : ""}`}
+                className={`nd-item ${!notif.read ? "unread" : ""}`}
                 onClick={() => handleClick(notif)}
               >
                 <div
@@ -78,7 +128,7 @@ function NotificationDropdown({ onClose, onCountChange }) {
                     {timeAgo(notif.createdAt)}
                   </span>
                 </div>
-                {!notif.isRead && <span className="nd-unread-dot" />}
+                {!notif.read && <span className="nd-unread-dot" />}
               </div>
             );
           })

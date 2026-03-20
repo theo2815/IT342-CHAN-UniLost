@@ -213,6 +213,41 @@
     background: #d97706;
 }
 
+/* Error State */
+.admin-claims-page .error-state {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    padding: var(--spacing-sm) var(--spacing-md);
+    background: rgba(239, 68, 68, 0.08);
+    border: 1px solid rgba(239, 68, 68, 0.2);
+    border-radius: var(--radius-md);
+    color: #ef4444;
+    font-size: var(--font-size-sm);
+    margin-bottom: var(--spacing-md);
+}
+
+/* Spinner */
+.spinner {
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+/* Accepted badge */
+.admin-claims-page .status-badge.accepted {
+    background: rgba(16, 185, 129, 0.1);
+    color: #10b981;
+}
+
+.admin-claims-page .status-badge.cancelled {
+    background: rgba(107, 114, 128, 0.1);
+    color: #6b7280;
+}
+
 /* Responsive */
 @media (max-width: 900px) {
     .admin-claims-page .content-wrapper {

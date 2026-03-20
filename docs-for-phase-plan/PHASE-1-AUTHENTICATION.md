@@ -12,23 +12,24 @@ Implement a secure, multi-university email domain authentication system that ver
 
 ---
 
-## Backend (Spring Boot)
+## Backend (Spring Boot) — Implemented
 
 | Task | Endpoint / Component | Status |
 |------|---------------------|--------|
 | User registration with email domain validation | `POST /api/auth/register` | DONE |
 | User login with JWT token generation | `POST /api/auth/login` | DONE |
 | Forgot password (OTP via email) | `POST /api/auth/forgot-password` | DONE |
-| OTP verification | `POST /api/auth/verify-otp` | DONE |
+| OTP verification with lockout protection | `POST /api/auth/verify-otp` | DONE |
 | Password reset | `POST /api/auth/reset-password` | DONE |
 | Get current authenticated user | `GET /api/auth/me` | DONE |
 | JWT Authentication Filter | `JwtAuthenticationFilter.java` | DONE |
 | JWT Utility (HS256, 24h expiry) | `JwtUtils.java` | DONE |
 | Spring Security Configuration | `SecurityConfig.java` | DONE |
 | BCrypt password hashing | Via Spring Security | DONE |
-| Email service for OTP delivery | `EmailService.java` (Gmail SMTP) | DONE |
+| Email service for OTP delivery | `EmailService.java` (Brevo SMTP) | DONE |
+| 3-tier rate limiting | `RateLimitFilter.java` | DONE |
 
-## Website (React + Vite)
+## Website (React + Vite) — Implemented
 
 | Task | Page / Component | Status |
 |------|-----------------|--------|
@@ -41,6 +42,7 @@ Implement a secure, multi-university email domain authentication system that ver
 | Admin Route guard | `AdminRoute.jsx` | DONE |
 | Axios interceptors (JWT injection, 401 redirect) | `services/api.js` | DONE |
 | Auth service (all auth API calls) | `services/authService.js` | DONE |
+| JWT client-side expiry check | `authService.isAuthenticated()` | DONE |
 
 ---
 
@@ -51,27 +53,31 @@ Implement a secure, multi-university email domain authentication system that ver
 - **Expiry:** 24 hours
 - **Claims:** email, role
 - **Header:** `Authorization: Bearer <token>`
+- **Client-side:** Decoded via `atob()` for expiry check; malformed tokens treated as unauthenticated
 
 ### Password Policy
 - Minimum 8 characters
 - BCrypt hashing (Spring Security encoder)
 
 ### OTP (Forgot Password)
-- 6-digit random code
+- 6-digit random code via `SecureRandom`
 - BCrypt-encoded storage in user document
 - 10-minute expiry window
-- Delivered via Gmail SMTP (Brevo service)
+- Max 5 attempts before 15-minute lockout
+- Atomic attempt increment via `MongoTemplate.findAndModify` (prevents race conditions)
+- Delivered via Brevo SMTP
+
+### Rate Limiting
+- **Auth endpoints:** 10 requests/minute per IP
+- **Write endpoints (POST/PUT/DELETE):** 30 requests/minute per IP
+- **Read endpoints (GET):** 60 requests/minute per IP
+- Sliding window algorithm with `X-RateLimit-Limit`, `X-RateLimit-Remaining`, `X-RateLimit-Reset`, `Retry-After` headers
+- Stale entry cleanup every 5 minutes
 
 ### University Domain Whitelist
 Verified against campus collection in MongoDB:
-- `@cit.edu` (CIT-U)
-- `@usc.edu.ph` (USC)
-- `@usjr.edu.ph` (USJ-R)
-- `@uc.edu.ph` (UC)
-- `@up.edu.ph` (UP Cebu)
-- `@swu.edu.ph` (SWU)
-- `@cnu.edu.ph` (CNU)
-- `@ctu.edu.ph` (CTU)
+- `@cit.edu` (CIT-U), `@usc.edu.ph` (USC), `@usjr.edu.ph` (USJ-R), `@uc.edu.ph` (UC)
+- `@up.edu.ph` (UP Cebu), `@swu.edu.ph` (SWU), `@cnu.edu.ph` (CNU), `@ctu.edu.ph` (CTU)
 
 ---
 
@@ -81,4 +87,3 @@ Verified against campus collection in MongoDB:
 |------|------------|
 | Email verification endpoint (`POST /api/auth/verify-email`) | Phase 10 |
 | JWT refresh token rotation | Phase 10 |
-| Rate limiting on auth endpoints | Phase 10 |

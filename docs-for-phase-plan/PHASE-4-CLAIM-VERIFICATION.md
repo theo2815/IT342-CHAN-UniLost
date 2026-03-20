@@ -1,6 +1,6 @@
 # Phase 4 - Claim & Verification System (Backend + Website)
 
-> **Status:** PENDING
+> **Status:** COMPLETED
 > **Priority:** MUST HAVE
 > **Depends On:** Phase 3 (Item Management)
 
@@ -14,90 +14,101 @@ Implement the claim and verification workflow that allows users to prove ownersh
 
 ## Pre-Existing Work
 
-- **Backend:** `ClaimEntity.java` and `ClaimRepository.java` already exist (no controller/service yet)
+- **Backend:** `ClaimEntity.java` and `ClaimRepository.java` already existed (no controller/service)
 - **Website:** `IncomingClaims.jsx`, `ClaimDetail.jsx`, `ClaimModal.jsx` built with mock data
-- **Mock Data:** `mockData/claims.js` provides data structure reference
 
 ---
 
-## Backend (Spring Boot)
+## Backend (Spring Boot) — Implemented
 
-| # | Task | Details |
-|---|------|---------|
-| 1 | Create `ClaimService.java` | Business logic for claim lifecycle |
-| 2 | Create `ClaimController.java` | REST endpoints for claim operations |
-| 3 | Secret Detail verification logic | Compare claimant's answer against the item's secret detail |
-| 4 | Claim status management | State transitions: `PENDING` -> `ACCEPTED`/`REJECTED` |
-| 5 | Notification trigger hooks | Prepare hooks for Phase 9 notifications |
-| 6 | Prevent duplicate claims | One active claim per user per item |
-| 7 | Fix status naming: `ACCEPTED` vs `APPROVED` | Align backend and frontend terminology |
+| # | Task | Status | Details |
+|---|------|--------|---------|
+| 1 | `ClaimService.java` | DONE | Full claim lifecycle: submit, accept, reject, cancel, with batch DTO conversion |
+| 2 | `ClaimController.java` | DONE | REST endpoints with pagination, ownership checks |
+| 3 | Secret Detail verification | DONE | Finder reviews claimant's answer to item's secret detail question |
+| 4 | Claim status management | DONE | `PENDING` -> `ACCEPTED`/`REJECTED`/`CANCELLED` via `ClaimStatus` enum |
+| 5 | Duplicate claim prevention | DONE | One PENDING claim per user per item |
+| 6 | Auto-reject on accept | DONE | Accepting one claim auto-rejects all other PENDING claims on the same item |
+| 7 | Item status auto-update | DONE | Item status changes to `CLAIMED` when a claim is accepted |
+| 8 | Optimistic locking | DONE | `@Version` field on `ClaimEntity` prevents concurrent modification |
+| 9 | Auto-create chat on claim | DONE | `ChatService.createChatForClaim()` called on claim submission |
+| 10 | `ClaimDTO.java` + `ClaimRequest.java` | DONE | Response DTO with resolved item/claimant/finder info + chatId |
 
-### API Endpoints
+### API Endpoints (Implemented)
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| `POST` | `/api/claims` | Submit a new claim on a found item (includes secret detail answer) |
-| `GET` | `/api/claims/{id}` | Get claim details |
-| `GET` | `/api/claims/user/{userId}` | Get all claims made by a user |
-| `GET` | `/api/claims/item/{itemId}` | Get all claims on a specific item |
-| `PUT` | `/api/claims/{id}/verify` | Finder accepts or rejects a claim based on secret detail answer |
-| `GET` | `/api/claims/incoming` | Get all claims on items posted by the authenticated user |
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| `POST` | `/api/claims` | Auth | Submit a new claim (includes secret detail answer + message) |
+| `GET` | `/api/claims/{id}` | Auth | Get claim details (claimant, finder, or admin only) |
+| `GET` | `/api/claims/my` | Auth | Get current user's submitted claims (paginated) |
+| `GET` | `/api/claims/incoming` | Auth | Get claims on current user's items (paginated) |
+| `GET` | `/api/claims/item/{itemId}` | Auth | Get all claims on a specific item (finder or admin only) |
+| `PUT` | `/api/claims/{id}/accept` | Auth | Accept a claim (finder or admin only) |
+| `PUT` | `/api/claims/{id}/reject` | Auth | Reject a claim (finder or admin only) |
+| `PUT` | `/api/claims/{id}/cancel` | Auth | Cancel own pending claim |
 
-## Website (React + Vite)
+## Website (React + Vite) — Implemented
 
-| # | Task | Details |
-|---|------|---------|
-| 1 | Wire `ClaimModal` to real API | Submit claim with secret detail answer |
-| 2 | Wire `IncomingClaims` page | Fetch claims on user's found items |
-| 3 | Wire `ClaimDetail` page | Display claim details, accept/reject actions |
-| 4 | Create `claimService.js` | API service for all claim endpoints |
-| 5 | Add claim count badge to navigation | Show pending claims count |
+| # | Task | Status | Details |
+|---|------|--------|---------|
+| 1 | Wire `ClaimModal` | DONE | Submit claim with secret detail answer via `claimService` |
+| 2 | Wire `IncomingClaims` page | DONE | Paginated fetch, approve/reject with immediate refresh |
+| 3 | Wire `ClaimDetail` page | DONE | Full claim detail view with status badge, AbortController |
+| 4 | Wire `MyClaims` page | DONE | Paginated list of user's submitted claims |
+| 5 | `claimService.js` created | DONE | All claim API endpoints with `{ success, data, error }` pattern |
+| 6 | Pagination on all claim pages | DONE | ChevronLeft/ChevronRight page controls |
 
 ---
 
 ## Technical Details
 
-### Claim Entity Fields
+### Claim Entity Fields (Actual Implementation)
 | Field | Type | Description |
 |-------|------|-------------|
 | `id` | String | MongoDB ObjectId |
-| `itemId` | String | Reference to the claimed item |
-| `claimantId` | String | User who is claiming the item |
-| `finderId` | String | User who posted the found item |
-| `secretDetailAnswer` | String | Claimant's answer to the secret question |
-| `status` | Enum | `PENDING`, `ACCEPTED`, `REJECTED`, `CANCELLED` |
+| `itemId` | String | Reference to the claimed item (`@Indexed`) |
+| `claimantId` | String | User making the claim (`@Indexed`) |
+| `finderId` | String | User who posted the found item (`@Indexed`) |
+| `providedAnswer` | String | Claimant's answer to the secret question |
 | `message` | String | Optional message from claimant to finder |
+| `status` | `ClaimStatus` enum | `PENDING`, `ACCEPTED`, `REJECTED`, `CANCELLED` |
 | `createdAt` | LocalDateTime | Claim submission timestamp |
 | `updatedAt` | LocalDateTime | Last status change timestamp |
+| `version` | Long | Optimistic locking (`@Version`) |
+
+### ClaimDTO Fields
+Includes resolved: `itemTitle`, `itemType`, `itemImageUrl`, `claimantName`, `claimantSchool`, `finderName`, `secretDetailQuestion` (finder/admin only), `chatId`
 
 ### Claim Workflow
-
 ```
 1. Claimant sees a Found item in the feed
 2. Claimant clicks "This is mine" -> ClaimModal opens
 3. Claimant answers the Secret Detail question + optional message
 4. System creates claim with status: PENDING
-5. Finder sees claim in "Incoming Claims" page
-6. Finder reviews the answer:
-   - If correct -> ACCEPTED (triggers handover flow in Phase 7)
-   - If wrong  -> REJECTED (claimant notified)
-7. Claimant can CANCEL their own pending claim
+5. System auto-creates a Chat room between finder and claimant
+6. Finder sees claim in "Incoming Claims" page
+7. Finder reviews the answer:
+   - If correct -> ACCEPTED (all other PENDING claims auto-rejected, item -> CLAIMED)
+   - If wrong  -> REJECTED
+8. Claimant can CANCEL their own pending claim
 ```
 
 ### Business Rules
 - A user cannot claim their own item
 - Only one active (PENDING) claim per user per item
-- Only the finder can accept/reject claims
-- Accepting one claim does NOT auto-reject others (finder decides individually)
-- Secret detail answers are compared as case-insensitive strings
+- Only the finder (or admin) can accept/reject claims
+- Accepting one claim auto-rejects all other PENDING claims on the same item
+- Item status changes to `CLAIMED` when a claim is accepted
 
 ---
 
 ## Acceptance Criteria
 
-- [ ] Users can submit claims on found items with a secret detail answer
-- [ ] Finders can view all incoming claims on their items
-- [ ] Finders can accept or reject individual claims
-- [ ] Claimants can view their submitted claims and statuses
-- [ ] Duplicate claims (same user, same item) are prevented
-- [ ] Status naming is consistent across backend and website
+- [x] Users can submit claims on found items with a secret detail answer
+- [x] Finders can view all incoming claims on their items
+- [x] Finders can accept or reject individual claims
+- [x] Accepting a claim auto-rejects all other pending claims
+- [x] Claimants can view their submitted claims and statuses
+- [x] Duplicate claims (same user, same item) are prevented
+- [x] Chat room auto-created on claim submission
+- [x] Optimistic locking prevents concurrent claim modification

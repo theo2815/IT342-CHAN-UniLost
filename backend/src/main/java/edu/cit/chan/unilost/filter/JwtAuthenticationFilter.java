@@ -1,5 +1,6 @@
 package edu.cit.chan.unilost.filter;
 
+import edu.cit.chan.unilost.entity.AccountStatus;
 import edu.cit.chan.unilost.entity.UserEntity;
 import edu.cit.chan.unilost.repository.UserRepository;
 import edu.cit.chan.unilost.util.JwtUtils;
@@ -53,13 +54,13 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             UserEntity user = userOpt.get();
 
             // H3: Check account status — suspended/deactivated users cannot access
-            if (!"ACTIVE".equals(user.getAccountStatus())) {
+            if (user.getAccountStatus() != AccountStatus.ACTIVE) {
                 filterChain.doFilter(request, response);
                 return;
             }
 
             // H2: Use DB role, not token role
-            String role = user.getRole();
+            String role = user.getRole().name();
 
             List<SimpleGrantedAuthority> authorities = List.of(
                     new SimpleGrantedAuthority("ROLE_" + role));

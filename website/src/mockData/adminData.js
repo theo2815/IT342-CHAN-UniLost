@@ -24,7 +24,7 @@ export const mockAdminStats = {
     pendingClaims: 12,
     recoveredThisMonth: 8,
     bannedUsers: 2,
-    totalSchools: 8,
+    totalSchools: 13,
 };
 
 // ── Recent Admin Actions ─────────────────────────────────────
@@ -42,15 +42,15 @@ export const mockAdminActions = [
 // ── Admin Users ──────────────────────────────────────────────
 export const mockAdminUsers = [
     { id: 'u1', fullName: 'Juan Dela Cruz', email: 'juan.delacruz@cit.edu', campus: { id: 'CIT-U-MAIN', name: 'Cebu Institute of Technology - University' }, role: 'STUDENT', karmaScore: 45, isBanned: false, createdAt: '2024-06-15T08:00:00' },
-    { id: 'u2', fullName: 'Maria Santos', email: 'maria.santos@usc.edu.ph', campus: { id: 'USC-MAIN', name: 'University of San Carlos' }, role: 'ADMIN', karmaScore: 120, isBanned: false, createdAt: '2024-05-10T08:00:00' },
+    { id: 'u2', fullName: 'Maria Santos', email: 'maria.santos@usc.edu.ph', campus: { id: 'USC-DOWNTOWN', name: 'University of San Carlos - Downtown Campus' }, role: 'ADMIN', karmaScore: 120, isBanned: false, createdAt: '2024-05-10T08:00:00' },
     { id: 'u3', fullName: 'Carlos Reyes', email: 'carlos.reyes@up.edu.ph', campus: { id: 'UP-CEBU', name: 'University of the Philippines Cebu' }, role: 'ADMIN', karmaScore: 98, isBanned: false, createdAt: '2024-05-12T08:00:00' },
-    { id: 'u4', fullName: 'Ana Garcia', email: 'ana.garcia@usjr.edu.ph', campus: { id: 'USJR-MAIN', name: 'University of San Jose-Recoletos' }, role: 'STUDENT', karmaScore: 32, isBanned: false, createdAt: '2024-08-20T08:00:00' },
+    { id: 'u4', fullName: 'Ana Garcia', email: 'ana.garcia@usjr.edu.ph', campus: { id: 'USJR-MAIN', name: 'University of San Jose-Recoletos - Main Campus' }, role: 'STUDENT', karmaScore: 32, isBanned: false, createdAt: '2024-08-20T08:00:00' },
     { id: 'u5', fullName: 'Pedro Lim', email: 'pedro.lim@uc.edu.ph', campus: { id: 'UC-MAIN', name: 'University of Cebu' }, role: 'STUDENT', karmaScore: 15, isBanned: true, createdAt: '2024-07-01T08:00:00' },
     { id: 'u6', fullName: 'Rosa Tan', email: 'rosa.tan@swu.edu.ph', campus: { id: 'SWU-MAIN', name: 'Southwestern University PHINMA' }, role: 'STUDENT', karmaScore: 67, isBanned: false, createdAt: '2024-09-15T08:00:00' },
     { id: 'u7', fullName: 'Miguel Aquino', email: 'miguel.aquino@cnu.edu.ph', campus: { id: 'CNU-MAIN', name: 'Cebu Normal University' }, role: 'STUDENT', karmaScore: 28, isBanned: false, createdAt: '2024-10-05T08:00:00' },
     { id: 'u8', fullName: 'Lisa Cruz', email: 'lisa.cruz@ctu.edu.ph', campus: { id: 'CTU-MAIN', name: 'Cebu Technological University' }, role: 'STUDENT', karmaScore: 53, isBanned: false, createdAt: '2024-08-12T08:00:00' },
     { id: 'u9', fullName: 'John Spam', email: 'john.spam@cit.edu', campus: { id: 'CIT-U-MAIN', name: 'Cebu Institute of Technology - University' }, role: 'STUDENT', karmaScore: 0, isBanned: true, createdAt: '2025-01-10T08:00:00' },
-    { id: 'u10', fullName: 'Sophia Mendoza', email: 'sophia.mendoza@usc.edu.ph', campus: { id: 'USC-MAIN', name: 'University of San Carlos' }, role: 'STUDENT', karmaScore: 72, isBanned: false, createdAt: '2024-06-20T08:00:00' },
+    { id: 'u10', fullName: 'Sophia Mendoza', email: 'sophia.mendoza@usc.edu.ph', campus: { id: 'USC-DOWNTOWN', name: 'University of San Carlos - Downtown Campus' }, role: 'STUDENT', karmaScore: 72, isBanned: false, createdAt: '2024-06-20T08:00:00' },
     { id: 'u11', fullName: 'Daniel Villanueva', email: 'daniel.v@up.edu.ph', campus: { id: 'UP-CEBU', name: 'University of the Philippines Cebu' }, role: 'STUDENT', karmaScore: 41, isBanned: false, createdAt: '2024-11-01T08:00:00' },
     { id: 'u12', fullName: 'UniLost Admin', email: 'admin@cit.edu', campus: { id: 'CIT-U-MAIN', name: 'Cebu Institute of Technology - University' }, role: 'ADMIN', karmaScore: 999, isBanned: false, createdAt: '2024-01-01T08:00:00' },
 ];
@@ -90,14 +90,19 @@ export const mockAdminClaims = [
 
 // ── Schools (for Super Admin) ────────────────────────────────
 export const mockSchools = [
-    { id: '1', name: 'Cebu Institute of Technology - University', shortName: 'CIT-U', emailDomain: 'cit.edu', isActive: true, studentCount: 28, itemCount: 12 },
-    { id: '2', name: 'University of San Carlos', shortName: 'USC', emailDomain: 'usc.edu.ph', isActive: true, studentCount: 24, itemCount: 9 },
-    { id: '3', name: 'University of the Philippines Cebu', shortName: 'UP Cebu', emailDomain: 'up.edu.ph', isActive: true, studentCount: 18, itemCount: 7 },
-    { id: '4', name: 'University of San Jose-Recoletos', shortName: 'USJ-R', emailDomain: 'usjr.edu.ph', isActive: true, studentCount: 22, itemCount: 6 },
-    { id: '5', name: 'University of Cebu', shortName: 'UC', emailDomain: 'uc.edu.ph', isActive: true, studentCount: 20, itemCount: 5 },
-    { id: '6', name: 'Southwestern University PHINMA', shortName: 'SWU', emailDomain: 'swu.edu.ph', isActive: true, studentCount: 16, itemCount: 4 },
-    { id: '7', name: 'Cebu Normal University', shortName: 'CNU', emailDomain: 'cnu.edu.ph', isActive: true, studentCount: 15, itemCount: 2 },
-    { id: '8', name: 'Cebu Technological University', shortName: 'CTU', emailDomain: 'ctu.edu.ph', isActive: true, studentCount: 13, itemCount: 2 },
+    { id: 'CIT-U-MAIN', name: 'Cebu Institute of Technology - University', shortLabel: 'CIT-U', emailDomain: 'cit.edu', isActive: true, studentCount: 28, itemCount: 12 },
+    { id: 'USC-DOWNTOWN', name: 'University of San Carlos - Downtown Campus', shortLabel: 'USC Downtown', emailDomain: 'usc.edu.ph', isActive: true, studentCount: 14, itemCount: 5 },
+    { id: 'USC-TALAMBAN', name: 'University of San Carlos - Talamban Campus', shortLabel: 'USC Talamban', emailDomain: 'usc.edu.ph', isActive: true, studentCount: 10, itemCount: 4 },
+    { id: 'USJR-MAIN', name: 'University of San Jose-Recoletos - Main Campus', shortLabel: 'USJ-R Main', emailDomain: 'usjr.edu.ph', isActive: true, studentCount: 16, itemCount: 4 },
+    { id: 'USJR-BASAK', name: 'University of San Jose-Recoletos - Basak Campus', shortLabel: 'USJ-R Basak', emailDomain: 'usjr.edu.ph', isActive: true, studentCount: 6, itemCount: 2 },
+    { id: 'UC-MAIN', name: 'University of Cebu - Main Campus', shortLabel: 'UC Main', emailDomain: 'uc.edu.ph', isActive: true, studentCount: 12, itemCount: 3 },
+    { id: 'UC-BANILAD', name: 'University of Cebu - Banilad Campus', shortLabel: 'UC Banilad', emailDomain: 'uc.edu.ph', isActive: true, studentCount: 5, itemCount: 1 },
+    { id: 'UC-LM', name: 'University of Cebu - LM Campus', shortLabel: 'UC LM', emailDomain: 'uc.edu.ph', isActive: true, studentCount: 3, itemCount: 1 },
+    { id: 'UP-CEBU', name: 'University of the Philippines Cebu', shortLabel: 'UP Cebu', emailDomain: 'up.edu.ph', isActive: true, studentCount: 18, itemCount: 7 },
+    { id: 'SWU-MAIN', name: 'Southwestern University PHINMA', shortLabel: 'SWU', emailDomain: 'swu.edu.ph', isActive: true, studentCount: 16, itemCount: 4 },
+    { id: 'CNU-MAIN', name: 'Cebu Normal University', shortLabel: 'CNU', emailDomain: 'cnu.edu.ph', isActive: true, studentCount: 15, itemCount: 2 },
+    { id: 'CTU-MAIN', name: 'Cebu Technological University - Main Campus', shortLabel: 'CTU', emailDomain: 'ctu.edu.ph', isActive: true, studentCount: 13, itemCount: 2 },
+    { id: 'IAU-MAIN', name: 'Indiana Aerospace University', shortLabel: 'IAU', emailDomain: 'iau.edu.ph', isActive: true, studentCount: 8, itemCount: 1 },
 ];
 
 // ── Campus Stats (for Super Admin cross-campus view) ─────────

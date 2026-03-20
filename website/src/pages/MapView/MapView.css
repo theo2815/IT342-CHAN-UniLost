@@ -31,7 +31,7 @@
 }
 
 /* =========================================
-   Left Panel: Feed (40%)
+   Left Panel: Feed
    ========================================= */
 .map-feed-panel {
   width: 100%;
@@ -46,7 +46,8 @@
 
 @media (min-width: 1024px) {
   .map-feed-panel {
-    width: 40%;
+    width: 380px;
+    min-width: 380px;
     position: relative;
     box-shadow: none;
   }
@@ -56,39 +57,59 @@
   padding: 1rem;
   border-bottom: 1px solid var(--color-border);
   background-color: var(--color-bg-card);
-  position: sticky;
-  top: 0;
-  z-index: 10;
 }
 
 .filters-top-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 1rem;
+  margin-bottom: 0.75rem;
 }
 
 .feed-title {
   font-size: 1.125rem;
   font-weight: 700;
   margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
 }
 
-.filter-btn {
-  padding: 0.5rem;
+.item-count {
+  font-size: 0.8rem;
+  color: var(--color-text-secondary);
+  background: var(--color-bg-base);
+  padding: 0.2rem 0.6rem;
+  border-radius: 9999px;
+  border: 1px solid var(--color-border);
+}
+
+.map-filter-group {
+  margin-bottom: 0.75rem;
+}
+
+.map-select {
+  width: 100%;
+  padding: 0.5rem 0.75rem;
   border-radius: 0.5rem;
-  background: transparent;
+  border: 1px solid var(--color-border);
+  background-color: var(--color-bg-input, var(--color-bg-base));
+  color: var(--color-text-primary);
+  font-size: 0.875rem;
+  cursor: pointer;
 }
 
-.filter-btn:hover {
-  background-color: rgba(var(--color-primary-rgb, 59, 130, 246), 0.1);
+.map-select:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 2px rgba(var(--color-primary-rgb, 59, 130, 246), 0.2);
 }
 
 .filters-scroll-row {
   display: flex;
   gap: 0.5rem;
   overflow-x: auto;
-  padding-bottom: 0.5rem;
+  padding-bottom: 0.25rem;
 }
 
 .filter-chip {
@@ -119,19 +140,19 @@
 .feed-list {
   flex: 1;
   overflow-y: auto;
-  padding: 1rem;
+  padding: 0.75rem;
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: 0.5rem;
 }
 
 .map-feed-card {
   display: flex;
-  gap: 1rem;
+  gap: 0.75rem;
   cursor: pointer;
   background-color: var(--color-bg-card);
   border-radius: 0.75rem;
-  padding: 1rem;
+  padding: 0.75rem;
   border: 1px solid var(--color-border);
   transition: all 0.2s;
 }
@@ -141,13 +162,19 @@
   box-shadow: var(--shadow-md);
 }
 
+.map-feed-card.selected {
+  border-color: var(--color-primary);
+  background-color: rgba(var(--color-primary-rgb, 59, 130, 246), 0.05);
+  box-shadow: 0 0 0 2px rgba(var(--color-primary-rgb, 59, 130, 246), 0.15);
+}
+
 .card-image-col {
   flex-shrink: 0;
 }
 
 .item-image {
-  width: 6rem;
-  height: 6rem;
+  width: 4.5rem;
+  height: 4.5rem;
   border-radius: 0.5rem;
   background-size: cover;
   background-position: center;
@@ -159,13 +186,14 @@
   flex-direction: column;
   flex: 1;
   justify-content: space-between;
+  min-width: 0;
 }
 
 .status-time-row {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  margin-bottom: 0.5rem;
+  margin-bottom: 0.25rem;
 }
 
 .status-badge-small {
@@ -173,8 +201,10 @@
   align-items: center;
   padding: 0.125rem 0.5rem;
   border-radius: 0.25rem;
-  font-size: 0.75rem;
-  font-weight: 500;
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
 }
 
 .status-dot {
@@ -203,28 +233,18 @@
 }
 
 .time-ago-text {
-  font-size: 0.75rem;
+  font-size: 0.7rem;
   color: var(--color-text-secondary);
 }
 
 .item-title-text {
-  font-weight: 700;
-  font-size: 1rem;
-  margin-bottom: 0.25rem;
-  line-height: 1.25;
-}
-
-.item-desc-text {
-  font-size: 0.875rem;
-  color: var(--color-text-secondary);
+  font-weight: 600;
+  font-size: 0.9rem;
   margin: 0;
-}
-
-.line-clamp-2 {
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
+  line-height: 1.25;
+  white-space: nowrap;
   overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .card-content-bottom {
@@ -233,11 +253,17 @@
   gap: 0.25rem;
   font-size: 0.75rem;
   color: var(--color-text-secondary);
-  margin-top: 0.5rem;
+  margin-top: 0.25rem;
+}
+
+.card-content-bottom span {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /* =========================================
-   Right Panel: Map (60%)
+   Right Panel: Google Map
    ========================================= */
 .map-graphic-panel {
   flex: 1;
@@ -254,161 +280,137 @@
   }
 }
 
-.map-background {
-  position: absolute;
-  inset: 0;
+.google-map-container {
   width: 100%;
   height: 100%;
-  background-size: cover;
-  background-position: center;
-  opacity: 0.6;
-  filter: grayscale(0.5);
 }
 
-[data-theme="dark"] .map-background {
-  opacity: 0.4;
-  filter: grayscale(0.8) invert(1) hue-rotate(180deg);
-}
-
-.map-gradient-overlay {
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(
-    to top,
-    rgba(var(--color-bg-base-rgb, 15, 23, 42), 0.5),
-    transparent
-  );
-  pointer-events: none;
-}
-
-.map-controls {
-  position: absolute;
-  top: 1rem;
-  right: 1rem;
+/* Loading & Error States */
+.map-loading-state {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
-  z-index: 10;
-}
-
-.map-control-btn {
-  padding: 0.5rem;
-  border-radius: 0.5rem;
-  background-color: var(--color-bg-card);
-  color: var(--color-text-primary);
-  border: 1px solid var(--color-border);
-  cursor: pointer;
-  box-shadow: var(--shadow-md);
-  transition: background-color 0.2s;
-  display: flex;
   align-items: center;
   justify-content: center;
+  gap: 0.75rem;
+  padding: 3rem 1rem;
+  color: var(--color-text-secondary);
 }
 
-.map-control-btn:hover {
-  background-color: var(--color-bg-input);
+.map-loading-state.full {
+  height: 100%;
 }
 
-/* Map Pins */
-.map-pin-group {
-  position: absolute;
-  transform: translate(-50%, -50%);
+.map-empty-state {
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 3rem 1rem;
+  text-align: center;
+  color: var(--color-text-secondary);
 }
 
-.pin-tooltip {
-  background-color: var(--color-bg-card);
-  padding: 0.375rem 0.75rem;
-  border-radius: 0.5rem;
-  box-shadow: var(--shadow-lg);
-  margin-bottom: 0.5rem;
-  border: 1px solid var(--color-border);
-  transition: all 0.2s;
-}
-
-.tooltip-text {
-  font-size: 0.75rem;
-  font-weight: 700;
-  white-space: nowrap;
+.map-empty-state p {
   margin: 0;
 }
 
-.inactive-pin-group {
-  z-index: 10;
-  cursor: pointer;
+.text-muted {
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
 }
 
-.inactive-pin-group .pin-tooltip {
-  opacity: 0;
-  transform: translateY(0.5rem);
-}
-
-.inactive-pin-group:hover {
-  z-index: 30;
-}
-
-.inactive-pin-group:hover .pin-tooltip {
-  opacity: 1;
-  transform: translateY(0);
-}
-
-.active-pin-group {
-  z-index: 20;
-}
-
-.active-pin-group .pin-tooltip {
-  opacity: 1;
-  transform: scale(1);
-}
-
-.pin-marker {
-  border-radius: 9999px;
+.map-feed-error {
   display: flex;
   align-items: center;
+  gap: 0.5rem;
+  padding: 1rem;
+  color: #ef4444;
+  background: rgba(239, 68, 68, 0.1);
+  border-radius: 0.5rem;
+}
+
+.map-error-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
   justify-content: center;
-  box-shadow: var(--shadow-md);
-  border: 2px solid var(--color-bg-card);
+  gap: 1rem;
+  height: 100%;
+  text-align: center;
+  color: var(--color-text-secondary);
+  padding: 2rem;
+}
+
+.map-error-state h2 {
+  margin: 0;
+}
+
+/* Info Window */
+.map-info-window {
+  max-width: 240px;
+  font-family: inherit;
+}
+
+.map-info-window h4 {
+  margin: 0 0 0.25rem;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.map-info-window .info-window-img {
+  width: 100%;
+  height: 120px;
+  object-fit: cover;
+  border-radius: 0.375rem;
+  margin-bottom: 0.5rem;
+}
+
+.map-info-window .info-type {
+  margin: 0 0 0.25rem;
+}
+
+.map-info-window .info-badge {
+  display: inline-block;
+  padding: 0.125rem 0.5rem;
+  border-radius: 0.25rem;
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.map-info-window .info-badge.lost {
+  background-color: rgba(239, 68, 68, 0.1);
+  color: #ef4444;
+}
+
+.map-info-window .info-badge.found {
+  background-color: rgba(34, 197, 94, 0.1);
+  color: #22c55e;
+}
+
+.map-info-window .info-location {
+  font-size: 0.8rem;
+  color: #6b7280;
+  margin: 0 0 0.5rem;
+}
+
+.map-info-window .info-view-btn {
+  width: 100%;
+  padding: 0.4rem 0.75rem;
+  border: none;
+  border-radius: 0.375rem;
+  background-color: #3b82f6;
   color: white;
+  font-size: 0.8rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s;
 }
 
-.inactive-pin-group .pin-marker {
-  width: 1.5rem;
-  height: 1.5rem;
-}
-
-.active-pin-group .pin-marker {
-  width: 2rem;
-  height: 2rem;
-  border-width: 4px;
-  box-shadow: var(--shadow-xl);
-}
-
-.pin-primary {
-  background-color: var(--color-primary);
-}
-.pin-danger {
-  background-color: #ef4444;
-}
-.pin-success {
-  background-color: #22c55e;
-}
-
-.animate-bounce-custom {
-  animation: bounce 2s infinite;
-}
-
-@keyframes bounce {
-  0%,
-  100% {
-    transform: translateY(-25%);
-    animation-timing-function: cubic-bezier(0.8, 0, 1, 1);
-  }
-  50% {
-    transform: none;
-    animation-timing-function: cubic-bezier(0, 0, 0.2, 1);
-  }
+.map-info-window .info-view-btn:hover {
+  background-color: #2563eb;
 }
 
 /* Map Legend */
@@ -420,6 +422,7 @@
   display: flex;
   justify-content: center;
   pointer-events: none;
+  z-index: 5;
 }
 
 .map-legend {
@@ -454,8 +457,12 @@
 .dot-success {
   background-color: #22c55e;
 }
-.dot-primary {
-  background-color: var(--color-primary);
+.dot-campus {
+  background-color: #6366f1;
+}
+.dot-user {
+  background-color: #3b82f6;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.3);
 }
 
 .legend-text {
@@ -468,4 +475,128 @@
   width: 1px;
   height: 1rem;
   background-color: var(--color-border);
+}
+
+/* My Location Button */
+.my-location-btn {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  z-index: 5;
+  width: 40px;
+  height: 40px;
+  border-radius: 0.5rem;
+  border: none;
+  background: var(--color-bg-card, #fff);
+  color: #3b82f6;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.my-location-btn:hover {
+  background: #3b82f6;
+  color: #fff;
+}
+
+/* Location Error Badge */
+.location-error-badge {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.35rem 0.65rem;
+  border-radius: 0.375rem;
+  background: rgba(0, 0, 0, 0.55);
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.7rem;
+  pointer-events: none;
+}
+
+/* Campus Info Window */
+.campus-info-window {
+  text-align: center;
+}
+
+.campus-info-icon {
+  font-size: 2rem;
+  margin-bottom: 0.25rem;
+}
+
+.campus-info-window h4 {
+  color: #312e81;
+}
+
+/* Advanced Marker: Campus */
+.adv-campus-marker {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  cursor: pointer;
+  filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.25));
+}
+
+.adv-campus-label {
+  background: rgba(255, 255, 255, 0.92);
+  padding: 2px 7px;
+  border-radius: 4px;
+  border: 1px solid #c7d2fe;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+  font-size: 11px;
+  font-weight: 700;
+  color: #312e81;
+  white-space: nowrap;
+  margin-bottom: 2px;
+}
+
+/* Advanced Marker: User Location */
+.user-location-marker {
+  position: relative;
+  width: 20px;
+  height: 20px;
+}
+
+.user-location-dot {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 14px;
+  height: 14px;
+  transform: translate(-50%, -50%);
+  background: #3b82f6;
+  border: 2.5px solid #fff;
+  border-radius: 50%;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
+  z-index: 2;
+}
+
+.user-location-pulse {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 20px;
+  height: 20px;
+  transform: translate(-50%, -50%);
+  background: rgba(59, 130, 246, 0.3);
+  border-radius: 50%;
+  animation: locationPulse 2s ease-out infinite;
+}
+
+@keyframes locationPulse {
+  0% { transform: translate(-50%, -50%) scale(1); opacity: 0.6; }
+  100% { transform: translate(-50%, -50%) scale(3); opacity: 0; }
+}
+
+/* Spin animation */
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+.spin {
+  animation: spin 1s linear infinite;
 }

@@ -21,9 +21,6 @@ import java.util.List;
 @Configuration
 @EnableWebSecurity
 @EnableMethodSecurity
-// TODO: [Phase 3] Add JWT refresh token rotation
-// TODO: [Phase 6] Add WebSocket security configuration for real-time chat
-// TODO: [Phase 8] Add rate limiting for auth endpoints
 public class SecurityConfig {
 
     @Value("${cors.allowed-origins:http://localhost:5173,http://localhost:3000}")
@@ -42,8 +39,8 @@ public class SecurityConfig {
                         .requestMatchers("/api/auth/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/campuses", "/api/campuses/**").permitAll()
 
-                        // Admin endpoints
-                        .requestMatchers("/api/admin/**").hasRole("ADMIN")
+                        // Admin endpoints (ADMIN + FACULTY can access)
+                        .requestMatchers("/api/admin/**").hasAnyRole("ADMIN", "FACULTY")
 
                         // Item endpoints — read is public, write requires authentication
                         .requestMatchers(HttpMethod.GET, "/api/items", "/api/items/**").permitAll()
@@ -54,9 +51,12 @@ public class SecurityConfig {
                         .requestMatchers("/api/claims/**").authenticated()
                         .requestMatchers("/api/claims").authenticated()
 
-                        // TODO: [Phase 6] Add chat/message endpoints security rules
-                        // TODO: [Phase 7] Add handover endpoints security rules
-                        // TODO: [Phase 8] Add notification endpoints security rules
+                        // Chat endpoints — all require authentication
+                        .requestMatchers("/api/chats/**").authenticated()
+                        .requestMatchers("/api/chats").authenticated()
+
+                        // WebSocket endpoint — permitAll (auth handled via STOMP)
+                        .requestMatchers("/ws/**").permitAll()
 
                         // Campus management (create/update/delete) requires ADMIN
                         .requestMatchers(HttpMethod.POST, "/api/campuses").hasRole("ADMIN")
@@ -87,6 +87,7 @@ public class SecurityConfig {
         configuration.setAllowedOrigins(List.of(allowedOrigins.split(",")));
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(List.of("Authorization", "Content-Type", "Accept", "Origin", "X-Requested-With"));
+        configuration.setExposedHeaders(List.of("X-RateLimit-Limit", "X-RateLimit-Remaining", "X-RateLimit-Reset", "Retry-After"));
         configuration.setAllowCredentials(true);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();

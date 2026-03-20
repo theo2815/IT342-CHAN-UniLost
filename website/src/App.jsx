@@ -25,11 +25,14 @@ import ResetPassword from './pages/ResetPassword/ResetPassword';
 import MapView from './pages/MapView/MapView';
 import Leaderboard from './pages/Leaderboard/Leaderboard';
 import Messages from './pages/Messages/Messages';
+import { APIProvider } from '@vis.gl/react-google-maps';
 import { ToastProvider } from './components/ui/Toast';
 import { useGlobalToast } from './hooks/useToast';
 import './App.css';
 
 import { ThemeProvider } from './context/ThemeContext';
+
+const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '';
 
 function GlobalToastInit() {
   useGlobalToast();
@@ -38,6 +41,7 @@ function GlobalToastInit() {
 
 function App() {
   return (
+    <APIProvider apiKey={GOOGLE_MAPS_API_KEY}>
     <ThemeProvider>
       <ToastProvider>
       <GlobalToastInit />
@@ -81,6 +85,7 @@ function App() {
       </Router>
       </ToastProvider>
     </ThemeProvider>
+    </APIProvider>
   );
 }
 

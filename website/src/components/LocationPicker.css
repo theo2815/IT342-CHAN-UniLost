@@ -1,0 +1,153 @@
+/* LocationPicker.css */
+.location-picker-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.pin-location-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.5rem 1rem;
+  border: 1px dashed var(--color-border);
+  border-radius: 0.5rem;
+  background: var(--color-bg-base);
+  color: var(--color-primary);
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.pin-location-btn:hover {
+  border-color: var(--color-primary);
+  background: rgba(var(--color-primary-rgb, 59, 130, 246), 0.05);
+}
+
+.pin-coords {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.8rem;
+  color: var(--color-text-secondary);
+  background: var(--color-bg-card);
+  padding: 0.25rem 0.6rem;
+  border-radius: 0.375rem;
+  border: 1px solid var(--color-border);
+}
+
+.clear-pin-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  border-radius: 50%;
+}
+
+.clear-pin-btn:hover {
+  color: #ef4444;
+  background: rgba(239, 68, 68, 0.1);
+}
+
+/* Expanded picker */
+.location-picker-container {
+  border: 1px solid var(--color-border);
+  border-radius: 0.75rem;
+  overflow: hidden;
+  background: var(--color-bg-card);
+}
+
+.location-picker-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.5rem 0.75rem;
+  background: var(--color-bg-base);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.picker-label {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.8rem;
+  color: var(--color-text-secondary);
+}
+
+.picker-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.clear-pin-btn-text {
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0.2rem 0.4rem;
+}
+
+.clear-pin-btn-text:hover {
+  color: #ef4444;
+}
+
+.close-picker-btn {
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--color-primary);
+  background: none;
+  border: 1px solid var(--color-primary);
+  border-radius: 0.375rem;
+  padding: 0.2rem 0.6rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.close-picker-btn:hover {
+  background: var(--color-primary);
+  color: white;
+}
+
+.location-picker-map {
+  height: 250px;
+  position: relative;
+}
+
+.picker-map-container {
+  width: 100%;
+  height: 100%;
+}
+
+.picker-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: var(--color-text-secondary);
+}
+
+.pin-confirmation {
+  margin: 0;
+  padding: 0.4rem 0.75rem;
+  font-size: 0.75rem;
+  color: #22c55e;
+  background: rgba(34, 197, 94, 0.05);
+  border-top: 1px solid var(--color-border);
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+.spin {
+  animation: spin 1s linear infinite;
+}
