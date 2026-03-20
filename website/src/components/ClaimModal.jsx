@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { X, CheckCircle, Lock, MessageSquare, Mail } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import claimService from "../services/claimService";
 import "./ClaimModal.css";
 
 function ClaimModal({ item, onClose }) {
@@ -9,12 +10,26 @@ function ClaimModal({ item, onClose }) {
   const [message, setMessage] = useState("");
   const [showEmail, setShowEmail] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
   const isFound = item.type === "FOUND";
-  const isFormValid = message.trim().length > 0;
+  const isFormValid = message.trim().length > 0 && (!isFound || secretAnswer.trim().length > 0);
 
-  const handleSubmit = () => {
-    setSubmitted(true);
+  const handleSubmit = async () => {
+    setLoading(true);
+    setError("");
+    const result = await claimService.submitClaim({
+      itemId: item.id,
+      providedAnswer: secretAnswer || null,
+      message: message,
+    });
+    setLoading(false);
+    if (result.success) {
+      setSubmitted(true);
+    } else {
+      setError(result.error);
+    }
   };
 
   const handleBackdropClick = (e) => {
@@ -67,7 +82,7 @@ function ClaimModal({ item, onClose }) {
         {/* Item summary */}
         <div className="claim-item-summary">
           <img
-            src={item.imageUrl}
+            src={item.imageUrls?.[0] || "https://picsum.photos/seed/placeholder/400/300"}
             alt={item.title}
             className="claim-item-thumb"
           />
@@ -76,7 +91,7 @@ function ClaimModal({ item, onClose }) {
               {item.type}
             </span>
             <h3>{item.title}</h3>
-            <p>{item.locationDescription}</p>
+            <p>{item.location}</p>
           </div>
         </div>
 
@@ -86,7 +101,7 @@ function ClaimModal({ item, onClose }) {
             <div className="claim-field secret-field">
               <label>
                 <Lock size={14} />
-                Secret Detail Answer
+                Secret Detail Answer *
               </label>
               <input
                 type="text"
@@ -129,6 +144,7 @@ function ClaimModal({ item, onClose }) {
             <Mail size={14} />
             <span>Show my email to the poster if approved</span>
           </label>
+          {error && <div className="claim-error">{error}</div>}
         </div>
 
         {/* Actions */}
@@ -138,10 +154,10 @@ function ClaimModal({ item, onClose }) {
           </button>
           <button
             className="btn-primary"
-            disabled={!isFormValid}
+            disabled={!isFormValid || loading}
             onClick={handleSubmit}
           >
-            Submit Claim
+            {loading ? "Submitting..." : "Submit Claim"}
           </button>
         </div>
       </div>

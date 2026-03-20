@@ -46,8 +46,13 @@ const authService = {
 
     // Get current user from localStorage
     getCurrentUser: () => {
-        const user = localStorage.getItem('user');
-        return user ? JSON.parse(user) : null;
+        try {
+            const user = localStorage.getItem('user');
+            return user ? JSON.parse(user) : null;
+        } catch {
+            localStorage.removeItem('user');
+            return null;
+        }
     },
 
     // Check if user is logged in
@@ -57,12 +62,17 @@ const authService = {
 
     // Get current user's role
     getUserRole: () => {
-        const user = localStorage.getItem('user');
-        if (user) {
-            const parsed = JSON.parse(user);
-            return parsed.role || 'STUDENT';
+        try {
+            const user = localStorage.getItem('user');
+            if (user) {
+                const parsed = JSON.parse(user);
+                return parsed.role || 'STUDENT';
+            }
+            return null;
+        } catch {
+            localStorage.removeItem('user');
+            return null;
         }
-        return null;
     },
 
     // Check if current user is admin

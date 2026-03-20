@@ -1,11 +1,11 @@
-import { useState, useMemo } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Plus } from 'lucide-react';
 import Header from '../../components/Header';
 import ItemCard from '../../components/ItemCard';
 import FilterBar from '../../components/FilterBar';
 import EmptyState from '../../components/EmptyState';
-import { mockItems } from '../../mockData/items';
+import itemService from '../../services/itemService';
 import './ItemFeed.css';
 
 const ITEMS_PER_PAGE = 9;
@@ -13,49 +13,87 @@ const ITEMS_PER_PAGE = 9;
 function ItemFeed() {
     const navigate = useNavigate();
     const [searchQuery, setSearchQuery] = useState('');
+    const [debouncedSearch, setDebouncedSearch] = useState('');
     const [activeType, setActiveType] = useState('All');
     const [activeCategory, setActiveCategory] = useState('');
     const [activeSchool, setActiveSchool] = useState('');
-    const [visibleCount, setVisibleCount] = useState(ITEMS_PER_PAGE);
+    const [items, setItems] = useState([]);
+    const [totalItems, setTotalItems] = useState(0);
+    const [page, setPage] = useState(0);
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState('');
+    const abortControllerRef = useRef(null);
 
-    const filteredItems = useMemo(() => {
-        return mockItems.filter((item) => {
-            // Only show ACTIVE items in the public feed
-            if (item.status !== 'ACTIVE') return false;
+    // Debounce search input by 400ms
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            setDebouncedSearch(searchQuery);
+        }, 400);
+        return () => clearTimeout(timer);
+    }, [searchQuery]);
 
-            // Type filter
-            if (activeType === 'Lost' && item.type !== 'LOST') return false;
-            if (activeType === 'Found' && item.type !== 'FOUND') return false;
+    const fetchItems = useCallback(async (pageNum = 0, append = false) => {
+        // Cancel any in-flight request
+        if (abortControllerRef.current) {
+            abortControllerRef.current.abort();
+        }
+        const controller = new AbortController();
+        abortControllerRef.current = controller;
 
-            // Category filter
-            if (activeCategory && item.category !== activeCategory) return false;
+        setLoading(true);
+        setError('');
+        const params = {
+            page: pageNum,
+            size: ITEMS_PER_PAGE,
+            status: 'ACTIVE',
+        };
 
-            // School filter
-            if (activeSchool && item.school?.shortName !== activeSchool) return false;
+        if (debouncedSearch) params.keyword = debouncedSearch;
+        if (activeType === 'Lost') params.type = 'LOST';
+        else if (activeType === 'Found') params.type = 'FOUND';
+        if (activeCategory) params.category = activeCategory;
+        if (activeSchool) params.campusId = activeSchool;
 
-            // Search filter
-            if (searchQuery) {
-                const q = searchQuery.toLowerCase();
-                return (
-                    item.title.toLowerCase().includes(q) ||
-                    item.description.toLowerCase().includes(q) ||
-                    item.locationDescription.toLowerCase().includes(q)
-                );
+        const result = await itemService.getItems(params);
+
+        // Ignore if this request was aborted
+        if (controller.signal.aborted) return;
+
+        if (result.success) {
+            const pageData = result.data;
+            if (append) {
+                setItems(prev => [...prev, ...pageData.content]);
+            } else {
+                setItems(pageData.content);
             }
+            setTotalItems(pageData.totalElements);
+        } else {
+            setError(result.error);
+        }
+        setLoading(false);
+    }, [debouncedSearch, activeType, activeCategory, activeSchool]);
 
-            return true;
-        });
-    }, [searchQuery, activeType, activeCategory, activeSchool]);
+    // Re-fetch when filters change
+    useEffect(() => {
+        setPage(0);
+        fetchItems(0);
+        return () => {
+            if (abortControllerRef.current) {
+                abortControllerRef.current.abort();
+            }
+        };
+    }, [fetchItems]);
 
-    const visibleItems = filteredItems.slice(0, visibleCount);
-    const hasMore = visibleCount < filteredItems.length;
+    const hasMore = items.length < totalItems;
 
     const handleItemClick = (id) => {
         navigate(`/items/${id}`);
     };
 
     const handleLoadMore = () => {
-        setVisibleCount((prev) => prev + ITEMS_PER_PAGE);
+        const nextPage = page + 1;
+        setPage(nextPage);
+        fetchItems(nextPage, true);
     };
 
     return (
@@ -89,13 +127,19 @@ function ItemFeed() {
                         onSchoolChange={setActiveSchool}
                     />
 
-                    {visibleItems.length > 0 ? (
+                    {error && (
+                        <div className="feed-error" style={{ color: 'var(--color-danger)', padding: '1rem 0' }}>
+                            Failed to load items. Please try again.
+                        </div>
+                    )}
+
+                    {items.length > 0 ? (
                         <>
                             <div className="items-count">
-                                Showing {visibleItems.length} of {filteredItems.length} items
+                                Showing {items.length} of {totalItems} items
                             </div>
                             <div className="items-grid">
-                                {visibleItems.map((item, index) => (
+                                {items.map((item, index) => (
                                     <div key={item.id} style={{ animationDelay: `${index * 0.05}s` }}>
                                         <ItemCard item={item} onClick={handleItemClick} />
                                     </div>
@@ -103,12 +147,14 @@ function ItemFeed() {
                             </div>
                             {hasMore && (
                                 <div className="load-more-wrapper">
-                                    <button className="load-more-btn" onClick={handleLoadMore}>
-                                        Load More
+                                    <button className="load-more-btn" onClick={handleLoadMore} disabled={loading}>
+                                        {loading ? 'Loading...' : 'Load More'}
                                     </button>
                                 </div>
                             )}
                         </>
+                    ) : loading ? (
+                        <div className="items-count">Loading items...</div>
                     ) : (
                         <EmptyState
                             title="No items found"

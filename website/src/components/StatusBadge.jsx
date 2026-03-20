@@ -9,6 +9,7 @@ const statusConfig = {
   LOST: { label: "Lost", className: "status-lost" },
   FOUND: { label: "Found", className: "status-found" },
   PENDING: { label: "Pending", className: "status-pending" },
+  ACCEPTED: { label: "Accepted", className: "status-approved" },
   APPROVED: { label: "Approved", className: "status-approved" },
   REJECTED: { label: "Rejected", className: "status-rejected" },
 };

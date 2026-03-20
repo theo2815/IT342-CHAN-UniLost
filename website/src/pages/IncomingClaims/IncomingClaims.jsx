@@ -1,26 +1,68 @@
-import { useState, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, AlertTriangle, Check, X, Lock, MessageSquare, User } from 'lucide-react';
 import Header from '../../components/Header';
 import StatusBadge from '../../components/StatusBadge';
 import EmptyState from '../../components/EmptyState';
-import { mockItems } from '../../mockData/items';
-import { getClaimsForItem, timeAgo } from '../../mockData/claims';
+import claimService from '../../services/claimService';
+import itemService from '../../services/itemService';
+import { timeAgo } from '../../utils/timeAgo';
 import './IncomingClaims.css';
 
 function IncomingClaims() {
     const { itemId } = useParams();
     const navigate = useNavigate();
 
-    const item = mockItems.find((i) => i.id === itemId);
-    const claims = useMemo(() => getClaimsForItem(itemId), [itemId]);
+    const [item, setItem] = useState(null);
+    const [claims, setClaims] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState('');
+    const [actionLoading, setActionLoading] = useState(null);
 
-    // Mock secret detail for the item (would come from backend)
-    const itemSecretDetail = item?.type === 'FOUND'
-        ? 'There is a small scratch on the top-right corner of the screen'
-        : null;
+    useEffect(() => {
+        const controller = new AbortController();
+        const fetchData = async () => {
+            setLoading(true);
+            setError('');
 
-    const hasApproved = claims.some((c) => c.status === 'APPROVED' || c.status === 'HANDED_OVER');
+            const itemResult = await itemService.getItemById(itemId);
+            if (controller.signal.aborted) return;
+            if (itemResult.success) {
+                setItem(itemResult.data);
+            } else {
+                setError(itemResult.error);
+                setLoading(false);
+                return;
+            }
+
+            const claimsResult = await claimService.getClaimsForItem(itemId);
+            if (controller.signal.aborted) return;
+            if (claimsResult.success) {
+                setClaims(claimsResult.data);
+            } else {
+                setError(claimsResult.error);
+            }
+
+            setLoading(false);
+        };
+        fetchData();
+        return () => controller.abort();
+    }, [itemId]);
+
+    const hasAccepted = claims.some((c) => c.status === 'ACCEPTED' || c.status === 'HANDED_OVER');
+
+    if (loading) {
+        return (
+            <div className="incoming-claims-page">
+                <Header />
+                <main className="main-content">
+                    <div className="content-wrapper">
+                        <div className="not-found-state"><p>Loading...</p></div>
+                    </div>
+                </main>
+            </div>
+        );
+    }
 
     if (!item) {
         return (
@@ -29,9 +71,9 @@ function IncomingClaims() {
                 <main className="main-content">
                     <div className="content-wrapper">
                         <div className="not-found-state">
-                            <h2>Item Not Found</h2>
-                            <button className="back-btn" onClick={() => navigate('/my-items')}>
-                                <ArrowLeft size={18} /> Back to My Items
+                            <h2>{error || 'Item Not Found'}</h2>
+                            <button className="back-btn" onClick={() => navigate('/profile')}>
+                                <ArrowLeft size={18} /> Back to Profile
                             </button>
                         </div>
                     </div>
@@ -41,17 +83,38 @@ function IncomingClaims() {
     }
 
     const getInitials = (name) => {
+        if (!name) return '??';
         const parts = name.split(' ');
         return parts.map((p) => p.charAt(0)).join('').toUpperCase();
     };
 
-    const handleApprove = (claimId) => {
-        alert(`Claim ${claimId} approved! (Mock action)`);
+    const handleApprove = async (claimId) => {
+        if (actionLoading) return;
+        setActionLoading(claimId);
+        const result = await claimService.acceptClaim(claimId);
+        if (result.success) {
+            const claimsResult = await claimService.getClaimsForItem(itemId);
+            if (claimsResult.success) setClaims(claimsResult.data);
+        } else {
+            setError(result.error);
+        }
+        setActionLoading(null);
     };
 
-    const handleReject = (claimId) => {
-        alert(`Claim ${claimId} rejected. (Mock action)`);
+    const handleReject = async (claimId) => {
+        if (actionLoading) return;
+        setActionLoading(claimId);
+        const result = await claimService.rejectClaim(claimId);
+        if (result.success) {
+            const claimsResult = await claimService.getClaimsForItem(itemId);
+            if (claimsResult.success) setClaims(claimsResult.data);
+        } else {
+            setError(result.error);
+        }
+        setActionLoading(null);
     };
+
+    const imageUrl = item.imageUrls?.[0] || 'https://picsum.photos/seed/placeholder/400/300';
 
     return (
         <div className="incoming-claims-page">
@@ -59,13 +122,13 @@ function IncomingClaims() {
 
             <main className="main-content">
                 <div className="content-wrapper">
-                    <button className="back-link" onClick={() => navigate('/my-items')}>
-                        <ArrowLeft size={18} /> Back to My Items
+                    <button className="back-link" onClick={() => navigate('/profile')}>
+                        <ArrowLeft size={18} /> Back to Profile
                     </button>
 
                     {/* Item Summary */}
                     <div className="ic-item-summary glass">
-                        <img src={item.imageUrl} alt={item.title} className="ic-item-thumb" />
+                        <img src={imageUrl} alt={item.title} className="ic-item-thumb" />
                         <div className="ic-item-info">
                             <div className="ic-item-badges">
                                 <StatusBadge type={item.type} />
@@ -77,7 +140,13 @@ function IncomingClaims() {
                     </div>
 
                     {/* Warning */}
-                    {!hasApproved && claims.length > 0 && (
+                    {error && (
+                        <div className="ic-warning">
+                            <AlertTriangle size={16} />
+                            <span>{error}</span>
+                        </div>
+                    )}
+                    {!hasAccepted && claims.length > 0 && !error && (
                         <div className="ic-warning">
                             <AlertTriangle size={16} />
                             <span>Only one claim can be approved per item. Review carefully before approving.</span>
@@ -109,14 +178,14 @@ function IncomingClaims() {
                                     </div>
 
                                     {/* Secret detail comparison (FOUND items only) */}
-                                    {item.type === 'FOUND' && claim.secretDetailAnswer && (
+                                    {item.type === 'FOUND' && claim.providedAnswer && (
                                         <div className="ic-secret-comparison">
                                             <div className="ic-secret-col">
                                                 <div className="ic-secret-label">
                                                     <Lock size={12} /> Your Secret Detail
                                                 </div>
                                                 <div className="ic-secret-value yours">
-                                                    {itemSecretDetail || 'Not set'}
+                                                    {claim.secretDetailQuestion || 'Not set'}
                                                 </div>
                                             </div>
                                             <div className="ic-secret-col">
@@ -124,7 +193,7 @@ function IncomingClaims() {
                                                     <User size={12} /> Their Answer
                                                 </div>
                                                 <div className="ic-secret-value theirs">
-                                                    {claim.secretDetailAnswer}
+                                                    {claim.providedAnswer}
                                                 </div>
                                             </div>
                                         </div>
@@ -137,19 +206,21 @@ function IncomingClaims() {
                                     </div>
 
                                     {/* Actions (PENDING only) */}
-                                    {claim.status === 'PENDING' && !hasApproved && (
+                                    {claim.status === 'PENDING' && !hasAccepted && (
                                         <div className="ic-claim-actions">
                                             <button
                                                 className="ic-approve-btn"
+                                                disabled={actionLoading === claim.id}
                                                 onClick={() => handleApprove(claim.id)}
                                             >
-                                                <Check size={16} /> Approve
+                                                <Check size={16} /> {actionLoading === claim.id ? 'Processing...' : 'Approve'}
                                             </button>
                                             <button
                                                 className="ic-reject-btn"
+                                                disabled={actionLoading === claim.id}
                                                 onClick={() => handleReject(claim.id)}
                                             >
-                                                <X size={16} /> Reject
+                                                <X size={16} /> {actionLoading === claim.id ? 'Processing...' : 'Reject'}
                                             </button>
                                         </div>
                                     )}
@@ -160,8 +231,8 @@ function IncomingClaims() {
                         <EmptyState
                             title="No claims yet"
                             message="No one has submitted a claim on this item yet."
-                            actionLabel="Back to My Items"
-                            onAction={() => navigate('/my-items')}
+                            actionLabel="Back to Profile"
+                            onAction={() => navigate('/profile')}
                         />
                     )}
                 </div>

@@ -1,0 +1,108 @@
+.my-claims-page {
+    min-height: 100vh;
+    background: var(--gradient-bg);
+}
+
+.my-claims-page .main-content {
+    padding-top: 80px;
+}
+
+.my-claims-page .content-wrapper {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: var(--spacing-xl);
+}
+
+.my-claims-page .back-link {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+    background: none;
+    border: none;
+    color: var(--color-text-secondary);
+    font-size: var(--font-size-sm);
+    cursor: pointer;
+    margin-bottom: var(--spacing-lg);
+    transition: color var(--transition-fast);
+}
+
+.my-claims-page .back-link:hover {
+    color: var(--color-text-primary);
+}
+
+.my-claims-page .page-title {
+    font-size: var(--font-size-2xl);
+    margin-bottom: 4px;
+}
+
+.my-claims-page .page-subtitle {
+    font-size: var(--font-size-sm);
+    color: var(--color-text-muted);
+    margin-bottom: var(--spacing-xl);
+}
+
+.mc-claims-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-md);
+}
+
+.mc-claim-card {
+    display: flex;
+    gap: var(--spacing-md);
+    padding: var(--spacing-md);
+    border-radius: var(--radius-lg);
+    cursor: pointer;
+    transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+    animation: fadeIn 0.4s ease forwards;
+    opacity: 0;
+}
+
+.mc-claim-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.mc-item-thumb {
+    width: 80px;
+    height: 80px;
+    border-radius: var(--radius-md);
+    object-fit: cover;
+    flex-shrink: 0;
+}
+
+.mc-claim-info {
+    min-width: 0;
+    flex: 1;
+}
+
+.mc-claim-badges {
+    display: flex;
+    gap: var(--spacing-xs);
+    margin-bottom: 6px;
+}
+
+.mc-item-title {
+    font-size: var(--font-size-base);
+    font-weight: 600;
+    margin-bottom: 4px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.mc-claim-meta {
+    font-size: var(--font-size-xs);
+    color: var(--color-text-muted);
+}
+
+@media (max-width: 768px) {
+    .my-claims-page .content-wrapper {
+        padding: var(--spacing-md);
+    }
+
+    .mc-item-thumb {
+        width: 60px;
+        height: 60px;
+    }
+}

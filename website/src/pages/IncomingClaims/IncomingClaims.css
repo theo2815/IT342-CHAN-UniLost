@@ -82,6 +82,18 @@
     margin-bottom: var(--spacing-lg);
 }
 
+.ic-warning.ic-error {
+    background: rgba(239, 68, 68, 0.08);
+    border-color: rgba(239, 68, 68, 0.2);
+    color: #ef4444;
+}
+
+.ic-approve-btn:disabled,
+.ic-reject-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
 /* Claims list */
 .ic-claims-list {
     display: flex;

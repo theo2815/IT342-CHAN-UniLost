@@ -1,8 +1,9 @@
 package edu.cit.chan.unilost.controller;
 
-import edu.cit.chan.unilost.dto.RegisterRequest;
+import edu.cit.chan.unilost.dto.UpdateUserRequest;
 import edu.cit.chan.unilost.dto.UserDTO;
 import edu.cit.chan.unilost.service.UserService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -37,7 +38,7 @@ public class UserController {
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<?> updateUser(@PathVariable String id, @RequestBody RegisterRequest updateDTO) {
+    public ResponseEntity<?> updateUser(@PathVariable String id, @Valid @RequestBody UpdateUserRequest updateDTO) {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         String currentEmail = (String) auth.getPrincipal();
 

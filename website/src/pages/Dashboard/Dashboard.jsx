@@ -2,7 +2,6 @@ import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {
   Search,
-  Bell,
   PlusCircle,
   Trophy,
   Medal,
@@ -10,30 +9,35 @@ import {
   Camera,
   ShieldCheck,
   TrendingUp,
-  Package,
-  Smartphone,
-  CheckCircle,
-  Wallet,
 } from "lucide-react";
 import Header from "../../components/Header";
 import Footer from "../../components/Footer";
 import ItemCard from "../../components/ItemCard";
-import { mockItems } from "../../mockData/items";
 import authService from "../../services/authService";
+import itemService from "../../services/itemService";
 import "./Dashboard.css";
 
 function Dashboard() {
   const navigate = useNavigate();
   const [user, setUser] = useState(null);
-
-  // Get the 4 most recent items from mock data
-  const recentItems = mockItems.slice(0, 4);
+  const [recentItems, setRecentItems] = useState([]);
+  const [itemsError, setItemsError] = useState('');
 
   useEffect(() => {
     const currentUser = authService.getCurrentUser();
     if (currentUser) {
       setUser(currentUser);
     }
+
+    const fetchRecentItems = async () => {
+      const result = await itemService.getItems({ status: 'ACTIVE', size: 4, page: 0 });
+      if (result.success) {
+        setRecentItems(result.data.content);
+      } else {
+        setItemsError(result.error);
+      }
+    };
+    fetchRecentItems();
   }, []);
 
   return (

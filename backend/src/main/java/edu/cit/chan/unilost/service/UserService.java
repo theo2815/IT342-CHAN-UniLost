@@ -2,9 +2,13 @@ package edu.cit.chan.unilost.service;
 
 import edu.cit.chan.unilost.dto.CampusDTO;
 import edu.cit.chan.unilost.dto.RegisterRequest;
+import edu.cit.chan.unilost.dto.UpdateUserRequest;
 import edu.cit.chan.unilost.dto.UserDTO;
 import edu.cit.chan.unilost.entity.CampusEntity;
 import edu.cit.chan.unilost.entity.UserEntity;
+import edu.cit.chan.unilost.exception.AuthenticationException;
+import edu.cit.chan.unilost.exception.ForbiddenException;
+import edu.cit.chan.unilost.exception.ResourceNotFoundException;
 import edu.cit.chan.unilost.repository.CampusRepository;
 import edu.cit.chan.unilost.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -36,18 +40,18 @@ public class UserService {
 
     public UserDTO createUser(RegisterRequest registrationDTO) {
         if (userRepository.existsByEmail(registrationDTO.getEmail())) {
-            throw new RuntimeException("Email already registered");
+            throw new IllegalArgumentException("Email already registered");
         }
 
         // Validate email domain against campus whitelist
         String email = registrationDTO.getEmail();
         String domain = extractEmailDomain(email);
         CampusEntity campus = campusRepository.findByDomainWhitelist(domain)
-                .orElseThrow(() -> new RuntimeException(
+                .orElseThrow(() -> new IllegalArgumentException(
                         "Email domain '" + domain + "' is not recognized. Please use your university email."));
 
         UserEntity user = new UserEntity();
-        user.setEmail(registrationDTO.getEmail());
+        user.setEmail(registrationDTO.getEmail().trim().toLowerCase());
         user.setPasswordHash(passwordEncoder.encode(registrationDTO.getPassword()));
         user.setFullName(registrationDTO.getFullName());
         user.setUniversityTag(campus.getId());
@@ -61,18 +65,18 @@ public class UserService {
 
     public UserDTO authenticate(String email, String password) {
         UserEntity user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("Invalid email or password"));
+                .orElseThrow(() -> new AuthenticationException("Invalid email or password"));
 
         if ("SUSPENDED".equals(user.getAccountStatus())) {
-            throw new RuntimeException("Your account has been suspended. Contact your campus admin.");
+            throw new ForbiddenException("Your account has been suspended. Contact your campus admin.");
         }
 
         if ("DEACTIVATED".equals(user.getAccountStatus())) {
-            throw new RuntimeException("This account has been deactivated.");
+            throw new ForbiddenException("This account has been deactivated.");
         }
 
         if (!passwordEncoder.matches(password, user.getPasswordHash())) {
-            throw new RuntimeException("Invalid email or password");
+            throw new AuthenticationException("Invalid email or password");
         }
 
         // Update last login timestamp
@@ -99,7 +103,7 @@ public class UserService {
                 .map(this::convertToDTO);
     }
 
-    public Optional<UserDTO> updateUser(String id, RegisterRequest updateDTO) {
+    public Optional<UserDTO> updateUser(String id, UpdateUserRequest updateDTO) {
         return userRepository.findById(id)
                 .map(existingUser -> {
                     if (updateDTO.getFullName() != null) {
@@ -123,8 +127,12 @@ public class UserService {
     // ── Password Reset Flow ────────────────────────────────────
 
     public void requestPasswordReset(String email) {
-        UserEntity user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("No account found with that email address."));
+        Optional<UserEntity> userOpt = userRepository.findByEmail(email);
+        if (userOpt.isEmpty()) {
+            // Silently return to prevent user enumeration
+            return;
+        }
+        UserEntity user = userOpt.get();
 
         String otp = generateOtp();
         user.setPasswordResetToken(passwordEncoder.encode(otp));
@@ -134,36 +142,59 @@ public class UserService {
         emailService.sendPasswordResetOtp(email, otp);
     }
 
+    private static final int MAX_OTP_ATTEMPTS = 5;
+    private static final int OTP_LOCKOUT_MINUTES = 15;
+
     public void verifyResetOtp(String email, String otp) {
         UserEntity user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("No account found with that email address."));
+                .orElseThrow(() -> new ResourceNotFoundException("No account found with that email address."));
 
         if (user.getPasswordResetToken() == null || user.getPasswordResetExpiry() == null) {
-            throw new RuntimeException("No password reset was requested. Please request a new code.");
+            throw new IllegalArgumentException("No password reset was requested. Please request a new code.");
+        }
+
+        // Check lockout
+        if (user.getOtpLockoutUntil() != null && LocalDateTime.now().isBefore(user.getOtpLockoutUntil())) {
+            throw new IllegalArgumentException("Too many failed attempts. Please try again later.");
         }
 
         if (LocalDateTime.now().isAfter(user.getPasswordResetExpiry())) {
             user.setPasswordResetToken(null);
             user.setPasswordResetExpiry(null);
+            user.setOtpAttempts(0);
             userRepository.save(user);
-            throw new RuntimeException("This code has expired. Please request a new one.");
+            throw new IllegalArgumentException("This code has expired. Please request a new one.");
         }
 
         if (!passwordEncoder.matches(otp, user.getPasswordResetToken())) {
-            throw new RuntimeException("Invalid verification code. Please try again.");
+            user.setOtpAttempts(user.getOtpAttempts() + 1);
+            if (user.getOtpAttempts() >= MAX_OTP_ATTEMPTS) {
+                user.setOtpLockoutUntil(LocalDateTime.now().plusMinutes(OTP_LOCKOUT_MINUTES));
+                user.setOtpAttempts(0);
+            }
+            userRepository.save(user);
+            throw new AuthenticationException("Invalid verification code. Please try again.");
         }
-    }
 
-    public void resetPassword(String email, String otp, String newPassword) {
-        // Re-verify OTP before changing password
-        verifyResetOtp(email, otp);
-
-        UserEntity user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("No account found with that email address."));
-
-        user.setPasswordHash(passwordEncoder.encode(newPassword));
+        // Success: invalidate OTP immediately and mark as verified
         user.setPasswordResetToken(null);
         user.setPasswordResetExpiry(null);
+        user.setOtpAttempts(0);
+        user.setOtpLockoutUntil(null);
+        user.setOtpVerified(true);
+        userRepository.save(user);
+    }
+
+    public void resetPassword(String email, String newPassword) {
+        UserEntity user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new ResourceNotFoundException("No account found with that email address."));
+
+        if (!user.isOtpVerified()) {
+            throw new IllegalArgumentException("OTP has not been verified. Please verify your code first.");
+        }
+
+        user.setPasswordHash(passwordEncoder.encode(newPassword));
+        user.setOtpVerified(false);
         userRepository.save(user);
     }
 
@@ -176,7 +207,7 @@ public class UserService {
 
     private String extractEmailDomain(String email) {
         if (email == null || !email.contains("@")) {
-            throw new RuntimeException("Invalid email format");
+            throw new IllegalArgumentException("Invalid email format");
         }
         return email.substring(email.indexOf("@") + 1).toLowerCase();
     }

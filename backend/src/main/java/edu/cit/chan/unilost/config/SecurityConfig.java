@@ -1,5 +1,6 @@
 package edu.cit.chan.unilost.config;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -25,9 +26,13 @@ import java.util.List;
 // TODO: [Phase 8] Add rate limiting for auth endpoints
 public class SecurityConfig {
 
+    @Value("${cors.allowed-origins:http://localhost:5173,http://localhost:3000}")
+    private String allowedOrigins;
+
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http,
-            edu.cit.chan.unilost.filter.JwtAuthenticationFilter jwtAuthenticationFilter) throws Exception {
+            edu.cit.chan.unilost.filter.JwtAuthenticationFilter jwtAuthenticationFilter,
+            edu.cit.chan.unilost.filter.RateLimitFilter rateLimitFilter) throws Exception {
         http
                 .csrf(AbstractHttpConfigurer::disable)
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
@@ -40,8 +45,15 @@ public class SecurityConfig {
                         // Admin endpoints
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
 
-                        // TODO: [Phase 4] Add item endpoints security rules
-                        // TODO: [Phase 5] Add claim endpoints security rules
+                        // Item endpoints — read is public, write requires authentication
+                        .requestMatchers(HttpMethod.GET, "/api/items", "/api/items/**").permitAll()
+                        .requestMatchers("/api/items/**").authenticated()
+                        .requestMatchers("/api/items").authenticated()
+
+                        // Claim endpoints — all require authentication
+                        .requestMatchers("/api/claims/**").authenticated()
+                        .requestMatchers("/api/claims").authenticated()
+
                         // TODO: [Phase 6] Add chat/message endpoints security rules
                         // TODO: [Phase 7] Add handover endpoints security rules
                         // TODO: [Phase 8] Add notification endpoints security rules
@@ -57,7 +69,9 @@ public class SecurityConfig {
                         // All other requests require authentication
                         .anyRequest().authenticated())
                 .addFilterBefore(jwtAuthenticationFilter,
-                        org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter.class);
+                        org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter.class)
+                .addFilterBefore(rateLimitFilter,
+                        edu.cit.chan.unilost.filter.JwtAuthenticationFilter.class);
 
         return http.build();
     }
@@ -70,11 +84,9 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(List.of(
-                "http://localhost:5173",
-                "http://localhost:3000"));
+        configuration.setAllowedOrigins(List.of(allowedOrigins.split(",")));
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
-        configuration.setAllowedHeaders(List.of("*"));
+        configuration.setAllowedHeaders(List.of("Authorization", "Content-Type", "Accept", "Origin", "X-Requested-With"));
         configuration.setAllowCredentials(true);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { User, Lock, Bell, Palette, Camera, Save, X, Edit2 } from 'lucide-react';
 import authService from '../../services/authService';
+import userService from '../../services/userService';
 import Header from '../../components/Header';
 import { useTheme } from '../../context/ThemeContext';
 import './Settings.css';
@@ -9,20 +10,20 @@ function Settings() {
     const { theme, setTheme } = useTheme();
     const [activeTab, setActiveTab] = useState('profile');
     const [isEditing, setIsEditing] = useState(false);
+    const [saving, setSaving] = useState(false);
+    const [saveMessage, setSaveMessage] = useState('');
     const [user, setUser] = useState(() => {
         const currentUser = authService.getCurrentUser() || {};
         return {
-            firstName: currentUser.firstName || 'Theo',
-            lastName: currentUser.lastName || 'Chan',
-            email: currentUser.email || 'theo.chan@example.com',
-            phone: currentUser.phone || '+63 912 345 6789',
-            address: currentUser.address || 'Cebu City, Philippines',
-            studentId: currentUser.studentIdNumber || currentUser.studentId || '2023-12345',
-            school: currentUser.school?.name || currentUser.school || 'University of Cebu'
+            id: currentUser.id || '',
+            fullName: currentUser.fullName || '',
+            email: currentUser.email || '',
+            campus: currentUser.campus?.name || 'Unknown School',
+            karmaScore: currentUser.karmaScore || 0,
+            role: currentUser.role || 'STUDENT',
         };
     });
-    
-    // Store original data to revert changes on Cancel
+
     const [originalUser, setOriginalUser] = useState(user);
 
     const handleInputChange = (e) => {
@@ -42,12 +43,25 @@ function Settings() {
         setIsEditing(false);
     };
 
-    const handleSave = () => {
-        // Here you would typically call an API update
-        console.log('Saving user data:', user);
-        setOriginalUser(user);
-        setIsEditing(false);
-        // Optional: Show success notification
+    const handleSave = async () => {
+        setSaving(true);
+        setSaveMessage('');
+        const result = await userService.updateProfile(user.id, {
+            fullName: user.fullName,
+        });
+        if (result.success) {
+            const storedUser = authService.getCurrentUser();
+            if (storedUser) {
+                storedUser.fullName = user.fullName;
+                localStorage.setItem('user', JSON.stringify(storedUser));
+            }
+            setOriginalUser(user);
+            setIsEditing(false);
+            setSaveMessage('Profile updated successfully!');
+        } else {
+            setSaveMessage(result.error);
+        }
+        setSaving(false);
     };
 
     // Tab Navigation Items
@@ -93,7 +107,7 @@ function Settings() {
                         {/* Profile Picture Section */}
                         <div className="profile-avatar-section">
                             <div className="avatar-large">
-                                {user.firstName?.charAt(0)}{user.lastName?.charAt(0)}
+                                {user.fullName?.split(' ').map(p => p.charAt(0)).join('').substring(0, 2).toUpperCase()}
                             </div>
                             <div className="avatar-actions">
                                 {isEditing && (
@@ -108,36 +122,19 @@ function Settings() {
                         {/* Account Details Section */}
                         <section className="form-section">
                             <h2 className="section-title">Account Details</h2>
+                            {saveMessage && (
+                                <p style={{color: saveMessage.includes('success') ? 'var(--color-success)' : 'var(--color-danger)', marginBottom: '1rem'}}>
+                                    {saveMessage}
+                                </p>
+                            )}
                             <div className="form-grid">
-                                <div className="settings-form-group">
-                                    <label>First Name</label>
-                                    <input
-                                        type="text"
-                                        name="firstName"
-                                        className="settings-input"
-                                        value={user.firstName}
-                                        onChange={handleInputChange}
-                                        disabled={!isEditing}
-                                    />
-                                </div>
-                                <div className="settings-form-group">
-                                    <label>Last Name</label>
-                                    <input
-                                        type="text"
-                                        name="lastName"
-                                        className="settings-input"
-                                        value={user.lastName}
-                                        onChange={handleInputChange}
-                                        disabled={!isEditing}
-                                    />
-                                </div>
                                 <div className="settings-form-group full-width">
-                                    <label>Address</label>
+                                    <label>Full Name</label>
                                     <input
                                         type="text"
-                                        name="address"
+                                        name="fullName"
                                         className="settings-input"
-                                        value={user.address}
+                                        value={user.fullName}
                                         onChange={handleInputChange}
                                         disabled={!isEditing}
                                     />
@@ -147,7 +144,7 @@ function Settings() {
                                     <input
                                         type="text"
                                         className="settings-input"
-                                        value={user.school}
+                                        value={user.campus}
                                         disabled
                                     />
                                 </div>
@@ -158,7 +155,7 @@ function Settings() {
                         <section className="form-section">
                             <h2 className="section-title">Private Details</h2>
                             <div className="form-grid">
-                                <div className="settings-form-group">
+                                <div className="settings-form-group full-width">
                                     <label>Email Address (Read-only)</label>
                                     <input
                                         type="email"
@@ -168,23 +165,21 @@ function Settings() {
                                     />
                                 </div>
                                 <div className="settings-form-group">
-                                    <label>Student ID (Read-only)</label>
+                                    <label>Role</label>
                                     <input
                                         type="text"
                                         className="settings-input"
-                                        value={user.studentId}
+                                        value={user.role}
                                         disabled
                                     />
                                 </div>
-                                <div className="settings-form-group full-width">
-                                    <label>Phone Number</label>
+                                <div className="settings-form-group">
+                                    <label>Karma Score</label>
                                     <input
-                                        type="tel"
-                                        name="phone"
+                                        type="text"
                                         className="settings-input"
-                                        value={user.phone}
-                                        onChange={handleInputChange}
-                                        disabled={!isEditing}
+                                        value={user.karmaScore}
+                                        disabled
                                     />
                                 </div>
                             </div>
@@ -203,9 +198,9 @@ function Settings() {
                                         <X size={16} style={{marginRight: '8px', display: 'inline'}}/>
                                         Cancel
                                     </button>
-                                    <button className="btn-primary" onClick={handleSave}>
+                                    <button className="btn-primary" onClick={handleSave} disabled={saving}>
                                         <Save size={16} style={{marginRight: '8px', display: 'inline'}}/>
-                                        Save Changes
+                                        {saving ? 'Saving...' : 'Save Changes'}
                                     </button>
                                 </>
                             )}

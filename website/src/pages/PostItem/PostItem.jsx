@@ -1,10 +1,11 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Upload, X, Eye, Image, MapPin, Calendar, Lock, ArrowLeft } from 'lucide-react';
+import { Upload, X, Eye, Image, MapPin, Calendar, Lock, ArrowLeft, Loader } from 'lucide-react';
 import Header from '../../components/Header';
 import ItemCard from '../../components/ItemCard';
-import { mockCategories } from '../../mockData/items';
+import { ITEM_CATEGORIES, CATEGORY_LABELS } from '../../constants/categories';
 import authService from '../../services/authService';
+import itemService from '../../services/itemService';
 import './PostItem.css';
 
 function PostItem() {
@@ -24,6 +25,15 @@ function PostItem() {
     const [images, setImages] = useState([]);
     const [showPreview, setShowPreview] = useState(false);
     const [submitted, setSubmitted] = useState(false);
+    const [submitting, setSubmitting] = useState(false);
+    const [error, setError] = useState('');
+
+    // H11: Revoke object URLs on unmount to prevent memory leaks
+    useEffect(() => {
+        return () => {
+            images.forEach((img) => URL.revokeObjectURL(img.preview));
+        };
+    }, [images]);
 
     const handleChange = (e) => {
         const { name, value } = e.target;
@@ -59,13 +69,34 @@ function PostItem() {
         });
     };
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
-        // Mock submit - just show success
-        setSubmitted(true);
-        setTimeout(() => {
-            navigate('/my-items');
-        }, 2000);
+        setSubmitting(true);
+        setError('');
+
+        const itemData = {
+            title: formData.title,
+            description: formData.description,
+            type: formData.type,
+            category: formData.category,
+            location: formData.locationDescription,
+            secretDetailQuestion: formData.type === 'FOUND' ? formData.secretDetail : null,
+            dateLostFound: formData.date ? `${formData.date}T00:00:00` : null,
+        };
+
+        const imageFiles = images.map((img) => img.file);
+        const result = await itemService.createItem(itemData, imageFiles);
+
+        if (result.success) {
+            setSubmitted(true);
+            setTimeout(() => {
+                navigate('/items');
+            }, 2000);
+        } else {
+            setError(result.error);
+        }
+
+        setSubmitting(false);
     };
 
     const isFormValid = formData.title && formData.description && formData.category && formData.locationDescription;
@@ -78,9 +109,11 @@ function PostItem() {
         description: formData.description || 'Item description...',
         category: formData.category || 'Category',
         status: 'ACTIVE',
+        imageUrls: images[0] ? [images[0].preview] : [],
         imageUrl: images[0]?.preview || 'https://picsum.photos/seed/preview/400/300',
-        postedBy: { firstName: user?.firstName || 'You', lastName: user?.lastName || '', school: { shortName: 'Your School' } },
-        school: { shortName: 'Your School' },
+        campus: { name: user?.campus?.name || 'Your School' },
+        school: { shortName: user?.campus?.name || 'Your School' },
+        location: formData.locationDescription || 'Location',
         locationDescription: formData.locationDescription || 'Location',
         createdAt: new Date().toISOString(),
     };
@@ -94,7 +127,7 @@ function PostItem() {
                         <div className="success-state">
                             <div className="success-icon">&#10003;</div>
                             <h2>Item Posted Successfully!</h2>
-                            <p>Your {formData.type.toLowerCase()} item report has been submitted. Redirecting to My Items...</p>
+                            <p>Your {formData.type.toLowerCase()} item report has been submitted. Redirecting to items feed...</p>
                         </div>
                     </div>
                 </main>
@@ -117,6 +150,10 @@ function PostItem() {
                         <div className="post-form-section">
                             <h1>Report an Item</h1>
                             <p className="post-subtitle">Help reunite lost items with their owners.</p>
+
+                            {error && (
+                                <div className="form-error-banner">{error}</div>
+                            )}
 
                             <form onSubmit={handleSubmit}>
                                 {/* Type Toggle */}
@@ -179,8 +216,8 @@ function PostItem() {
                                         required
                                     >
                                         <option value="">Select a category</option>
-                                        {mockCategories.map((cat) => (
-                                            <option key={cat} value={cat}>{cat}</option>
+                                        {ITEM_CATEGORIES.map((cat) => (
+                                            <option key={cat} value={cat}>{CATEGORY_LABELS[cat] || cat}</option>
                                         ))}
                                     </select>
                                 </div>
@@ -279,9 +316,9 @@ function PostItem() {
                                     <button
                                         type="submit"
                                         className="submit-btn"
-                                        disabled={!isFormValid}
+                                        disabled={!isFormValid || submitting}
                                     >
-                                        Post Item
+                                        {submitting ? <><Loader size={16} className="spin" /> Posting...</> : 'Post Item'}
                                     </button>
                                 </div>
                             </form>

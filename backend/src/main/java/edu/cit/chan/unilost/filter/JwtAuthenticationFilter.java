@@ -1,5 +1,7 @@
 package edu.cit.chan.unilost.filter;
 
+import edu.cit.chan.unilost.entity.UserEntity;
+import edu.cit.chan.unilost.repository.UserRepository;
 import edu.cit.chan.unilost.util.JwtUtils;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -15,12 +17,14 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Optional;
 
 @Component
 @RequiredArgsConstructor
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtUtils jwtUtils;
+    private final UserRepository userRepository;
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
@@ -38,9 +42,25 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         }
 
         if (email != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-            String role = jwtUtils.getRoleFromToken(token);
+            // H2 + H3: Verify user exists and is active, use DB role instead of token role
+            Optional<UserEntity> userOpt = userRepository.findByEmail(email);
+            if (userOpt.isEmpty()) {
+                // User deleted since token was issued
+                filterChain.doFilter(request, response);
+                return;
+            }
 
-            // Build granted authorities from the role claim
+            UserEntity user = userOpt.get();
+
+            // H3: Check account status — suspended/deactivated users cannot access
+            if (!"ACTIVE".equals(user.getAccountStatus())) {
+                filterChain.doFilter(request, response);
+                return;
+            }
+
+            // H2: Use DB role, not token role
+            String role = user.getRole();
+
             List<SimpleGrantedAuthority> authorities = List.of(
                     new SimpleGrantedAuthority("ROLE_" + role));
 

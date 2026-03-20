@@ -1,5 +1,6 @@
 package edu.cit.chan.unilost.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -21,6 +22,7 @@ public class UserEntity {
     @Indexed(unique = true)
     private String email;
 
+    @JsonIgnore
     private String passwordHash;
 
     private String fullName;
@@ -43,7 +45,18 @@ public class UserEntity {
 
     private LocalDateTime lastLogin;
 
+    @JsonIgnore
     private String passwordResetToken;
 
+    @JsonIgnore
     private LocalDateTime passwordResetExpiry;
+
+    @JsonIgnore
+    private int otpAttempts = 0;
+
+    @JsonIgnore
+    private LocalDateTime otpLockoutUntil;
+
+    @JsonIgnore
+    private boolean otpVerified = false;
 }

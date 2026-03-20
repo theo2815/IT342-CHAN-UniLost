@@ -1,12 +1,13 @@
-import { useState, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, MapPin, Calendar, Clock, Tag, User, Share2, Flag, Hand, Search } from 'lucide-react';
+import { ArrowLeft, MapPin, Calendar, Clock, Tag, Share2, Flag, Hand, Search } from 'lucide-react';
 import Header from '../../components/Header';
 import StatusBadge from '../../components/StatusBadge';
 import ItemCard from '../../components/ItemCard';
 import ClaimModal from '../../components/ClaimModal';
-import { mockItems, timeAgo, daysUntilExpiry } from '../../mockData/items';
+import { timeAgo } from '../../utils/timeAgo';
 import authService from '../../services/authService';
+import itemService from '../../services/itemService';
 import './ItemDetail.css';
 
 function ItemDetail() {
@@ -14,14 +15,52 @@ function ItemDetail() {
     const navigate = useNavigate();
     const currentUser = authService.getCurrentUser();
 
-    const item = mockItems.find((i) => i.id === id);
+    const [item, setItem] = useState(null);
+    const [relatedItems, setRelatedItems] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [fetchError, setFetchError] = useState('');
+    const [showClaimModal, setShowClaimModal] = useState(false);
 
-    const relatedItems = useMemo(() => {
-        if (!item) return [];
-        return mockItems
-            .filter((i) => i.id !== item.id && i.status === 'ACTIVE' && (i.category === item.category || i.school?.shortName === item.school?.shortName))
-            .slice(0, 3);
-    }, [item]);
+    useEffect(() => {
+        const fetchItem = async () => {
+            setLoading(true);
+            setFetchError('');
+            const result = await itemService.getItemById(id);
+            if (result.success) {
+                setItem(result.data);
+
+                const relatedResult = await itemService.getItems({
+                    category: result.data.category,
+                    status: 'ACTIVE',
+                    size: 4,
+                });
+                if (relatedResult.success) {
+                    setRelatedItems(
+                        relatedResult.data.content.filter((i) => i.id !== id).slice(0, 3)
+                    );
+                }
+            } else {
+                setFetchError(result.error);
+            }
+            setLoading(false);
+        };
+        fetchItem();
+    }, [id]);
+
+    if (loading) {
+        return (
+            <div className="item-detail-page">
+                <Header />
+                <main className="main-content">
+                    <div className="content-wrapper">
+                        <div className="not-found-state">
+                            <p>Loading item...</p>
+                        </div>
+                    </div>
+                </main>
+            </div>
+        );
+    }
 
     if (!item) {
         return (
@@ -30,8 +69,8 @@ function ItemDetail() {
                 <main className="main-content">
                     <div className="content-wrapper">
                         <div className="not-found-state">
-                            <h2>Item Not Found</h2>
-                            <p>The item you are looking for does not exist or has been removed.</p>
+                            <h2>{fetchError ? 'Something went wrong' : 'Item Not Found'}</h2>
+                            <p>{fetchError || 'The item you are looking for does not exist or has been removed.'}</p>
                             <button className="back-btn" onClick={() => navigate('/items')}>
                                 <ArrowLeft size={18} /> Back to Feed
                             </button>
@@ -42,13 +81,22 @@ function ItemDetail() {
         );
     }
 
-    const [showClaimModal, setShowClaimModal] = useState(false);
-    const isOwner = currentUser && item.postedBy?.id === 'u1'; // Mock: assume current user is u1
+    const isOwner = currentUser && item.reporterId === currentUser.id;
     const isFound = item.type === 'FOUND';
-    const daysLeft = daysUntilExpiry(item.expiresAt);
+    const imageUrl = item.imageUrls?.[0] || 'https://picsum.photos/seed/placeholder/600/400';
 
-    const getInitials = (firstName, lastName) => {
-        return `${firstName?.charAt(0) || ''}${lastName?.charAt(0) || ''}`.toUpperCase();
+    const getInitials = (fullName) => {
+        if (!fullName) return '??';
+        return fullName.split(' ').map(p => p.charAt(0)).join('').substring(0, 2).toUpperCase();
+    };
+
+    const handleDelete = async () => {
+        if (window.confirm('Are you sure you want to delete this item?')) {
+            const result = await itemService.deleteItem(id);
+            if (result.success) {
+                navigate('/items');
+            }
+        }
     };
 
     return (
@@ -66,7 +114,7 @@ function ItemDetail() {
                         <div className="detail-image-section">
                             <div className="detail-image-wrapper">
                                 <img
-                                    src={item.imageUrl}
+                                    src={imageUrl}
                                     alt={item.title}
                                     className={isFound ? 'blurred' : ''}
                                 />
@@ -101,30 +149,32 @@ function ItemDetail() {
                                 <div className="meta-row">
                                     <MapPin size={16} />
                                     <span className="meta-label">Location</span>
-                                    <span className="meta-value">{item.locationDescription}</span>
+                                    <span className="meta-value">{item.location || 'Not specified'}</span>
                                 </div>
                                 <div className="meta-row">
                                     <Calendar size={16} />
                                     <span className="meta-label">Posted</span>
                                     <span className="meta-value">{timeAgo(item.createdAt)}</span>
                                 </div>
-                                <div className="meta-row">
-                                    <Clock size={16} />
-                                    <span className="meta-label">Expires in</span>
-                                    <span className="meta-value">{daysLeft > 0 ? `${daysLeft} days` : 'Expired'}</span>
-                                </div>
+                                {item.campus && (
+                                    <div className="meta-row">
+                                        <Clock size={16} />
+                                        <span className="meta-label">Campus</span>
+                                        <span className="meta-value">{item.campus.name}</span>
+                                    </div>
+                                )}
                             </div>
 
                             {/* Poster Info */}
                             <div className="poster-card glass">
                                 <div className="poster-avatar">
-                                    {getInitials(item.postedBy?.firstName, item.postedBy?.lastName)}
+                                    {getInitials(item.reporter?.fullName)}
                                 </div>
                                 <div className="poster-info">
                                     <span className="poster-name">
-                                        {item.postedBy?.firstName} {item.postedBy?.lastName}
+                                        {item.reporter?.fullName || 'Unknown User'}
                                     </span>
-                                    <span className="poster-school">{item.school?.name}</span>
+                                    <span className="poster-school">{item.campus?.name || ''}</span>
                                 </div>
                             </div>
 
@@ -132,19 +182,24 @@ function ItemDetail() {
                             <div className="detail-actions">
                                 {isOwner ? (
                                     <>
-                                        <button className="action-btn primary">Edit Item</button>
-                                        <button className="action-btn success">Mark as Recovered</button>
-                                        <button className="action-btn danger">Cancel Listing</button>
+                                        <button className="action-btn primary" onClick={() => navigate(`/post-item?edit=${item.id}`)}>Edit Item</button>
+                                        <button className="action-btn danger" onClick={handleDelete}>Delete Listing</button>
                                     </>
                                 ) : (
                                     <>
-                                        <button className="action-btn primary" onClick={() => setShowClaimModal(true)}>
-                                            {isFound ? (
-                                                <><Hand size={18} /> I Think This Is Mine</>
-                                            ) : (
-                                                <><Search size={18} /> I Found This</>
-                                            )}
-                                        </button>
+                                        {currentUser ? (
+                                            <button className="action-btn primary" onClick={() => setShowClaimModal(true)}>
+                                                {isFound ? (
+                                                    <><Hand size={18} /> I Think This Is Mine</>
+                                                ) : (
+                                                    <><Search size={18} /> I Found This</>
+                                                )}
+                                            </button>
+                                        ) : (
+                                            <button className="action-btn primary" onClick={() => navigate('/login')}>
+                                                Log in to Claim
+                                            </button>
+                                        )}
                                         <button className="action-btn secondary">
                                             <Share2 size={18} /> Share
                                         </button>

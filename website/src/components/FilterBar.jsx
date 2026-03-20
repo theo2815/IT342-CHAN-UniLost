@@ -1,5 +1,7 @@
+import { useState, useEffect } from "react";
 import { Search } from "lucide-react";
-import { mockCategories, mockSchools } from "../mockData/items";
+import { ITEM_CATEGORIES, CATEGORY_LABELS } from "../constants/categories";
+import campusService from "../services/campusService";
 import "./FilterBar.css";
 
 function FilterBar({
@@ -13,6 +15,17 @@ function FilterBar({
   onSchoolChange,
 }) {
   const types = ["All", "Lost", "Found"];
+  const [campuses, setCampuses] = useState([]);
+
+  useEffect(() => {
+    const fetchCampuses = async () => {
+      const result = await campusService.getAllCampuses();
+      if (result.success) {
+        setCampuses(result.data);
+      }
+    };
+    fetchCampuses();
+  }, []);
 
   return (
     <div className="filter-bar">
@@ -49,9 +62,9 @@ function FilterBar({
             onChange={(e) => onCategoryChange(e.target.value)}
           >
             <option value="">All Categories</option>
-            {mockCategories.map((cat) => (
+            {ITEM_CATEGORIES.map((cat) => (
               <option key={cat} value={cat}>
-                {cat}
+                {CATEGORY_LABELS[cat] || cat}
               </option>
             ))}
           </select>
@@ -62,9 +75,9 @@ function FilterBar({
             onChange={(e) => onSchoolChange(e.target.value)}
           >
             <option value="">All Schools</option>
-            {mockSchools.map((school) => (
-              <option key={school.id} value={school.shortName}>
-                {school.shortName}
+            {campuses.map((campus) => (
+              <option key={campus.id} value={campus.id}>
+                {campus.name}
               </option>
             ))}
           </select>

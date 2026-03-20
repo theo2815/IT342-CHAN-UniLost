@@ -1,48 +1,48 @@
-import { useState, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { 
-    Search, Home, Map as MapIcon, Trophy, Bell, PlusCircle, 
-    ChevronDown, Image as ImageIcon, Camera, Check, 
-    GraduationCap, ShieldCheck, BadgeCheck, CheckCircle, 
-    Package, FileText, History, Handshake, Smile, 
-    BellRing, Heart, Compass, Flame, Lock, Users, 
-    Send, ArrowRight, Mail, Hash, Users as DeptIcon,
-    Award, TrendingUp, MoreHorizontal
+import {
+    PlusCircle,
+    Image as ImageIcon, Camera, Check,
+    GraduationCap, ShieldCheck, BadgeCheck, CheckCircle,
+    Package, FileText, History, Handshake, Smile, Search,
+    BellRing, Heart, Compass, Flame, Lock, Users,
+    Send, ArrowRight,
+    Award, MoreHorizontal
 } from 'lucide-react';
 import Header from '../../components/Header';
 import StatusBadge from '../../components/StatusBadge';
 import EmptyState from '../../components/EmptyState';
 import authService from '../../services/authService';
-import { mockItems, timeAgo } from '../../mockData/items';
-import { getMyOutgoingClaims } from '../../mockData/claims';
+import itemService from '../../services/itemService';
+import { timeAgo } from '../../utils/timeAgo';
 import './Profile.css';
 
 function Profile() {
     const navigate = useNavigate();
     const [user] = useState(() => authService.getCurrentUser());
-    const [activeTab, setActiveTab] = useState('LOST'); // 'LOST' or 'FOUND'
+    const [activeTab, setActiveTab] = useState('LOST');
+    const [myItems, setMyItems] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState('');
 
-    // Get My Items (Found by user) and My Claims (Lost by user)
-    const myReports = useMemo(() => {
-        if (!user) return [];
-        return mockItems.filter(item => item.postedBy?.id === user.id);
+    useEffect(() => {
+        const fetchMyItems = async () => {
+            if (!user?.id) return;
+            setLoading(true);
+            setError('');
+            const result = await itemService.getItemsByUser(user.id, { size: 50 });
+            if (result.success) {
+                setMyItems(result.data.content || []);
+            } else {
+                setError(result.error);
+            }
+            setLoading(false);
+        };
+        fetchMyItems();
     }, [user]);
 
-    const myClaims = useMemo(() => {
-        if (!user) return [];
-        return getMyOutgoingClaims(user.id);
-    }, [user]);
-
-    // Consolidate "Lost Items" = My Claims + My Lost Reports
-    const lostItems = useMemo(() => {
-        const myLostReports = myReports.filter(item => item.type === 'LOST');
-        return [...myClaims.map(c => ({ ...c, isClaim: true })), ...myLostReports];
-    }, [myReports, myClaims]);
-
-    // "Found Items" = My Found Reports
-    const foundItems = useMemo(() => {
-        return myReports.filter(item => item.type === 'FOUND');
-    }, [myReports]);
+    const lostItems = myItems.filter(item => item.type === 'LOST');
+    const foundItems = myItems.filter(item => item.type === 'FOUND');
 
     if (!user) {
         return <div className="loading">Loading profile...</div>;
@@ -283,25 +283,23 @@ function Profile() {
                                     lostItems.map((item, index) => (
                                         <div key={item.id} className="profile-row-card glass-panel animate-in" style={{ animationDelay: `${index * 0.05}s` }}>
                                             <div className="item-thumbnail">
-                                                <img src={item.isClaim ? item.itemImageUrl : item.imageUrl} alt={item.isClaim ? item.itemTitle : item.title} />
-                                                <span className={`type-tag ${item.isClaim ? 'claim' : 'report'}`}>
-                                                    {item.isClaim ? 'CLAIM' : 'REPORT'}
-                                                </span>
+                                                <img src={item.imageUrls?.[0] || 'https://picsum.photos/seed/placeholder/100/100'} alt={item.title} />
+                                                <span className="type-tag report">REPORT</span>
                                             </div>
-                                            <div className="item-details" onClick={() => navigate(item.isClaim ? `/claims/${item.id}` : `/items/${item.id}`)}>
+                                            <div className="item-details" onClick={() => navigate(`/items/${item.id}`)}>
                                                 <div className="item-header-row">
-                                                    <h3>{item.isClaim ? item.itemTitle : item.title}</h3>
+                                                    <h3>{item.title}</h3>
                                                     <StatusBadge status={item.status} />
                                                 </div>
-                                                <p className="item-snippet">{item.isClaim ? item.message : item.description}</p>
+                                                <p className="item-snippet">{item.description}</p>
                                                 <div className="item-footer-meta">
-                                                    <span>{item.isClaim ? `Posted by ${item.posterName}` : item.category}</span>
+                                                    <span>{item.category}</span>
                                                     <span className="dot-mid">&middot;</span>
                                                     <span>{timeAgo(item.createdAt)}</span>
                                                 </div>
                                             </div>
                                             <div className="item-row-arrow">
-                                                <ArrowRight size={20} onClick={() => navigate(item.isClaim ? `/claims/${item.id}` : `/items/${item.id}`)} />
+                                                <ArrowRight size={20} onClick={() => navigate(`/items/${item.id}`)} />
                                             </div>
                                         </div>
                                     ))
@@ -325,7 +323,7 @@ function Profile() {
                                     foundItems.map((item, index) => (
                                         <div key={item.id} className="profile-row-card glass-panel animate-in" style={{ animationDelay: `${index * 0.05}s` }}>
                                             <div className="item-thumbnail">
-                                                <img src={item.imageUrl} alt={item.title} />
+                                                <img src={item.imageUrls?.[0] || 'https://picsum.photos/seed/placeholder/100/100'} alt={item.title} />
                                                 <span className="type-tag found">FOUND</span>
                                             </div>
                                             <div className="item-details" onClick={() => navigate(`/items/${item.id}`)}>

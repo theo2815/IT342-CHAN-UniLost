@@ -1,24 +1,19 @@
 package edu.cit.chan.unilost.repository;
 
 import edu.cit.chan.unilost.entity.ItemEntity;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.mongodb.repository.MongoRepository;
 import org.springframework.stereotype.Repository;
 
-import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface ItemRepository extends MongoRepository<ItemEntity, String> {
 
-    List<ItemEntity> findByReporterId(String reporterId);
+    Optional<ItemEntity> findByIdAndIsDeletedFalse(String id);
 
-    List<ItemEntity> findByCampusId(String campusId);
+    Page<ItemEntity> findByReporterIdAndIsDeletedFalse(String reporterId, Pageable pageable);
 
-    List<ItemEntity> findByType(String type);
-
-    List<ItemEntity> findByIsDeletedFalse();
-
-    List<ItemEntity> findByCampusIdAndIsDeletedFalse(String campusId);
-
-    // TODO: [Phase 4] Add GeoJSON spatial queries (findByLocationNear, etc.)
-    // TODO: [Phase 4] Add full-text search on title and description
+    Page<ItemEntity> findByCampusIdAndIsDeletedFalse(String campusId, Pageable pageable);
 }

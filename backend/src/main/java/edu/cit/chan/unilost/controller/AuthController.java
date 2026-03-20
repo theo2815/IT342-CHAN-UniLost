@@ -6,6 +6,7 @@ import edu.cit.chan.unilost.dto.RegisterRequest;
 import edu.cit.chan.unilost.dto.UserDTO;
 import edu.cit.chan.unilost.service.UserService;
 import edu.cit.chan.unilost.util.JwtUtils;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -14,6 +15,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
+import java.util.regex.Pattern;
 
 /**
  * Handles user authentication: registration, login, and session queries.
@@ -28,14 +30,13 @@ public class AuthController {
     private final UserService userService;
     private final JwtUtils jwtUtils;
 
+    private static final Pattern PASSWORD_PATTERN =
+            Pattern.compile("^(?=.*[A-Z])(?=.*\\d)(?=.*[!@#$%^&*()_+\\-=]).{8,}$");
+
     @PostMapping("/register")
-    public ResponseEntity<?> registerUser(@RequestBody RegisterRequest registerRequest) {
-        try {
-            UserDTO createdUser = userService.createUser(registerRequest);
-            return new ResponseEntity<>(createdUser, HttpStatus.CREATED);
-        } catch (RuntimeException e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
-        }
+    public ResponseEntity<?> registerUser(@Valid @RequestBody RegisterRequest registerRequest) {
+        UserDTO createdUser = userService.createUser(registerRequest);
+        return new ResponseEntity<>(createdUser, HttpStatus.CREATED);
     }
 
     // TODO: [Phase 3] Add email verification endpoint (POST /api/auth/verify-email)
@@ -46,12 +47,12 @@ public class AuthController {
         try {
             String email = body.get("email");
             if (email == null || email.isBlank()) {
-                return ResponseEntity.badRequest().body("Email is required");
+                return ResponseEntity.badRequest().body(Map.of("error", "Email is required"));
             }
             userService.requestPasswordReset(email.trim().toLowerCase());
             return ResponseEntity.ok(Map.of("message", "Verification code sent to your email."));
         } catch (RuntimeException e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
     }
 
@@ -61,12 +62,12 @@ public class AuthController {
             String email = body.get("email");
             String otp = body.get("otp");
             if (email == null || otp == null) {
-                return ResponseEntity.badRequest().body("Email and OTP are required");
+                return ResponseEntity.badRequest().body(Map.of("error", "Email and OTP are required"));
             }
             userService.verifyResetOtp(email.trim().toLowerCase(), otp.trim());
             return ResponseEntity.ok(Map.of("message", "Code verified successfully."));
         } catch (RuntimeException e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
     }
 
@@ -74,30 +75,26 @@ public class AuthController {
     public ResponseEntity<?> resetPassword(@RequestBody Map<String, String> body) {
         try {
             String email = body.get("email");
-            String otp = body.get("otp");
             String newPassword = body.get("newPassword");
-            if (email == null || otp == null || newPassword == null) {
-                return ResponseEntity.badRequest().body("Email, OTP, and new password are required");
+            if (email == null || newPassword == null) {
+                return ResponseEntity.badRequest().body(Map.of("error", "Email and new password are required"));
             }
-            if (newPassword.length() < 6) {
-                return ResponseEntity.badRequest().body("Password must be at least 6 characters");
+            if (newPassword.length() < 8 || !PASSWORD_PATTERN.matcher(newPassword).matches()) {
+                return ResponseEntity.badRequest().body(Map.of("error",
+                        "Password must be at least 8 characters with an uppercase letter, a number, and a special character"));
             }
-            userService.resetPassword(email.trim().toLowerCase(), otp.trim(), newPassword);
+            userService.resetPassword(email.trim().toLowerCase(), newPassword);
             return ResponseEntity.ok(Map.of("message", "Password reset successfully. You can now sign in."));
         } catch (RuntimeException e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
     }
 
     @PostMapping("/login")
-    public ResponseEntity<?> loginUser(@RequestBody LoginRequest loginRequest) {
-        try {
-            UserDTO user = userService.authenticate(loginRequest.getEmail(), loginRequest.getPassword());
-            String token = jwtUtils.generateToken(user.getEmail(), user.getRole());
-            return ResponseEntity.ok(new AuthResponse(token, user));
-        } catch (RuntimeException e) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(e.getMessage());
-        }
+    public ResponseEntity<?> loginUser(@Valid @RequestBody LoginRequest loginRequest) {
+        UserDTO user = userService.authenticate(loginRequest.getEmail(), loginRequest.getPassword());
+        String token = jwtUtils.generateToken(user.getEmail(), user.getRole());
+        return ResponseEntity.ok(new AuthResponse(token, user));
     }
 
     @GetMapping("/me")
@@ -105,12 +102,12 @@ public class AuthController {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication == null || !authentication.isAuthenticated()
                 || "anonymousUser".equals(authentication.getPrincipal())) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Not authenticated");
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error", "Not authenticated"));
         }
 
         String email = (String) authentication.getPrincipal();
         return userService.getUserByEmail(email)
                 .map(user -> ResponseEntity.ok((Object) user))
-                .orElse(ResponseEntity.status(HttpStatus.NOT_FOUND).body("User not found"));
+                .orElse(ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", "User not found")));
     }
 }
