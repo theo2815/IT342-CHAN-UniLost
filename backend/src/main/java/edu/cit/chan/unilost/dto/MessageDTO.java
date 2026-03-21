@@ -3,6 +3,7 @@ package edu.cit.chan.unilost.dto;
 import lombok.Data;
 
 import java.time.LocalDateTime;
+import java.util.Map;
 
 @Data
 public class MessageDTO {
@@ -11,6 +12,8 @@ public class MessageDTO {
     private String senderId;
     private String senderName;
     private String content;
+    private String type;
+    private Map<String, Object> metadata;
     private boolean read;
     private LocalDateTime createdAt;
 }

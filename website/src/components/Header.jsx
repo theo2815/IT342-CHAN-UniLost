@@ -16,15 +16,10 @@ import {
   MessageSquare,
   PlusCircle,
 } from "lucide-react";
-import { Client } from "@stomp/stompjs";
-import SockJS from "sockjs-client";
 import authService from "../services/authService";
-import chatService from "../services/chatService";
-import notificationService from "../services/notificationService";
+import { useUnread } from "../context/UnreadContext";
 import NotificationDropdown from "./NotificationDropdown";
 import "./Header.css";
-
-const WS_URL = import.meta.env.VITE_API_URL?.replace("/api", "") || "http://localhost:8080";
 
 function Header() {
   const navigate = useNavigate();
@@ -32,75 +27,16 @@ function Header() {
   const [user] = useState(() => authService.getCurrentUser());
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
-  const [unreadCount, setUnreadCount] = useState(0);
-  const [unreadMessages, setUnreadMessages] = useState(0);
   const dropdownRef = useRef(null);
   const notificationRef = useRef(null);
-  const stompClientRef = useRef(null);
   const isAdmin = authService.isAdmin();
 
-  // Fetch unread counts from real API
-  useEffect(() => {
-    if (!user) return;
-
-    const fetchUnread = () => {
-      chatService.getUnreadCount().then(result => {
-        if (result.success) setUnreadMessages(result.data);
-      });
-      notificationService.getUnreadCount().then(result => {
-        if (result.success) setUnreadCount(result.data);
-      });
-    };
-
-    fetchUnread();
-
-    // Poll every 30 seconds, but only when tab is visible
-    const interval = setInterval(() => {
-      if (document.visibilityState === "visible") {
-        fetchUnread();
-      }
-    }, 30000);
-
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === "visible") fetchUnread();
-    };
-    document.addEventListener("visibilitychange", handleVisibilityChange);
-
-    return () => {
-      clearInterval(interval);
-      document.removeEventListener("visibilitychange", handleVisibilityChange);
-    };
-  }, []);
-
-  // WebSocket subscription for real-time notifications
-  useEffect(() => {
-    if (!user) return;
-
-    const token = localStorage.getItem("token");
-    if (!token) return;
-
-    const client = new Client({
-      webSocketFactory: () => new SockJS(`${WS_URL}/ws`),
-      connectHeaders: { Authorization: `Bearer ${token}` },
-      reconnectDelay: 5000,
-      onConnect: () => {
-        client.subscribe("/user/queue/notifications", (msg) => {
-          // Increment unread count on new notification
-          setUnreadCount((prev) => prev + 1);
-        });
-      },
-      onStompError: () => {},
-    });
-
-    client.activate();
-    stompClientRef.current = client;
-
-    return () => {
-      if (stompClientRef.current?.active) {
-        stompClientRef.current.deactivate();
-      }
-    };
-  }, []);
+  const {
+    unreadNotifications,
+    unreadMessages,
+    refreshNotificationCount,
+    handleLogout: cleanupWs,
+  } = useUnread();
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -122,21 +58,13 @@ function Header() {
   }, []);
 
   const handleLogout = () => {
-    if (stompClientRef.current?.active) {
-      stompClientRef.current.deactivate();
-    }
+    cleanupWs();
     authService.logout();
     navigate("/login");
   };
 
   const toggleDropdown = () => {
     setIsDropdownOpen(!isDropdownOpen);
-  };
-
-  const refreshUnreadCount = () => {
-    notificationService.getUnreadCount().then(result => {
-      if (result.success) setUnreadCount(result.data);
-    });
   };
 
   const getInitials = () => {
@@ -211,14 +139,14 @@ function Header() {
                 onClick={() => setIsNotificationOpen(!isNotificationOpen)}
               >
                 <Bell size={20} />
-                {unreadCount > 0 && (
-                  <span className="notification-badge">{unreadCount}</span>
+                {unreadNotifications > 0 && (
+                  <span className="notification-badge">{unreadNotifications}</span>
                 )}
               </button>
               {isNotificationOpen && (
                 <NotificationDropdown
                   onClose={() => setIsNotificationOpen(false)}
-                  onCountChange={refreshUnreadCount}
+                  onCountChange={refreshNotificationCount}
                 />
               )}
             </div>

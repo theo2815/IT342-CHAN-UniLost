@@ -193,6 +193,43 @@
     color: #ef4444;
 }
 
+.cd-status-message.accepted {
+    background: rgba(16, 185, 129, 0.06);
+    border: 1px solid rgba(16, 185, 129, 0.15);
+    color: #059669;
+}
+
+.cd-status-message.completed {
+    background: rgba(5, 150, 105, 0.06);
+    border: 1px solid rgba(5, 150, 105, 0.15);
+    color: #059669;
+}
+
+.cd-chat-section {
+    display: flex;
+    justify-content: center;
+    margin-bottom: var(--spacing-lg);
+}
+
+.cd-chat-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1.5rem;
+    border-radius: var(--radius-md);
+    background: var(--color-primary);
+    color: white;
+    font-weight: 600;
+    font-size: var(--font-size-base);
+    cursor: pointer;
+    border: none;
+    transition: filter var(--transition-fast);
+}
+
+.cd-chat-btn:hover {
+    filter: brightness(1.1);
+}
+
 .cd-status-message svg {
     flex-shrink: 0;
     margin-top: 2px;

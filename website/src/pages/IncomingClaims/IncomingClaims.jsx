@@ -56,7 +56,7 @@ function IncomingClaims() {
         return () => controller.abort();
     }, [itemId, page]);
 
-    const hasAccepted = claims.some((c) => c.status === 'ACCEPTED' || c.status === 'HANDED_OVER');
+    const hasAccepted = claims.some((c) => c.status === 'ACCEPTED' || c.status === 'HANDED_OVER' || c.status === 'COMPLETED');
 
     if (loading) {
         return (
@@ -226,6 +226,18 @@ function IncomingClaims() {
                                                 onClick={() => handleReject(claim.id)}
                                             >
                                                 <X size={16} /> {actionLoading === claim.id ? 'Processing...' : 'Reject'}
+                                            </button>
+                                        </div>
+                                    )}
+
+                                    {/* Chat link for accepted claims */}
+                                    {(claim.status === 'ACCEPTED' || claim.status === 'COMPLETED' || claim.status === 'HANDED_OVER') && claim.chatId && (
+                                        <div className="ic-claim-actions">
+                                            <button
+                                                className="ic-chat-btn"
+                                                onClick={() => navigate(`/messages?chatId=${claim.chatId}`)}
+                                            >
+                                                <MessageSquare size={16} /> Open Chat
                                             </button>
                                         </div>
                                     )}

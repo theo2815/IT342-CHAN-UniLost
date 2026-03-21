@@ -115,6 +115,24 @@ public class NotificationService {
                 itemId);
     }
 
+    public void notifyItemMarkedReturned(String ownerUserId, String finderName,
+                                          String itemTitle, String chatId) {
+        createAndPush(ownerUserId, "ITEM_MARKED_RETURNED",
+                "Item marked as returned",
+                finderName + " has returned your '" + itemTitle
+                        + "'. Please confirm that you have received it.",
+                chatId);
+    }
+
+    public void notifyItemReturned(String userId, String itemTitle,
+                                    int karmaAwarded, String chatId) {
+        createAndPush(userId, "ITEM_RETURNED",
+                "Item successfully returned!",
+                "The return of '" + itemTitle + "' is confirmed! You earned +"
+                        + karmaAwarded + " karma points.",
+                chatId);
+    }
+
     // ── Internal Helpers ───────────────────────────────────
 
     private void createAndPush(String userId, String type, String title, String message, String linkId) {

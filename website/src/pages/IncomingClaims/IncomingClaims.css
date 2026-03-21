@@ -223,6 +223,13 @@
     display: flex;
     gap: var(--spacing-sm);
     justify-content: flex-end;
+    align-items: center;
+}
+
+.ic-waiting-label {
+    font-size: var(--font-size-xs);
+    color: var(--color-text-muted);
+    font-style: italic;
 }
 
 .ic-approve-btn,
@@ -257,6 +264,25 @@
 .ic-reject-btn:hover {
     border-color: #ef4444;
     color: #ef4444;
+}
+
+.ic-chat-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    padding: 0.5rem 1rem;
+    border-radius: var(--radius-md);
+    background: var(--color-primary);
+    color: white;
+    font-weight: 600;
+    font-size: var(--font-size-sm);
+    cursor: pointer;
+    border: none;
+    transition: filter var(--transition-fast);
+}
+
+.ic-chat-btn:hover {
+    filter: brightness(1.1);
 }
 
 /* Dark mode */

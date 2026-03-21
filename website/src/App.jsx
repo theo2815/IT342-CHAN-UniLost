@@ -31,6 +31,8 @@ import { useGlobalToast } from './hooks/useToast';
 import './App.css';
 
 import { ThemeProvider } from './context/ThemeContext';
+import { CampusProvider } from './context/CampusContext';
+import { UnreadProvider } from './context/UnreadContext';
 
 const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '';
 
@@ -43,6 +45,8 @@ function App() {
   return (
     <APIProvider apiKey={GOOGLE_MAPS_API_KEY}>
     <ThemeProvider>
+      <CampusProvider>
+      <UnreadProvider>
       <ToastProvider>
       <GlobalToastInit />
       <Router>
@@ -86,6 +90,8 @@ function App() {
         </Routes>
       </Router>
       </ToastProvider>
+      </UnreadProvider>
+      </CampusProvider>
     </ThemeProvider>
     </APIProvider>
   );

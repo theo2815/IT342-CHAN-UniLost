@@ -12,12 +12,12 @@ import java.time.LocalDateTime;
 
 /**
  * Represents a claim attempt on a found item.
+ * Handover state is tracked via finderMarkedReturnedAt / ownerConfirmedReceivedAt.
  *
  * Relationships (MongoDB references via ID):
  * - Many-to-One: Claim → Item (item_id)
  * - Many-to-One: Claim → User (claimant_id)
  * - Many-to-One: Claim → User (finder_id)
- * - One-to-One: Claim → Handover (resolved via HandoverEntity.claimId)
  */
 @Data
 @NoArgsConstructor
@@ -46,8 +46,14 @@ public class ClaimEntity {
     /** Free-text message from the claimant */
     private String message;
 
-    /** PENDING, ACCEPTED, REJECTED, CANCELLED */
+    /** PENDING, ACCEPTED, REJECTED, CANCELLED, COMPLETED */
     private ClaimStatus status = ClaimStatus.PENDING;
+
+    /** Timestamp when finder marked the item as returned to owner */
+    private LocalDateTime finderMarkedReturnedAt;
+
+    /** Timestamp when owner confirmed receipt of the item */
+    private LocalDateTime ownerConfirmedReceivedAt;
 
     private LocalDateTime createdAt;
 

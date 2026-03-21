@@ -38,4 +38,8 @@ public class ClaimDTO {
 
     // Chat room associated with this claim
     private String chatId;
+
+    // Handover tracking
+    private LocalDateTime finderMarkedReturnedAt;
+    private LocalDateTime ownerConfirmedReceivedAt;
 }

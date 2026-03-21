@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Bell, CheckCircle, XCircle, Clock, Search, AlertTriangle, Check, CheckCheck, MessageSquare, Loader } from 'lucide-react';
+import { Bell, CheckCircle, XCircle, Clock, Search, AlertTriangle, Check, CheckCheck, MessageSquare, Loader, HandMetal, PackageCheck } from 'lucide-react';
 import Header from '../../components/Header';
 import EmptyState from '../../components/EmptyState';
 import notificationService from '../../services/notificationService';
@@ -13,15 +13,18 @@ const TABS = [
     { key: 'ITEMS', label: 'Items' },
 ];
 
-const claimTypes = ['CLAIM_RECEIVED', 'CLAIM_ACCEPTED', 'CLAIM_REJECTED', 'HANDOVER_CONFIRMED', 'HANDOVER_REMINDER'];
+const claimTypes = ['CLAIM_RECEIVED', 'CLAIM_ACCEPTED', 'CLAIM_REJECTED', 'HANDOVER_CONFIRMED', 'HANDOVER_COMPLETE', 'HANDOVER_REMINDER', 'ITEM_MARKED_RETURNED', 'ITEM_RETURNED'];
 const itemTypes = ['ITEM_EXPIRED', 'ITEM_MATCH', 'ITEM_FLAGGED'];
 
 const typeConfig = {
     CLAIM_RECEIVED: { icon: <Bell size={18} />, color: '#a855f7', label: 'Claim Received' },
     CLAIM_ACCEPTED: { icon: <CheckCircle size={18} />, color: '#22c55e', label: 'Claim Accepted' },
     CLAIM_REJECTED: { icon: <XCircle size={18} />, color: '#ef4444', label: 'Claim Rejected' },
-    HANDOVER_CONFIRMED: { icon: <Check size={18} />, color: '#10b981', label: 'Handover Complete' },
+    HANDOVER_CONFIRMED: { icon: <Check size={18} />, color: '#10b981', label: 'Handover Confirmed' },
+    HANDOVER_COMPLETE: { icon: <CheckCircle size={18} />, color: '#10b981', label: 'Handover Complete' },
     HANDOVER_REMINDER: { icon: <Clock size={18} />, color: '#f59e0b', label: 'Handover Reminder' },
+    ITEM_MARKED_RETURNED: { icon: <HandMetal size={18} />, color: '#d97706', label: 'Item Returned' },
+    ITEM_RETURNED: { icon: <PackageCheck size={18} />, color: '#059669', label: 'Return Confirmed' },
     ITEM_EXPIRED: { icon: <AlertTriangle size={18} />, color: '#94a3b8', label: 'Item Expired' },
     ITEM_MATCH: { icon: <Search size={18} />, color: '#3b82f6', label: 'Possible Match' },
     ITEM_FLAGGED: { icon: <AlertTriangle size={18} />, color: '#f59e0b', label: 'Item Flagged' },
@@ -34,8 +37,12 @@ function getNotifRoute(notif) {
         case 'CLAIM_ACCEPTED':
         case 'CLAIM_REJECTED':
             return `/claims/${notif.linkId}`;
+        case 'HANDOVER_CONFIRMED':
+        case 'HANDOVER_COMPLETE':
+        case 'ITEM_MARKED_RETURNED':
+        case 'ITEM_RETURNED':
         case 'NEW_MESSAGE':
-            return '/messages';
+            return `/messages?chatId=${notif.linkId}`;
         case 'ITEM_FLAGGED':
         case 'ITEM_EXPIRED':
         case 'ITEM_MATCH':

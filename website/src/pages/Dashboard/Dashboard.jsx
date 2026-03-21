@@ -18,6 +18,7 @@ import authService from "../../services/authService";
 import itemService from "../../services/itemService";
 import userService from "../../services/userService";
 import campusService from "../../services/campusService";
+import { useCampuses } from "../../context/CampusContext";
 import "./Dashboard.css";
 
 function Dashboard() {
@@ -27,7 +28,7 @@ function Dashboard() {
   const [itemsError, setItemsError] = useState('');
   const [leaderboard, setLeaderboard] = useState([]);
   const [leaderboardLoaded, setLeaderboardLoaded] = useState(false);
-  const [campuses, setCampuses] = useState([]);
+  const { campuses } = useCampuses();
   const [campusStats, setCampusStats] = useState([]);
 
   useEffect(() => {
@@ -49,10 +50,6 @@ function Dashboard() {
     userService.getLeaderboard(5).then((result) => {
       if (result.success) setLeaderboard(result.data);
       setLeaderboardLoaded(true);
-    });
-
-    campusService.getAllCampuses().then((result) => {
-      if (result.success) setCampuses(result.data);
     });
 
     campusService.getCampusStats().then((result) => {

@@ -269,6 +269,18 @@ public class UserService {
         userRepository.save(user);
     }
 
+    /**
+     * Atomically increment a user's karma score.
+     * Uses MongoTemplate findAndModify to prevent race conditions.
+     */
+    public void incrementKarma(String userId, int points) {
+        mongoTemplate.findAndModify(
+                Query.query(Criteria.where("id").is(userId)),
+                new Update().inc("karmaScore", points),
+                UserEntity.class
+        );
+    }
+
     private String generateOtp() {
         SecureRandom random = new SecureRandom();
         int bound = (int) Math.pow(10, OTP_LENGTH);

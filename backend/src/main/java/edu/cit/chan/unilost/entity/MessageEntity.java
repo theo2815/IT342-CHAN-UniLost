@@ -7,6 +7,7 @@ import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.time.LocalDateTime;
+import java.util.Map;
 
 /**
  * Represents a single message within a chat thread.
@@ -27,10 +28,16 @@ public class MessageEntity {
     /** Reference to chats.id */
     private String chatId;
 
-    /** Reference to users.id — who sent this message */
+    /** Reference to users.id — who sent this message. Null for system messages. */
     private String senderId;
 
     private String content;
+
+    /** Message type — defaults to TEXT for backward compat with existing messages */
+    private MessageType type = MessageType.TEXT;
+
+    /** Structured data for non-TEXT messages (claim details, karma amounts, etc.) */
+    private Map<String, Object> metadata;
 
     private boolean isRead = false;
 

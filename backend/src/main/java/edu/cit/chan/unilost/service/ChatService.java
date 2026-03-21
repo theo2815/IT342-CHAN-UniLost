@@ -2,16 +2,10 @@ package edu.cit.chan.unilost.service;
 
 import edu.cit.chan.unilost.dto.ChatDTO;
 import edu.cit.chan.unilost.dto.MessageDTO;
-import edu.cit.chan.unilost.entity.ChatEntity;
-import edu.cit.chan.unilost.entity.ItemEntity;
-import edu.cit.chan.unilost.entity.MessageEntity;
-import edu.cit.chan.unilost.entity.UserEntity;
+import edu.cit.chan.unilost.entity.*;
 import edu.cit.chan.unilost.exception.ForbiddenException;
 import edu.cit.chan.unilost.exception.ResourceNotFoundException;
-import edu.cit.chan.unilost.repository.ChatRepository;
-import edu.cit.chan.unilost.repository.ItemRepository;
-import edu.cit.chan.unilost.repository.MessageRepository;
-import edu.cit.chan.unilost.repository.UserRepository;
+import edu.cit.chan.unilost.repository.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
@@ -40,6 +34,7 @@ public class ChatService {
     private final SimpMessagingTemplate messagingTemplate;
     private final MongoTemplate mongoTemplate;
     private final NotificationService notificationService;
+    private final ClaimRepository claimRepository;
 
     /**
      * Auto-create a chat room when a claim is submitted.
@@ -48,7 +43,14 @@ public class ChatService {
     public ChatEntity createChatForClaim(String itemId, String claimId, String finderId, String ownerId) {
         Optional<ChatEntity> existing = chatRepository.findByItemIdAndFinderIdAndOwnerId(itemId, finderId, ownerId);
         if (existing.isPresent()) {
-            return existing.get();
+            // Update the chat to reference the new claim (e.g., after a previous claim was rejected)
+            ChatEntity chat = existing.get();
+            if (!claimId.equals(chat.getClaimId())) {
+                chat.setClaimId(claimId);
+                chat.setUpdatedAt(LocalDateTime.now());
+                return chatRepository.save(chat);
+            }
+            return chat;
         }
 
         ChatEntity chat = new ChatEntity();
@@ -88,7 +90,13 @@ public class ChatService {
         Map<String, ItemEntity> itemsById = itemRepository.findAllById(itemIds).stream()
                 .collect(Collectors.toMap(ItemEntity::getId, Function.identity()));
 
-        return chats.stream().map(chat -> convertToDTO(chat, currentUser.getId(), usersById, itemsById)).toList();
+        // Batch-load claims for status fields
+        Set<String> claimIds = chats.stream().map(ChatEntity::getClaimId)
+                .filter(Objects::nonNull).collect(Collectors.toSet());
+        Map<String, ClaimEntity> claimsById = claimRepository.findAllById(claimIds).stream()
+                .collect(Collectors.toMap(ClaimEntity::getId, Function.identity()));
+
+        return chats.stream().map(chat -> convertToDTO(chat, currentUser.getId(), usersById, itemsById, claimsById)).toList();
     }
 
     /**
@@ -112,7 +120,12 @@ public class ChatService {
                 .collect(Collectors.toMap(ItemEntity::getId, Function.identity()))
                 : Map.of();
 
-        return convertToDTO(chat, currentUser.getId(), usersById, itemsById);
+        Map<String, ClaimEntity> claimsById = chat.getClaimId() != null
+                ? claimRepository.findAllById(List.of(chat.getClaimId())).stream()
+                .collect(Collectors.toMap(ClaimEntity::getId, Function.identity()))
+                : Map.of();
+
+        return convertToDTO(chat, currentUser.getId(), usersById, itemsById, claimsById);
     }
 
     /**
@@ -129,9 +142,9 @@ public class ChatService {
 
         Page<MessageEntity> messagePage = messageRepository.findByChatIdOrderByCreatedAtDesc(chatId, pageable);
 
-        // Batch-load sender names
+        // Batch-load sender names (filter out null senderIds from system messages)
         Set<String> senderIds = messagePage.getContent().stream()
-                .map(MessageEntity::getSenderId).collect(Collectors.toSet());
+                .map(MessageEntity::getSenderId).filter(Objects::nonNull).collect(Collectors.toSet());
         Map<String, UserEntity> sendersById = userRepository.findAllById(senderIds).stream()
                 .collect(Collectors.toMap(UserEntity::getId, Function.identity()));
 
@@ -182,6 +195,57 @@ public class ChatService {
         notificationService.notifyNewMessage(recipientId, sender.getFullName(), chatId);
 
         return dto;
+    }
+
+    /**
+     * Send a structured (non-text) message in a chat. Used for system events.
+     * senderId is null for system messages.
+     */
+    public MessageDTO sendStructuredMessage(String chatId, String senderId, String content,
+                                             MessageType type, Map<String, Object> metadata) {
+        MessageEntity message = new MessageEntity();
+        message.setChatId(chatId);
+        message.setSenderId(senderId);
+        message.setContent(content);
+        message.setType(type);
+        message.setMetadata(metadata);
+        message.setCreatedAt(LocalDateTime.now());
+        MessageEntity saved = messageRepository.save(message);
+
+        chatRepository.findById(chatId).ifPresent(chat -> {
+            chat.setLastMessagePreview(content.length() > 100 ? content.substring(0, 100) + "..." : content);
+            chat.setLastMessageAt(LocalDateTime.now());
+            chat.setUpdatedAt(LocalDateTime.now());
+            chatRepository.save(chat);
+        });
+
+        Map<String, UserEntity> sendersMap = senderId != null
+                ? userRepository.findAllById(List.of(senderId)).stream()
+                .collect(Collectors.toMap(UserEntity::getId, Function.identity()))
+                : Map.of();
+        MessageDTO dto = convertMessageToDTO(saved, sendersMap);
+
+        messagingTemplate.convertAndSend("/topic/chat/" + chatId, dto);
+
+        return dto;
+    }
+
+    /**
+     * Posts the initial CLAIM_SUBMISSION structured message after a claim is created.
+     */
+    public void sendClaimSubmissionMessage(String chatId, ClaimEntity claim, ItemEntity item, UserEntity claimant) {
+        Map<String, Object> metadata = new LinkedHashMap<>();
+        metadata.put("claimId", claim.getId());
+        metadata.put("itemTitle", item.getTitle());
+        metadata.put("itemType", item.getType());
+        metadata.put("itemImageUrl", item.getImageUrls() != null && !item.getImageUrls().isEmpty()
+                ? item.getImageUrls().get(0) : null);
+        metadata.put("providedAnswer", claim.getProvidedAnswer());
+        metadata.put("claimMessage", claim.getMessage());
+        metadata.put("claimantName", claimant.getFullName());
+
+        String content = claimant.getFullName() + " submitted a claim on '" + item.getTitle() + "'";
+        sendStructuredMessage(chatId, null, content, MessageType.CLAIM_SUBMISSION, metadata);
     }
 
     /**
@@ -244,7 +308,8 @@ public class ChatService {
 
     private ChatDTO convertToDTO(ChatEntity chat, String currentUserId,
                                   Map<String, UserEntity> usersById,
-                                  Map<String, ItemEntity> itemsById) {
+                                  Map<String, ItemEntity> itemsById,
+                                  Map<String, ClaimEntity> claimsById) {
         ChatDTO dto = new ChatDTO();
         dto.setId(chat.getId());
         dto.setItemId(chat.getItemId());
@@ -255,12 +320,20 @@ public class ChatService {
         dto.setLastMessageAt(chat.getLastMessageAt());
         dto.setCreatedAt(chat.getCreatedAt());
 
-        // Resolve item
+        // Resolve item + item status
         ItemEntity item = itemsById.get(chat.getItemId());
         if (item != null) {
             dto.setItemTitle(item.getTitle());
             dto.setItemImageUrl(item.getImageUrls() != null && !item.getImageUrls().isEmpty()
                     ? item.getImageUrls().get(0) : null);
+            dto.setItemStatus(item.getStatus().name());
+            dto.setItemType(item.getType());
+        }
+
+        // Resolve claim status
+        ClaimEntity claim = claimsById.get(chat.getClaimId());
+        if (claim != null) {
+            dto.setClaimStatus(claim.getStatus().name());
         }
 
         // Resolve participant names (privacy: use fullName since both are claim participants)
@@ -291,12 +364,16 @@ public class ChatService {
         dto.setChatId(msg.getChatId());
         dto.setSenderId(msg.getSenderId());
         dto.setContent(msg.getContent());
+        dto.setType(msg.getType() != null ? msg.getType().name() : "TEXT");
+        dto.setMetadata(msg.getMetadata());
         dto.setRead(msg.isRead());
         dto.setCreatedAt(msg.getCreatedAt());
 
-        UserEntity sender = sendersById.get(msg.getSenderId());
-        if (sender != null) {
-            dto.setSenderName(sender.getFullName());
+        if (msg.getSenderId() != null) {
+            UserEntity sender = sendersById.get(msg.getSenderId());
+            if (sender != null) {
+                dto.setSenderName(sender.getFullName());
+            }
         }
 
         return dto;

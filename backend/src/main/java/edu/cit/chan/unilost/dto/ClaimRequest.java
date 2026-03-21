@@ -14,7 +14,6 @@ public class ClaimRequest {
     @NotBlank(message = "Item ID is required")
     private String itemId;
 
-    @NotBlank(message = "Secret detail answer is required")
     @Size(max = 500, message = "Answer must be 500 characters or less")
     private String providedAnswer;
 

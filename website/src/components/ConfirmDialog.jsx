@@ -1,5 +1,5 @@
-import { useEffect } from "react";
-import { AlertTriangle, X } from "lucide-react";
+import { useEffect, useState } from "react";
+import { AlertTriangle, X, Loader } from "lucide-react";
 import "./ConfirmDialog.css";
 
 function ConfirmDialog({
@@ -12,6 +12,12 @@ function ConfirmDialog({
   cancelLabel = "Cancel",
   variant = "danger", // 'danger' | 'warning' | 'success'
 }) {
+  const [loading, setLoading] = useState(false);
+  // Reset loading when dialog closes/opens
+  useEffect(() => {
+    if (!isOpen) setLoading(false);
+  }, [isOpen]);
+
   // Close on Escape key
   useEffect(() => {
     const handleEscape = (e) => {
@@ -54,17 +60,23 @@ function ConfirmDialog({
 
         {/* Actions */}
         <div className="confirm-dialog-actions">
-          <button className="confirm-dialog-btn cancel" onClick={onClose}>
+          <button className="confirm-dialog-btn cancel" onClick={onClose} disabled={loading}>
             {cancelLabel}
           </button>
           <button
             className={`confirm-dialog-btn confirm ${variant}`}
-            onClick={() => {
-              onConfirm();
-              onClose();
+            disabled={loading}
+            onClick={async () => {
+              setLoading(true);
+              try {
+                await onConfirm();
+              } finally {
+                setLoading(false);
+                onClose();
+              }
             }}
           >
-            {confirmLabel}
+            {loading ? <Loader size={14} className="spin" /> : confirmLabel}
           </button>
         </div>
       </div>

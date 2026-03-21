@@ -8,13 +8,28 @@ import {
   ChevronLeft,
   Package,
   AlertCircle,
+  HandMetal,
+  PackageCheck,
+  Info,
+  Star,
+  FileText,
+  CheckCircle,
+  XCircle,
+  Clock,
+  ArrowRight,
+  Trophy,
+  ShieldAlert,
 } from "lucide-react";
 import { useSearchParams } from "react-router-dom";
 import SockJS from "sockjs-client/dist/sockjs";
 import { Client } from "@stomp/stompjs";
 import Header from "../../components/Header";
+import StatusBadge from "../../components/StatusBadge";
 import chatService from "../../services/chatService";
+import claimService from "../../services/claimService";
+import itemService from "../../services/itemService";
 import authService from "../../services/authService";
+import ConfirmDialog from "../../components/ConfirmDialog";
 import "./Messages.css";
 
 function Messages() {
@@ -30,6 +45,9 @@ function Messages() {
   const [loadError, setLoadError] = useState("");
   const [messagesLoading, setMessagesLoading] = useState(false);
   const [sending, setSending] = useState(false);
+  const [handoverLoading, setHandoverLoading] = useState(false);
+  const [claimActionLoading, setClaimActionLoading] = useState(false);
+  const [confirmDialog, setConfirmDialog] = useState({ isOpen: false });
   const [filter, setFilter] = useState("all");
   const [showMobileSidebar, setShowMobileSidebar] = useState(!initialChatId);
 
@@ -80,7 +98,15 @@ function Messages() {
   const loadChatDetail = async (chatId) => {
     const result = await chatService.getChatById(chatId);
     if (result.success && activeChatIdRef.current === chatId) {
-      setActiveChat(result.data);
+      const chatData = result.data;
+      // Fetch item image directly if ChatDTO doesn't have it
+      if (!chatData.itemImageUrl && chatData.itemId) {
+        const itemResult = await itemService.getItemById(chatData.itemId);
+        if (itemResult.success && itemResult.data.imageUrls?.length > 0) {
+          chatData.itemImageUrl = itemResult.data.imageUrls[0];
+        }
+      }
+      setActiveChat(chatData);
     }
   };
 
@@ -133,10 +159,19 @@ function Messages() {
       onConnect: () => {
         client.subscribe(`/topic/chat/${activeChatId}`, (frame) => {
           const msg = JSON.parse(frame.body);
-          // M1 fix: guard against null currentUser
-          if (currentUser?.id && msg.senderId !== currentUser.id) {
+          const msgType = msg.type || "TEXT";
+          // Accept system messages (no senderId) and messages from other users
+          if (msgType !== "TEXT" || !currentUser?.id || msg.senderId !== currentUser.id) {
             setMessages(prev => [...prev, msg]);
-            debouncedMarkRead(activeChatId);
+            if (msg.senderId && msg.senderId !== currentUser?.id) {
+              debouncedMarkRead(activeChatId);
+            }
+            // Refresh chat detail for status changes
+            if (msgType === "HANDOVER_REQUEST" || msgType === "HANDOVER_CONFIRMED"
+                || msgType === "HANDOVER_DISPUTED" || msgType === "CLAIM_ACCEPTED" || msgType === "CLAIM_REJECTED") {
+              loadChatDetail(activeChatId);
+              loadChats();
+            }
           }
         });
       },
@@ -203,6 +238,167 @@ function Messages() {
       handleSend();
     }
   };
+
+  const handleMarkReturned = () => {
+    if (!activeChat?.claimId || handoverLoading) return;
+    setConfirmDialog({
+      isOpen: true,
+      title: "Mark Item as Returned?",
+      message: "Confirm that you have physically handed the item to the owner. They will be asked to verify receipt.",
+      confirmLabel: "Yes, I Returned It",
+      variant: "warning",
+      onConfirm: async () => {
+        setHandoverLoading(true);
+        const result = await claimService.markItemReturned(activeChat.claimId);
+        if (result.success) {
+          await loadChatDetail(activeChatId);
+          await loadMessages(activeChatId);
+          loadChats();
+        }
+        setHandoverLoading(false);
+      },
+    });
+  };
+
+  const handleConfirmReceived = () => {
+    if (!activeChat?.claimId || handoverLoading) return;
+    setConfirmDialog({
+      isOpen: true,
+      title: "Confirm Item Received?",
+      message: "Confirm that you have received your item. This will complete the handover and award karma to both parties.",
+      confirmLabel: "Yes, I Received It",
+      variant: "success",
+      onConfirm: async () => {
+        setHandoverLoading(true);
+        const result = await claimService.confirmItemReceived(activeChat.claimId);
+        if (result.success) {
+          await loadChatDetail(activeChatId);
+          await loadMessages(activeChatId);
+          loadChats();
+        }
+        setHandoverLoading(false);
+      },
+    });
+  };
+
+  const handleDisputeHandover = () => {
+    if (!activeChat?.claimId || handoverLoading) return;
+    setConfirmDialog({
+      isOpen: true,
+      title: "Report Problem?",
+      message: "Report that you did not receive the item. The handover status will be reverted so the other party can try again.",
+      confirmLabel: "I Did Not Receive It",
+      variant: "danger",
+      onConfirm: async () => {
+        setHandoverLoading(true);
+        const result = await claimService.disputeHandover(activeChat.claimId);
+        if (result.success) {
+          await loadChatDetail(activeChatId);
+          await loadMessages(activeChatId);
+          loadChats();
+        } else {
+          alert(result.error || "Failed to dispute handover. Please try again.");
+        }
+        setHandoverLoading(false);
+      },
+    });
+  };
+
+  const handleAcceptClaim = async () => {
+    if (!activeChat?.claimId || claimActionLoading) return;
+    setClaimActionLoading(true);
+    const result = await claimService.acceptClaim(activeChat.claimId);
+    if (result.success) {
+      await loadChatDetail(activeChatId);
+      await loadMessages(activeChatId);
+      loadChats();
+    } else {
+      alert(result.error || "Failed to accept claim. Please try again.");
+    }
+    setClaimActionLoading(false);
+  };
+
+  const handleRejectClaim = async () => {
+    if (!activeChat?.claimId || claimActionLoading) return;
+    setClaimActionLoading(true);
+    const result = await claimService.rejectClaim(activeChat.claimId);
+    if (result.success) {
+      await loadChatDetail(activeChatId);
+      await loadMessages(activeChatId);
+      loadChats();
+    } else {
+      alert(result.error || "Failed to reject claim. Please try again.");
+    }
+    setClaimActionLoading(false);
+  };
+
+  // Determine which handover action to show
+  // For LOST items, roles are inverted: finderId=poster=actual owner, ownerId=claimant=actual finder
+  const isFinder = activeChat?.finderId === currentUser?.id;
+  const isOwner = activeChat?.ownerId === currentUser?.id;
+  const isLostItem = activeChat?.itemType === "LOST";
+  const isActualHolder = isLostItem ? isOwner : isFinder;   // person who has the physical item
+  const isActualOwner = isLostItem ? isFinder : isOwner;     // person who owns the item
+  const showMarkReturned = isActualHolder
+    && activeChat?.claimStatus === "ACCEPTED"
+    && activeChat?.itemStatus === "CLAIMED";
+  const showConfirmReceived = isActualOwner
+    && activeChat?.claimStatus === "ACCEPTED"
+    && activeChat?.itemStatus === "PENDING_OWNER_CONFIRMATION";
+
+  const isHandoverComplete = activeChat?.claimStatus === "COMPLETED";
+  const isClaimRejected = activeChat?.claimStatus === "REJECTED";
+  const isClaimCancelled = activeChat?.claimStatus === "CANCELLED";
+
+  const getProgressSteps = () => {
+    if (!activeChat) return [];
+    const cs = activeChat.claimStatus;
+    const is = activeChat.itemStatus;
+    return [
+      { label: "Claim Filed", done: true },
+      { label: cs === "REJECTED" ? "Rejected" : "Reviewed", done: ["ACCEPTED", "COMPLETED", "REJECTED"].includes(cs), rejected: cs === "REJECTED" },
+      { label: "Returned", done: is === "PENDING_OWNER_CONFIRMATION" || is === "RETURNED", active: cs === "ACCEPTED" && is === "CLAIMED" },
+      { label: "Confirmed", done: cs === "COMPLETED", active: is === "PENDING_OWNER_CONFIRMATION" },
+    ];
+  };
+
+  const getNextActionInfo = () => {
+    if (!activeChat) return null;
+    const cs = activeChat.claimStatus;
+    const is = activeChat.itemStatus;
+    if (cs === "COMPLETED") return { text: "Handover complete! Both parties earned karma.", type: "success" };
+    if (cs === "REJECTED") return { text: "This claim was rejected.", type: "error" };
+    if (cs === "CANCELLED") return { text: "This claim was cancelled.", type: "muted" };
+    if (is === "PENDING_OWNER_CONFIRMATION") {
+      return isActualOwner
+        ? { text: "Your turn — confirm you received the item, or report a problem.", type: "action" }
+        : { text: "Waiting for the owner to confirm receipt.", type: "waiting" };
+    }
+    if (cs === "ACCEPTED" && is === "CLAIMED") {
+      return isActualHolder
+        ? { text: "Your turn — meet up and mark the item as returned.", type: "action" }
+        : { text: "Waiting for the item to be returned to you.", type: "waiting" };
+    }
+    if (cs === "PENDING" && !isLostItem) {
+      return isFinder
+        ? { text: "Your turn — review this claim and accept or reject.", type: "action" }
+        : { text: "Waiting for the finder to review your claim.", type: "waiting" };
+    }
+    if (cs === "PENDING" && isLostItem) {
+      return { text: "Claim submitted — waiting for auto-verification.", type: "waiting" };
+    }
+    return null;
+  };
+
+  const getChatStatusType = (chat) => {
+    if (chat.claimStatus === "COMPLETED") return "completed";
+    if (chat.claimStatus === "REJECTED" || chat.claimStatus === "CANCELLED") return "closed";
+    if (chat.itemStatus === "PENDING_OWNER_CONFIRMATION") return "pending";
+    return "active";
+  };
+
+  const progressSteps = getProgressSteps();
+  const nextAction = getNextActionInfo();
 
   const selectChat = (chatId) => {
     setActiveChatId(chatId);
@@ -279,34 +475,38 @@ function Messages() {
                 <span className="text-muted">Chats are created when you submit a claim on an item</span>
               </div>
             ) : (
-              filteredChats.map((chat) => (
-                <div
-                  key={chat.id}
-                  className={`conversation-item ${activeChatId === chat.id ? "active" : ""}`}
-                  onClick={() => selectChat(chat.id)}
-                >
-                  <div className="avatar-container">
-                    <div className="avatar-img avatar-initials">
-                      {(chat.otherParticipantName || "?").charAt(0).toUpperCase()}
+              filteredChats.map((chat) => {
+                const statusType = getChatStatusType(chat);
+                return (
+                  <div
+                    key={chat.id}
+                    className={`conversation-item ${activeChatId === chat.id ? "active" : ""} conv-${statusType}`}
+                    onClick={() => selectChat(chat.id)}
+                  >
+                    <div className="avatar-container">
+                      <div className="avatar-img avatar-initials">
+                        {(chat.otherParticipantName || "?").charAt(0).toUpperCase()}
+                      </div>
+                      <span className={`conv-status-dot status-${statusType}`} />
                     </div>
-                  </div>
-                  <div className="conv-info">
-                    <div className="conv-header">
-                      <span className="conv-name">{chat.otherParticipantName}</span>
-                      <span className="conv-time">{formatTime(chat.lastMessageAt)}</span>
+                    <div className="conv-info">
+                      <div className="conv-header">
+                        <span className="conv-name">{chat.otherParticipantName}</span>
+                        <span className="conv-time">{formatTime(chat.lastMessageAt)}</span>
+                      </div>
+                      <p className="conv-preview">
+                        {chat.itemTitle && (
+                          <span className="conv-item-tag">{chat.itemTitle} — </span>
+                        )}
+                        {chat.lastMessagePreview || "No messages yet"}
+                      </p>
                     </div>
-                    <p className="conv-preview">
-                      {chat.itemTitle && (
-                        <span className="conv-item-tag">{chat.itemTitle} — </span>
-                      )}
-                      {chat.lastMessagePreview || "No messages yet"}
-                    </p>
+                    {chat.unreadCount > 0 && (
+                      <span className="unread-badge">{chat.unreadCount}</span>
+                    )}
                   </div>
-                  {chat.unreadCount > 0 && (
-                    <span className="unread-badge">{chat.unreadCount}</span>
-                  )}
-                </div>
-              ))
+                );
+              })
             )}
           </div>
         </aside>
@@ -333,10 +533,42 @@ function Messages() {
                     <span className="chat-item-label">
                       <Package size={14} />
                       {activeChat.itemTitle}
+                      {activeChat.itemStatus && (
+                        <StatusBadge status={activeChat.itemStatus} />
+                      )}
                     </span>
                   )}
                 </div>
               </div>
+
+              {/* Progress Tracker */}
+              {activeChat && !isClaimCancelled && (
+                <div className="handover-progress">
+                  <div className="progress-tracker">
+                    {progressSteps.map((step, i) => (
+                      <div key={i} className={`tracker-step ${step.done ? "done" : ""} ${step.active ? "current" : ""} ${step.rejected ? "rejected" : ""}`}>
+                        <div className="tracker-step-top">
+                          <div className={`tracker-line${i > 0 && progressSteps[i - 1].done ? " filled" : ""}${i === 0 ? " invisible" : ""}`} />
+                          <div className="tracker-dot">
+                            {step.done && !step.rejected ? <Check size={10} /> : step.rejected ? <XCircle size={10} /> : null}
+                          </div>
+                          <div className={`tracker-line${i < progressSteps.length - 1 && step.done ? " filled" : ""}${i === progressSteps.length - 1 ? " invisible" : ""}`} />
+                        </div>
+                        <span className="tracker-label">{step.label}</span>
+                      </div>
+                    ))}
+                  </div>
+                  {nextAction && (
+                    <div className={`next-action-banner ${nextAction.type}`}>
+                      {nextAction.type === "action" && <ArrowRight size={13} />}
+                      {nextAction.type === "waiting" && <Clock size={13} />}
+                      {nextAction.type === "success" && <Trophy size={13} />}
+                      {nextAction.type === "error" && <XCircle size={13} />}
+                      <span>{nextAction.text}</span>
+                    </div>
+                  )}
+                </div>
+              )}
 
               <div className="chat-messages" ref={chatContainerRef}>
                 {messagesLoading ? (
@@ -352,7 +584,106 @@ function Messages() {
                   </div>
                 ) : (
                   messages.map((msg) => {
+                    const msgType = msg.type || "TEXT";
                     const isSent = msg.senderId === currentUser?.id;
+
+                    // System / structured messages
+                    if (msgType === "SYSTEM" || msgType === "HANDOVER_REQUEST" || msgType === "HANDOVER_CONFIRMED"
+                        || msgType === "HANDOVER_DISPUTED" || msgType === "CLAIM_ACCEPTED" || msgType === "CLAIM_REJECTED") {
+                      const systemMsgClass = {
+                        CLAIM_ACCEPTED: "claim-accepted",
+                        CLAIM_REJECTED: "claim-rejected",
+                        HANDOVER_CONFIRMED: "handover-confirmed",
+                        HANDOVER_DISPUTED: "handover-disputed",
+                        HANDOVER_REQUEST: "handover-request",
+                      }[msgType] || "";
+                      return (
+                        <div key={msg.id} className={`system-message ${systemMsgClass}`}>
+                          <div className="system-message-content">
+                            {msgType === "HANDOVER_REQUEST" && <HandMetal size={16} />}
+                            {msgType === "HANDOVER_CONFIRMED" && <PackageCheck size={16} />}
+                            {msgType === "HANDOVER_DISPUTED" && <ShieldAlert size={16} />}
+                            {msgType === "CLAIM_ACCEPTED" && <CheckCircle size={16} />}
+                            {msgType === "CLAIM_REJECTED" && <XCircle size={16} />}
+                            {msgType === "SYSTEM" && <Info size={16} />}
+                            <span>{msg.content}</span>
+                          </div>
+                          {msgType === "HANDOVER_CONFIRMED" && msg.metadata?.finderKarma && (
+                            <div className="karma-info">
+                              <Star size={14} />
+                              <span>Finder earned +{msg.metadata.finderKarma} karma, Owner earned +{msg.metadata.ownerKarma} karma</span>
+                            </div>
+                          )}
+                          <span className="system-msg-time">{formatMessageTime(msg.createdAt)}</span>
+                        </div>
+                      );
+                    }
+
+                    // Claim submission card
+                    if (msgType === "CLAIM_SUBMISSION") {
+                      const meta = msg.metadata || {};
+                      const claimImage = meta.itemImageUrl || activeChat?.itemImageUrl;
+                      return (
+                        <div key={msg.id} className="system-message">
+                          <div className="claim-card">
+                            {claimImage && (
+                              <div className="claim-card-thumb">
+                                <img src={claimImage} alt={meta.itemTitle || "Item"} />
+                              </div>
+                            )}
+                            <div className="claim-card-body">
+                              <div className="claim-card-title">
+                                <FileText size={14} />
+                                <strong>Claim Submitted</strong>
+                              </div>
+                              {meta.itemTitle && (
+                                <div className="claim-card-field">
+                                  <span className="claim-field-label">Item:</span> {meta.itemTitle}
+                                </div>
+                              )}
+                              {meta.claimantName && (
+                                <div className="claim-card-field">
+                                  <span className="claim-field-label">By:</span> {meta.claimantName}
+                                </div>
+                              )}
+                              {meta.providedAnswer && (
+                                <div className="claim-card-field">
+                                  <span className="claim-field-label">Verification Answer:</span> {meta.providedAnswer}
+                                </div>
+                              )}
+                              {meta.claimMessage && (
+                                <div className="claim-card-field">
+                                  <span className="claim-field-label">Message:</span> {meta.claimMessage}
+                                </div>
+                              )}
+                              {isFinder && activeChat?.claimStatus === "PENDING" && !isLostItem && (
+                                <div className="claim-action-buttons">
+                                  <button
+                                    className="claim-action-btn accept"
+                                    onClick={handleAcceptClaim}
+                                    disabled={claimActionLoading}
+                                  >
+                                    {claimActionLoading ? <Loader size={14} className="spin" /> : <CheckCircle size={14} />}
+                                    Accept Claim
+                                  </button>
+                                  <button
+                                    className="claim-action-btn reject"
+                                    onClick={handleRejectClaim}
+                                    disabled={claimActionLoading}
+                                  >
+                                    {claimActionLoading ? <Loader size={14} className="spin" /> : <XCircle size={14} />}
+                                    Reject Claim
+                                  </button>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                          <span className="system-msg-time">{formatMessageTime(msg.createdAt)}</span>
+                        </div>
+                      );
+                    }
+
+                    // Regular TEXT message
                     return (
                       <div key={msg.id} className={`message ${isSent ? "sent" : "received"}`}>
                         {!isSent && (
@@ -391,6 +722,48 @@ function Messages() {
                 </button>
               </div>
 
+              {/* Handover Actions */}
+              {(showMarkReturned || showConfirmReceived) && (
+                <div className="handover-actions">
+                  {showMarkReturned && (
+                    <div className="handover-action-group">
+                      <button
+                        className="handover-btn mark-returned"
+                        onClick={handleMarkReturned}
+                        disabled={handoverLoading}
+                      >
+                        {handoverLoading ? <Loader size={16} className="spin" /> : <HandMetal size={16} />}
+                        Mark as Returned to Owner
+                      </button>
+                      <span className="handover-hint">Click after you've physically handed the item over</span>
+                    </div>
+                  )}
+                  {showConfirmReceived && (
+                    <div className="handover-action-group">
+                      <div className="handover-btn-row">
+                        <button
+                          className="handover-btn confirm-received"
+                          onClick={handleConfirmReceived}
+                          disabled={handoverLoading}
+                        >
+                          {handoverLoading ? <Loader size={16} className="spin" /> : <PackageCheck size={16} />}
+                          Confirm Received
+                        </button>
+                        <button
+                          className="handover-btn dispute-handover"
+                          onClick={handleDisputeHandover}
+                          disabled={handoverLoading}
+                        >
+                          {handoverLoading ? <Loader size={16} className="spin" /> : <ShieldAlert size={16} />}
+                          Did Not Receive
+                        </button>
+                      </div>
+                      <span className="handover-hint">The other party marked this item as returned — did you receive it?</span>
+                    </div>
+                  )}
+                </div>
+              )}
+
               {/* Input */}
               <div className="chat-input-area">
                 <div className="input-container">
@@ -416,6 +789,16 @@ function Messages() {
           )}
         </main>
       </div>
+
+      <ConfirmDialog
+        isOpen={confirmDialog.isOpen}
+        onClose={() => setConfirmDialog({ isOpen: false })}
+        onConfirm={confirmDialog.onConfirm || (() => {})}
+        title={confirmDialog.title}
+        message={confirmDialog.message}
+        confirmLabel={confirmDialog.confirmLabel}
+        variant={confirmDialog.variant}
+      />
     </div>
   );
 }

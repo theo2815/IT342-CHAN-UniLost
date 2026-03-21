@@ -4,5 +4,7 @@ public enum ClaimStatus {
     PENDING,
     ACCEPTED,
     REJECTED,
-    CANCELLED
+    CANCELLED,
+    COMPLETED,
+    HANDED_OVER  // Deprecated: kept for backward compat with old MongoDB documents
 }

@@ -346,8 +346,9 @@ public class AdminService {
 
         // Recovery rate
         long resolved = statusCounts.getOrDefault("CLAIMED", 0L)
-                + statusCounts.getOrDefault("HANDED_OVER", 0L)
-                + statusCounts.getOrDefault("RETURNED", 0L);
+                + statusCounts.getOrDefault("PENDING_OWNER_CONFIRMATION", 0L)
+                + statusCounts.getOrDefault("RETURNED", 0L)
+                + statusCounts.getOrDefault("HANDED_OVER", 0L);
         double recoveryRate = totalItems == 0 ? 0 : (double) resolved / totalItems * 100;
 
         Map<String, Object> analytics = new LinkedHashMap<>();
@@ -373,8 +374,9 @@ public class AdminService {
             long userCount = userRepository.countByUniversityTag(cId);
             long itemCount = itemRepository.countByCampusIdAndIsDeletedFalse(cId);
             long claimedCount = itemRepository.countByCampusIdAndStatusAndIsDeletedFalse(cId, ItemStatus.CLAIMED)
-                    + itemRepository.countByCampusIdAndStatusAndIsDeletedFalse(cId, ItemStatus.HANDED_OVER)
-                    + itemRepository.countByCampusIdAndStatusAndIsDeletedFalse(cId, ItemStatus.RETURNED);
+                    + itemRepository.countByCampusIdAndStatusAndIsDeletedFalse(cId, ItemStatus.PENDING_OWNER_CONFIRMATION)
+                    + itemRepository.countByCampusIdAndStatusAndIsDeletedFalse(cId, ItemStatus.RETURNED)
+                    + itemRepository.countByCampusIdAndStatusAndIsDeletedFalse(cId, ItemStatus.HANDED_OVER);
             double recoveryRate = itemCount == 0 ? 0 : Math.round((double) claimedCount / itemCount * 1000.0) / 10.0;
 
             Map<String, Object> entry = new LinkedHashMap<>();
@@ -426,7 +428,7 @@ public class AdminService {
         Query query = new Query();
         query.addCriteria(Criteria.where("campusId").is(campusId));
         query.addCriteria(Criteria.where("isDeleted").is(false));
-        query.addCriteria(Criteria.where("status").in("CLAIMED", "HANDED_OVER", "RETURNED"));
+        query.addCriteria(Criteria.where("status").in("CLAIMED", "PENDING_OWNER_CONFIRMATION", "RETURNED", "HANDED_OVER"));
         query.addCriteria(Criteria.where("updatedAt").gte(startOfMonth));
         return mongoTemplate.count(query, ItemEntity.class);
     }
@@ -591,6 +593,10 @@ public class AdminService {
                 dto.setFinderId(finder.getId());
                 dto.setFinderName(finder.getFullName());
             }
+
+            // Handover fields
+            dto.setFinderMarkedReturnedAt(claim.getFinderMarkedReturnedAt());
+            dto.setOwnerConfirmedReceivedAt(claim.getOwnerConfirmedReceivedAt());
 
             return dto;
         }).toList();

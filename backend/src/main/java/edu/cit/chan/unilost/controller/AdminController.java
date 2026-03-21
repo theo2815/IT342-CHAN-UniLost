@@ -4,6 +4,7 @@ import edu.cit.chan.unilost.dto.ClaimDTO;
 import edu.cit.chan.unilost.dto.ItemDTO;
 import edu.cit.chan.unilost.dto.UserDTO;
 import edu.cit.chan.unilost.service.AdminService;
+import edu.cit.chan.unilost.service.ClaimService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -23,6 +24,7 @@ import java.util.Map;
 public class AdminController {
 
     private final AdminService adminService;
+    private final ClaimService claimService;
 
     // ── Dashboard ──────────────────────────────────────────
 
@@ -104,6 +106,13 @@ public class AdminController {
             @RequestParam(defaultValue = "10") int size) {
         Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
         return ResponseEntity.ok(adminService.getCampusClaims(auth.getName(), status, pageable));
+    }
+
+    @PutMapping("/claims/{id}/force-complete")
+    public ResponseEntity<ClaimDTO> forceCompleteHandover(
+            @PathVariable String id,
+            Authentication auth) {
+        return ResponseEntity.ok(claimService.adminForceCompleteHandover(id, auth.getName()));
     }
 
     // ── Analytics ──────────────────────────────────────────

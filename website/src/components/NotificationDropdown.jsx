@@ -10,6 +10,8 @@ import {
   Check,
   MessageSquare,
   Loader,
+  HandMetal,
+  PackageCheck,
 } from "lucide-react";
 import notificationService from "../services/notificationService";
 import "./NotificationDropdown.css";
@@ -19,7 +21,10 @@ const typeConfig = {
   CLAIM_ACCEPTED: { icon: <CheckCircle size={16} />, color: "#22c55e" },
   CLAIM_REJECTED: { icon: <XCircle size={16} />, color: "#ef4444" },
   HANDOVER_CONFIRMED: { icon: <Check size={16} />, color: "#10b981" },
+  HANDOVER_COMPLETE: { icon: <CheckCircle size={16} />, color: "#10b981" },
   HANDOVER_REMINDER: { icon: <Clock size={16} />, color: "#f59e0b" },
+  ITEM_MARKED_RETURNED: { icon: <HandMetal size={16} />, color: "#d97706" },
+  ITEM_RETURNED: { icon: <PackageCheck size={16} />, color: "#059669" },
   ITEM_EXPIRED: { icon: <AlertTriangle size={16} />, color: "#94a3b8" },
   ITEM_MATCH: { icon: <Search size={16} />, color: "#3b82f6" },
   ITEM_FLAGGED: { icon: <AlertTriangle size={16} />, color: "#f59e0b" },
@@ -32,8 +37,12 @@ function getNotifRoute(notif) {
     case "CLAIM_ACCEPTED":
     case "CLAIM_REJECTED":
       return `/claims/${notif.linkId}`;
+    case "HANDOVER_CONFIRMED":
+    case "HANDOVER_COMPLETE":
+    case "ITEM_MARKED_RETURNED":
+    case "ITEM_RETURNED":
     case "NEW_MESSAGE":
-      return `/messages`;
+      return `/messages?chatId=${notif.linkId}`;
     case "ITEM_FLAGGED":
     case "ITEM_EXPIRED":
     case "ITEM_MATCH":

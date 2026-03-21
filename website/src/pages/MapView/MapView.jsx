@@ -5,7 +5,7 @@ import { MapPin, Loader, AlertCircle, Navigation } from "lucide-react";
 import Header from "../../components/Header";
 import useGoogleMaps from "../../hooks/useGoogleMaps";
 import itemService from "../../services/itemService";
-import campusService from "../../services/campusService";
+import { useCampuses } from "../../context/CampusContext";
 import "./MapView.css";
 
 const CEBU_CENTER = { lat: 10.3157, lng: 123.8854 };
@@ -18,7 +18,7 @@ function MapView() {
   const map = useMap("main-map");
 
   const [items, setItems] = useState([]);
-  const [campuses, setCampuses] = useState([]);
+  const { campuses } = useCampuses();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [selectedItem, setSelectedItem] = useState(null);
@@ -55,17 +55,6 @@ function MapView() {
     );
 
     return () => navigator.geolocation.clearWatch(watchId);
-  }, []);
-
-  // Load campuses once
-  useEffect(() => {
-    const loadCampuses = async () => {
-      const result = await campusService.getAllCampuses();
-      if (result.success) {
-        setCampuses(result.data);
-      }
-    };
-    loadCampuses();
   }, []);
 
   // Load map items when filters change

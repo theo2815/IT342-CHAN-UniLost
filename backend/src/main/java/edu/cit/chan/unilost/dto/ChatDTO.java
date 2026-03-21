@@ -21,4 +21,7 @@ public class ChatDTO {
     private LocalDateTime lastMessageAt;
     private long unreadCount;
     private LocalDateTime createdAt;
+    private String itemStatus;
+    private String itemType;
+    private String claimStatus;
 }

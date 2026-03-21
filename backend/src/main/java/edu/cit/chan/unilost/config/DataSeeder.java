@@ -149,23 +149,34 @@ public class DataSeeder implements CommandLineRunner {
         log.info("  Seeded campus: {} - {} ({})", id, shortLabel, domain);
     }
 
+    private static final String ADMIN_PASSWORD = "Sitheogwapo@123";
+
     private void seedAdmin() {
-        String adminEmail = "admin@cit.edu";
-        if (userRepository.existsByEmail(adminEmail)) {
+        seedOrUpdateAdmin("admin@cit.edu", "UniLost Admin", "CIT-U-MAIN");
+        seedOrUpdateAdmin("admin@unilost.com", "UniLost Super Admin", "CIT-U-MAIN");
+    }
+
+    private void seedOrUpdateAdmin(String email, String fullName, String universityTag) {
+        var existing = userRepository.findByEmail(email);
+        if (existing.isPresent()) {
+            UserEntity user = existing.get();
+            user.setPasswordHash(passwordEncoder.encode(ADMIN_PASSWORD));
+            userRepository.save(user);
+            log.info("  Updated password for: {}", email);
             return;
         }
 
         UserEntity admin = new UserEntity();
-        admin.setEmail(adminEmail);
-        admin.setPasswordHash(passwordEncoder.encode("admin123456"));
-        admin.setFullName("UniLost Admin");
-        admin.setUniversityTag("CIT-U-MAIN");
+        admin.setEmail(email);
+        admin.setPasswordHash(passwordEncoder.encode(ADMIN_PASSWORD));
+        admin.setFullName(fullName);
+        admin.setUniversityTag(universityTag);
         admin.setRole(Role.ADMIN);
         admin.setAccountStatus(AccountStatus.ACTIVE);
         admin.setEmailVerified(true);
         admin.setCreatedAt(LocalDateTime.now());
         userRepository.save(admin);
 
-        log.info("  Seeded admin: {}", adminEmail);
+        log.info("  Seeded admin: {}", email);
     }
 }

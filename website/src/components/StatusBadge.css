@@ -4,98 +4,185 @@
   padding: 4px 12px;
   border-radius: var(--radius-full);
   font-size: var(--font-size-xs);
-  font-weight: 600;
-  letter-spacing: 0.3px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
   white-space: nowrap;
 }
 
 .status-active {
-  background: rgba(59, 130, 246, 0.12);
-  color: #3b82f6;
+  background: #dbeafe;
+  color: #1d4ed8;
+  border: 1px solid #93c5fd;
 }
 
 .status-claimed {
-  background: rgba(168, 85, 247, 0.12);
-  color: #a855f7;
+  background: #ede9fe;
+  color: #6d28d9;
+  border: 1px solid #c4b5fd;
 }
 
 .status-handed-over {
-  background: rgba(16, 185, 129, 0.12);
-  color: #10b981;
+  background: #d1fae5;
+  color: #047857;
+  border: 1px solid #6ee7b7;
 }
 
 .status-expired {
-  background: rgba(107, 114, 128, 0.12);
-  color: #6b7280;
+  background: #f3f4f6;
+  color: #374151;
+  border: 1px solid #d1d5db;
 }
 
 .status-cancelled {
-  background: rgba(107, 114, 128, 0.12);
-  color: #6b7280;
+  background: #f3f4f6;
+  color: #374151;
+  border: 1px solid #d1d5db;
 }
 
 .status-lost {
-  background: rgba(239, 68, 68, 0.12);
-  color: #ef4444;
+  background: #fee2e2;
+  color: #b91c1c;
+  border: 1px solid #fca5a5;
 }
 
 .status-found {
-  background: rgba(16, 185, 129, 0.12);
-  color: #10b981;
+  background: #d1fae5;
+  color: #047857;
+  border: 1px solid #6ee7b7;
 }
 
 .status-pending {
-  background: rgba(245, 158, 11, 0.12);
-  color: #f59e0b;
+  background: #fef3c7;
+  color: #92400e;
+  border: 1px solid #fcd34d;
 }
 
 .status-approved {
-  background: rgba(16, 185, 129, 0.12);
-  color: #10b981;
+  background: #d1fae5;
+  color: #047857;
+  border: 1px solid #6ee7b7;
 }
 
 .status-rejected {
-  background: rgba(239, 68, 68, 0.12);
-  color: #ef4444;
+  background: #fee2e2;
+  color: #b91c1c;
+  border: 1px solid #fca5a5;
 }
 
 .status-turned-over {
-  background: rgba(99, 102, 241, 0.12);
-  color: #6366f1;
+  background: #e0e7ff;
+  color: #3730a3;
+  border: 1px solid #a5b4fc;
 }
 
 .status-returned {
-  background: rgba(5, 150, 105, 0.12);
-  color: #059669;
+  background: #d1fae5;
+  color: #065f46;
+  border: 1px solid #6ee7b7;
 }
 
 .status-hidden {
-  background: rgba(107, 114, 128, 0.12);
-  color: #6b7280;
+  background: #f3f4f6;
+  color: #374151;
+  border: 1px solid #d1d5db;
+}
+
+.status-pending-confirmation {
+  background: #fef3c7;
+  color: #92400e;
+  border: 1px solid #fcd34d;
+}
+
+.status-completed {
+  background: #d1fae5;
+  color: #065f46;
+  border: 1px solid #6ee7b7;
 }
 
 .status-default {
   background: var(--color-border);
   color: var(--color-text-secondary);
+  border: 1px solid var(--color-border);
 }
 
 /* Dark mode adjustments */
 [data-theme="dark"] .status-active {
   background: rgba(59, 130, 246, 0.2);
+  color: #60a5fa;
+  border-color: rgba(59, 130, 246, 0.4);
 }
 
 [data-theme="dark"] .status-claimed {
   background: rgba(168, 85, 247, 0.2);
+  color: #c084fc;
+  border-color: rgba(168, 85, 247, 0.4);
 }
 
 [data-theme="dark"] .status-handed-over {
   background: rgba(16, 185, 129, 0.2);
+  color: #34d399;
+  border-color: rgba(16, 185, 129, 0.4);
 }
 
 [data-theme="dark"] .status-lost {
   background: rgba(239, 68, 68, 0.2);
+  color: #f87171;
+  border-color: rgba(239, 68, 68, 0.4);
 }
 
 [data-theme="dark"] .status-found {
   background: rgba(16, 185, 129, 0.2);
+  color: #34d399;
+  border-color: rgba(16, 185, 129, 0.4);
+}
+
+[data-theme="dark"] .status-pending {
+  background: rgba(245, 158, 11, 0.2);
+  color: #fbbf24;
+  border-color: rgba(245, 158, 11, 0.4);
+}
+
+[data-theme="dark"] .status-pending-confirmation {
+  background: rgba(245, 158, 11, 0.2);
+  color: #fbbf24;
+  border-color: rgba(245, 158, 11, 0.4);
+}
+
+[data-theme="dark"] .status-completed {
+  background: rgba(16, 185, 129, 0.2);
+  color: #34d399;
+  border-color: rgba(16, 185, 129, 0.4);
+}
+
+[data-theme="dark"] .status-rejected {
+  background: rgba(239, 68, 68, 0.2);
+  color: #f87171;
+  border-color: rgba(239, 68, 68, 0.4);
+}
+
+[data-theme="dark"] .status-expired,
+[data-theme="dark"] .status-cancelled,
+[data-theme="dark"] .status-hidden {
+  background: rgba(107, 114, 128, 0.2);
+  color: #9ca3af;
+  border-color: rgba(107, 114, 128, 0.4);
+}
+
+[data-theme="dark"] .status-turned-over {
+  background: rgba(99, 102, 241, 0.2);
+  color: #a5b4fc;
+  border-color: rgba(99, 102, 241, 0.4);
+}
+
+[data-theme="dark"] .status-approved {
+  background: rgba(16, 185, 129, 0.2);
+  color: #34d399;
+  border-color: rgba(16, 185, 129, 0.4);
+}
+
+[data-theme="dark"] .status-returned {
+  background: rgba(5, 150, 105, 0.2);
+  color: #34d399;
+  border-color: rgba(5, 150, 105, 0.4);
 }

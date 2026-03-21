@@ -92,4 +92,28 @@ public class ClaimController {
         String email = (String) authentication.getPrincipal();
         return ResponseEntity.ok(claimService.cancelClaim(id, email));
     }
+
+    @PutMapping("/{id}/mark-returned")
+    public ResponseEntity<ClaimDTO> markItemReturned(
+            @PathVariable String id,
+            Authentication authentication) {
+        String email = (String) authentication.getPrincipal();
+        return ResponseEntity.ok(claimService.markItemReturned(id, email));
+    }
+
+    @PutMapping("/{id}/confirm-received")
+    public ResponseEntity<ClaimDTO> confirmItemReceived(
+            @PathVariable String id,
+            Authentication authentication) {
+        String email = (String) authentication.getPrincipal();
+        return ResponseEntity.ok(claimService.confirmItemReceived(id, email));
+    }
+
+    @PutMapping("/{id}/dispute-handover")
+    public ResponseEntity<ClaimDTO> disputeHandover(
+            @PathVariable String id,
+            Authentication authentication) {
+        String email = (String) authentication.getPrincipal();
+        return ResponseEntity.ok(claimService.disputeHandover(id, email));
+    }
 }

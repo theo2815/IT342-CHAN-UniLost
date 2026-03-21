@@ -15,6 +15,8 @@ const statusConfig = {
   TURNED_OVER_TO_OFFICE: { label: "At Office", className: "status-turned-over" },
   RETURNED: { label: "Returned", className: "status-returned" },
   HIDDEN: { label: "Hidden", className: "status-hidden" },
+  PENDING_OWNER_CONFIRMATION: { label: "Pending Confirmation", className: "status-pending-confirmation" },
+  COMPLETED: { label: "Completed", className: "status-completed" },
 };
 
 function StatusBadge({ status, type }) {

@@ -12,23 +12,16 @@ import {
 import { Link } from "react-router-dom";
 import Header from "../../components/Header";
 import userService from "../../services/userService";
-import campusService from "../../services/campusService";
 import authService from "../../services/authService";
+import { useCampuses } from "../../context/CampusContext";
 import "./Leaderboard.css";
 
 function Leaderboard() {
   const [leaderboardData, setLeaderboardData] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [campuses, setCampuses] = useState([]);
+  const { campuses } = useCampuses();
   const [activeCampus, setActiveCampus] = useState("");
   const currentUser = authService.getCurrentUser();
-
-  // Load campuses once on mount
-  useEffect(() => {
-    campusService.getAllCampuses().then((result) => {
-      if (result.success) setCampuses(result.data);
-    });
-  }, []);
 
   // Reload leaderboard when campus filter changes
   useEffect(() => {

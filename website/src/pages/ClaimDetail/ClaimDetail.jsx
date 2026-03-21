@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, CheckCircle, Circle, Clock, MapPin, Lock, MessageSquare, User, HandHelping, XCircle } from 'lucide-react';
+import { ArrowLeft, CheckCircle, Circle, Clock, Lock, MessageSquare, XCircle } from 'lucide-react';
 import Header from '../../components/Header';
 import StatusBadge from '../../components/StatusBadge';
 import claimService from '../../services/claimService';
@@ -73,31 +73,6 @@ function ClaimDetail() {
         if (!name) return '??';
         const parts = name.split(' ');
         return parts.map((p) => p.charAt(0)).join('').toUpperCase();
-    };
-
-    // Handover stepper logic (Phase 7 — mock for now)
-    const getStepperState = () => {
-        if (claim.status !== 'ACCEPTED' && claim.status !== 'HANDED_OVER') return null;
-        // Phase 7 will provide real handover data; for now show step 1 (Claim Accepted)
-        return {
-            currentStep: claim.status === 'HANDED_OVER' ? 4 : 1,
-            posterConfirmed: false,
-            claimantConfirmed: false,
-            canConfirm: false,
-        };
-    };
-
-    const stepper = getStepperState();
-
-    const steps = [
-        { label: 'Claim Accepted', icon: CheckCircle },
-        { label: 'Poster Confirms', icon: User },
-        { label: 'Claimant Confirms', icon: User },
-        { label: 'Handed Over', icon: HandHelping },
-    ];
-
-    const handleConfirmHandover = () => {
-        alert('Handover confirmed! (Coming in Phase 7)');
     };
 
     const handleCancelClaim = async () => {
@@ -221,64 +196,35 @@ function ClaimDetail() {
                         </div>
                     )}
 
-                    {/* Handover Stepper (ACCEPTED / HANDED_OVER) — Phase 7 mock */}
-                    {stepper && (
-                        <div className="cd-handover glass">
-                            <h3>Handover Progress</h3>
-
-                            <div className="cd-stepper">
-                                {steps.map((step, index) => {
-                                    const stepNum = index + 1;
-                                    const isCompleted = stepNum < stepper.currentStep || stepper.currentStep === 4;
-                                    const isActive = stepNum === stepper.currentStep && stepper.currentStep < 4;
-
-                                    return (
-                                        <div key={index} className="cd-step-wrapper">
-                                            <div className={`cd-step ${isCompleted ? 'completed' : ''} ${isActive ? 'active' : ''}`}>
-                                                <div className="cd-step-circle">
-                                                    {isCompleted ? (
-                                                        <CheckCircle size={20} />
-                                                    ) : (
-                                                        <span>{stepNum}</span>
-                                                    )}
-                                                </div>
-                                                <span className="cd-step-label">{step.label}</span>
-                                            </div>
-                                            {index < steps.length - 1 && (
-                                                <div className={`cd-step-line ${isCompleted ? 'completed' : ''}`} />
-                                            )}
-                                        </div>
-                                    );
-                                })}
+                    {/* Accepted — direct to chat for handover */}
+                    {claim.status === 'ACCEPTED' && (
+                        <div className="cd-status-message accepted">
+                            <CheckCircle size={20} />
+                            <div>
+                                <h3>Claim Accepted</h3>
+                                <p>Coordinate the handover with the poster via chat. Once the item is returned, both parties will confirm in the chat.</p>
                             </div>
+                        </div>
+                    )}
 
-                            {/* Confirm button */}
-                            {stepper.canConfirm && (
-                                <div className="cd-confirm-section">
-                                    <button className="cd-confirm-btn" onClick={handleConfirmHandover}>
-                                        <CheckCircle size={18} />
-                                        Confirm Handover
-                                    </button>
-                                    <p className="cd-confirm-hint">
-                                        Confirm that you have {isClaimant ? 'received' : 'handed over'} the item.
-                                    </p>
-                                </div>
-                            )}
+                    {(claim.status === 'ACCEPTED' || claim.status === 'COMPLETED' || claim.status === 'HANDED_OVER') && claim.chatId && (
+                        <div className="cd-chat-section">
+                            <button
+                                className="cd-chat-btn"
+                                onClick={() => navigate(`/messages?chatId=${claim.chatId}`)}
+                            >
+                                <MessageSquare size={18} />
+                                Open Chat
+                            </button>
+                        </div>
+                    )}
 
-                            {/* Status text */}
-                            {stepper.currentStep === 4 ? (
-                                <div className="cd-handover-complete">
-                                    <CheckCircle size={18} />
-                                    <span>Item successfully handed over!</span>
-                                </div>
-                            ) : (
-                                <p className="cd-waiting-text">Handover process will be available in a future update.</p>
-                            )}
-
-                            {/* Suggested location */}
-                            <div className="cd-location-hint">
-                                <MapPin size={14} />
-                                <span>Suggested meetup: Campus Security Office or Student Affairs</span>
+                    {(claim.status === 'COMPLETED' || claim.status === 'HANDED_OVER') && (
+                        <div className="cd-status-message completed">
+                            <CheckCircle size={20} />
+                            <div>
+                                <h3>Item Returned</h3>
+                                <p>This item has been successfully returned to its owner. Thank you!</p>
                             </div>
                         </div>
                     )}

@@ -1,7 +1,6 @@
-import { useState, useEffect } from "react";
 import { Search } from "lucide-react";
 import { ITEM_CATEGORIES, CATEGORY_LABELS } from "../constants/categories";
-import campusService from "../services/campusService";
+import { useCampuses } from "../context/CampusContext";
 import "./FilterBar.css";
 
 function FilterBar({
@@ -15,17 +14,7 @@ function FilterBar({
   onSchoolChange,
 }) {
   const types = ["All", "Lost", "Found"];
-  const [campuses, setCampuses] = useState([]);
-
-  useEffect(() => {
-    const fetchCampuses = async () => {
-      const result = await campusService.getAllCampuses();
-      if (result.success) {
-        setCampuses(result.data);
-      }
-    };
-    fetchCampuses();
-  }, []);
+  const { campuses } = useCampuses();
 
   return (
     <div className="filter-bar">

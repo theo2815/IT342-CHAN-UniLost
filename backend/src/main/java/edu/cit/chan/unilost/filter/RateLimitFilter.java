@@ -23,7 +23,7 @@ import java.util.concurrent.ConcurrentLinkedDeque;
  * In-memory sliding window rate limiter.
  * - Auth endpoints: 10 requests/minute per IP
  * - Write endpoints (POST/PUT/DELETE): 30 requests/minute per IP
- * - Read endpoints (GET): 60 requests/minute per IP
+ * - Read endpoints (GET): 120 requests/minute per IP
  */
 @Component
 @Order(Ordered.HIGHEST_PRECEDENCE + 1)
@@ -31,7 +31,7 @@ public class RateLimitFilter extends OncePerRequestFilter {
 
     private static final int AUTH_MAX = 10;
     private static final int WRITE_MAX = 30;
-    private static final int READ_MAX = 60;
+    private static final int READ_MAX = 120;
     private static final long WINDOW_MS = 60_000; // 1 minute
 
     private final ConcurrentHashMap<String, Deque<Long>> requestCounts = new ConcurrentHashMap<>();

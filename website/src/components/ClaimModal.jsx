@@ -10,6 +10,7 @@ function ClaimModal({ item, onClose }) {
   const [message, setMessage] = useState("");
   const [showEmail, setShowEmail] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [chatId, setChatId] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -26,6 +27,7 @@ function ClaimModal({ item, onClose }) {
     });
     setLoading(false);
     if (result.success) {
+      setChatId(result.data?.chatId || null);
       setSubmitted(true);
     } else {
       setError(result.error);
@@ -47,17 +49,33 @@ function ClaimModal({ item, onClose }) {
               <CheckCircle size={48} />
             </div>
             <h2>Claim Submitted!</h2>
-            <p>The poster will review your claim and get back to you.</p>
+            <p>
+              {isFound
+                ? "The poster will review your claim and get back to you."
+                : "Your claim has been auto-accepted. You can now chat and arrange the handover."}
+            </p>
             <div className="success-actions">
-              <button
-                className="btn-primary"
-                onClick={() => {
-                  onClose();
-                  navigate("/my-claims");
-                }}
-              >
-                View My Claims
-              </button>
+              {chatId ? (
+                <button
+                  className="btn-primary"
+                  onClick={() => {
+                    onClose();
+                    navigate(`/messages?chatId=${chatId}`);
+                  }}
+                >
+                  Open Chat
+                </button>
+              ) : (
+                <button
+                  className="btn-primary"
+                  onClick={() => {
+                    onClose();
+                    navigate("/my-claims");
+                  }}
+                >
+                  View My Claims
+                </button>
+              )}
               <button className="btn-secondary" onClick={onClose}>
                 Back to Item
               </button>
@@ -73,7 +91,7 @@ function ClaimModal({ item, onClose }) {
       <div className="claim-modal glass">
         {/* Header */}
         <div className="claim-modal-header">
-          <h2>Submit a Claim</h2>
+          <h2>{isFound ? "Submit a Claim" : "I Found This Item"}</h2>
           <button className="modal-close-btn" onClick={onClose}>
             <X size={20} />
           </button>
@@ -127,7 +145,9 @@ function ClaimModal({ item, onClose }) {
               onChange={(e) => {
                 if (e.target.value.length <= 500) setMessage(e.target.value);
               }}
-              placeholder="Why do you think this is your item? Provide details to help the poster verify your claim."
+              placeholder={isFound
+                ? "Why do you think this is your item? Provide details to help the poster verify your claim."
+                : "Describe where and when you found this item, and how the owner can retrieve it."}
               className="claim-textarea"
               rows={4}
             />
@@ -157,7 +177,7 @@ function ClaimModal({ item, onClose }) {
             disabled={!isFormValid || loading}
             onClick={handleSubmit}
           >
-            {loading ? "Submitting..." : "Submit Claim"}
+            {loading ? "Submitting..." : isFound ? "Submit Claim" : "Report Found"}
           </button>
         </div>
       </div>

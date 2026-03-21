@@ -141,7 +141,12 @@ public class ItemService {
             query.addCriteria(Criteria.where("type").is(type));
         }
         if (status != null && !status.isEmpty()) {
-            query.addCriteria(Criteria.where("status").is(status));
+            if (status.contains(",")) {
+                List<String> statuses = Arrays.asList(status.split(","));
+                query.addCriteria(Criteria.where("status").in(statuses));
+            } else {
+                query.addCriteria(Criteria.where("status").is(status));
+            }
         }
 
         long total = mongoTemplate.count(Query.of(query).limit(-1).skip(-1), ItemEntity.class);
@@ -229,8 +234,10 @@ public class ItemService {
                             .orElseThrow(() -> new ResourceNotFoundException("User not found"));
                     verifyOwnershipOrAdmin(item, currentUser);
 
-                    // Prevent deleting items that have been claimed
-                    if (item.getStatus() == ItemStatus.CLAIMED || item.getStatus() == ItemStatus.HANDED_OVER) {
+                    // Prevent deleting items that have been claimed or are in handover
+                    if (item.getStatus() == ItemStatus.CLAIMED
+                            || item.getStatus() == ItemStatus.PENDING_OWNER_CONFIRMATION
+                            || item.getStatus() == ItemStatus.HANDED_OVER) {
                         throw new IllegalArgumentException("Cannot delete an item that has been " + item.getStatus().name().toLowerCase());
                     }
 
@@ -255,7 +262,10 @@ public class ItemService {
     public List<ItemDTO> getMapItems(String campusId, String type) {
         Query query = new Query();
         query.addCriteria(Criteria.where("isDeleted").is(false));
-        query.addCriteria(Criteria.where("status").is(ItemStatus.ACTIVE.name()));
+        query.addCriteria(Criteria.where("status").in(
+                ItemStatus.ACTIVE.name(),
+                ItemStatus.CLAIMED.name(),
+                ItemStatus.PENDING_OWNER_CONFIRMATION.name()));
 
         // When a specific campus is selected, include ALL items for that campus
         // (items without coordinates will be placed at the campus center by the frontend).

@@ -72,6 +72,33 @@ const claimService = {
             return { success: false, error: err.response?.data?.error || 'Failed to cancel claim' };
         }
     },
+
+    async markItemReturned(claimId) {
+        try {
+            const response = await api.put(`/claims/${claimId}/mark-returned`);
+            return { success: true, data: response.data };
+        } catch (err) {
+            return { success: false, error: err.response?.data?.error || 'Failed to mark item as returned' };
+        }
+    },
+
+    async confirmItemReceived(claimId) {
+        try {
+            const response = await api.put(`/claims/${claimId}/confirm-received`);
+            return { success: true, data: response.data };
+        } catch (err) {
+            return { success: false, error: err.response?.data?.error || 'Failed to confirm item received' };
+        }
+    },
+
+    async disputeHandover(claimId) {
+        try {
+            const response = await api.put(`/claims/${claimId}/dispute-handover`);
+            return { success: true, data: response.data };
+        } catch (err) {
+            return { success: false, error: err.response?.data?.error || 'Failed to dispute handover' };
+        }
+    },
 };
 
 export default claimService;

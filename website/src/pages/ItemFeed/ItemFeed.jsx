@@ -46,7 +46,7 @@ function ItemFeed() {
         const params = {
             page: pageNum,
             size: ITEMS_PER_PAGE,
-            status: 'ACTIVE',
+            status: 'ACTIVE,CLAIMED,PENDING_OWNER_CONFIRMATION',
         };
 
         if (debouncedSearch) params.keyword = debouncedSearch;
