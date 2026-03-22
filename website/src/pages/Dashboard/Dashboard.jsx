@@ -14,6 +14,7 @@ import {
 import Header from "../../components/Header";
 import Footer from "../../components/Footer";
 import ItemCard from "../../components/ItemCard";
+import EmptyState from "../../components/EmptyState";
 import authService from "../../services/authService";
 import itemService from "../../services/itemService";
 import userService from "../../services/userService";
@@ -329,38 +330,37 @@ function Dashboard() {
 
         {/* Recent Community Activity */}
         <section className="pulse-section">
-          <div
-            className="section-header"
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-            }}
-          >
+          <div className="section-header-row">
             <h2 className="section-title">Community Pulse</h2>
-            <Link
-              to="/items"
-              className="text-primary font-bold flex items-center gap-1"
-              style={{
-                fontSize: "0.875rem",
-                textDecoration: "none",
-                display: "flex",
-                alignItems: "center",
-                gap: "4px",
-              }}
-            >
+            <Link to="/items" className="view-link">
               View All Items <ArrowRight size={16} />
             </Link>
           </div>
-          <div className="pulse-grid">
-            {recentItems.map((item) => (
-              <ItemCard
-                key={item.id}
-                item={item}
-                onClick={(id) => navigate(`/items/${id}`)}
-              />
-            ))}
-          </div>
+          {itemsError ? (
+            <EmptyState
+              title="Couldn't load items"
+              message={itemsError}
+              actionLabel="Try Again"
+              onAction={() => window.location.reload()}
+            />
+          ) : recentItems.length === 0 ? (
+            <EmptyState
+              title="No items yet"
+              message="Be the first to report a lost or found item on campus."
+              actionLabel="Post an Item"
+              onAction={() => navigate('/post-item')}
+            />
+          ) : (
+            <div className="pulse-grid">
+              {recentItems.map((item) => (
+                <ItemCard
+                  key={item.id}
+                  item={item}
+                  onClick={(id) => navigate(`/items/${id}`)}
+                />
+              ))}
+            </div>
+          )}
         </section>
       </main>
 

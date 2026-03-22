@@ -8,9 +8,11 @@ import {
   HeartHandshake,
   Loader,
   Search,
+  ChevronDown,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import Header from "../../components/Header";
+import { Dropdown } from "../../components/ui";
 import userService from "../../services/userService";
 import authService from "../../services/authService";
 import { useCampuses } from "../../context/CampusContext";
@@ -85,18 +87,51 @@ function Leaderboard() {
           </div>
           <div className="leaderboard-filter">
             <School size={16} />
-            <select
-              value={activeCampus}
-              onChange={(e) => setActiveCampus(e.target.value)}
-              className="campus-select"
+            <Dropdown
+              width={340}
+              align="right"
+              trigger={(isOpen) => (
+                <div
+                  className={`ui-select-group ui-select-group--md ${isOpen ? "focus-within" : ""}`}
+                  style={{ cursor: "pointer", background: "var(--color-bg-card)", minWidth: "200px" }}
+                >
+                  <div className="ui-select__field" style={{ display: "flex", alignItems: "center" }}>
+                    {activeCampus
+                      ? campuses.find((c) => c.id === activeCampus)?.name || "All Universities"
+                      : "All Universities"}
+                  </div>
+                  <span className="ui-select__chevron" style={{ color: isOpen ? "var(--color-primary)" : "" }}>
+                    <ChevronDown size={16} className={`ui-dropdown-chevron ${isOpen ? "open" : ""}`} />
+                  </span>
+                </div>
+              )}
             >
-              <option value="">All Universities</option>
-              {campuses.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name}
-                </option>
-              ))}
-            </select>
+              {({ close }) => (
+                <>
+                  <Dropdown.Item
+                    className={!activeCampus ? "active" : ""}
+                    onClick={() => {
+                      setActiveCampus("");
+                      close();
+                    }}
+                  >
+                    All Universities
+                  </Dropdown.Item>
+                  {campuses.map((campus) => (
+                    <Dropdown.Item
+                      key={campus.id}
+                      className={activeCampus === campus.id ? "active" : ""}
+                      onClick={() => {
+                        setActiveCampus(campus.id);
+                        close();
+                      }}
+                    >
+                      {campus.name}
+                    </Dropdown.Item>
+                  ))}
+                </>
+              )}
+            </Dropdown>
           </div>
         </section>
 

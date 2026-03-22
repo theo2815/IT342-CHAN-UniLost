@@ -4,9 +4,6 @@
     background: var(--gradient-bg);
 }
 
-.incoming-claims-page .main-content {
-    padding-top: 80px;
-}
 
 .incoming-claims-page .content-wrapper {
     max-width: 900px;

@@ -96,7 +96,11 @@ public class ChatService {
         Map<String, ClaimEntity> claimsById = claimRepository.findAllById(claimIds).stream()
                 .collect(Collectors.toMap(ClaimEntity::getId, Function.identity()));
 
-        return chats.stream().map(chat -> convertToDTO(chat, currentUser.getId(), usersById, itemsById, claimsById)).toList();
+        // Batch-load unread counts via aggregation to avoid N+1 per-chat count queries
+        List<String> chatIds = chats.stream().map(ChatEntity::getId).toList();
+        Map<String, Long> unreadCountsMap = getUnreadCountsForChats(chatIds, currentUser.getId());
+
+        return chats.stream().map(chat -> convertToDTO(chat, currentUser.getId(), usersById, itemsById, claimsById, unreadCountsMap)).toList();
     }
 
     /**
@@ -125,7 +129,9 @@ public class ChatService {
                 .collect(Collectors.toMap(ClaimEntity::getId, Function.identity()))
                 : Map.of();
 
-        return convertToDTO(chat, currentUser.getId(), usersById, itemsById, claimsById);
+        Map<String, Long> unreadCountsMap = getUnreadCountsForChats(List.of(chatId), currentUser.getId());
+
+        return convertToDTO(chat, currentUser.getId(), usersById, itemsById, claimsById, unreadCountsMap);
     }
 
     /**
@@ -306,10 +312,32 @@ public class ChatService {
         }
     }
 
+    /**
+     * Batch-load unread message counts for multiple chats via a single aggregation query.
+     */
+    private Map<String, Long> getUnreadCountsForChats(List<String> chatIds, String currentUserId) {
+        if (chatIds.isEmpty()) return Map.of();
+        Aggregation aggregation = Aggregation.newAggregation(
+                Aggregation.match(Criteria.where("chatId").in(chatIds)
+                        .and("isRead").is(false)
+                        .and("senderId").ne(currentUserId)),
+                Aggregation.group("chatId").count().as("count")
+        );
+        AggregationResults<Map> results = mongoTemplate.aggregate(aggregation, "messages", Map.class);
+        Map<String, Long> countsMap = new HashMap<>();
+        for (Map result : results.getMappedResults()) {
+            String chatId = (String) result.get("_id");
+            long count = ((Number) result.get("count")).longValue();
+            countsMap.put(chatId, count);
+        }
+        return countsMap;
+    }
+
     private ChatDTO convertToDTO(ChatEntity chat, String currentUserId,
                                   Map<String, UserEntity> usersById,
                                   Map<String, ItemEntity> itemsById,
-                                  Map<String, ClaimEntity> claimsById) {
+                                  Map<String, ClaimEntity> claimsById,
+                                  Map<String, Long> unreadCountsMap) {
         ChatDTO dto = new ChatDTO();
         dto.setId(chat.getId());
         dto.setItemId(chat.getItemId());
@@ -351,9 +379,8 @@ public class ChatService {
             dto.setOtherParticipantName(finder != null ? finder.getFullName() : "Unknown");
         }
 
-        // Unread count
-        dto.setUnreadCount(messageRepository.countByChatIdAndIsReadFalseAndSenderIdNot(
-                chat.getId(), currentUserId));
+        // Unread count (from pre-computed aggregation map)
+        dto.setUnreadCount(unreadCountsMap.getOrDefault(chat.getId(), 0L));
 
         return dto;
     }

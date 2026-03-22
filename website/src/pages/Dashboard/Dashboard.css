@@ -71,8 +71,11 @@
   display: flex;
   justify-content: center;
   align-items: center;
-  padding: 0.75rem;
-  border-radius: 0.75rem;
+  width: 2.75rem;
+  height: 2.75rem;
+  padding: 0;
+  border-radius: var(--radius-md);
+  flex-shrink: 0;
 }
 .primary-box {
   background-color: rgba(var(--color-primary-rgb, 59, 130, 246), 0.1);
@@ -124,6 +127,14 @@
   padding: 0 0.5rem;
 }
 
+.section-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+  padding: 0 0.5rem;
+}
+
 .section-title {
   font-size: clamp(1.5rem, 3vw, 2.25rem);
   font-weight: 700;
@@ -131,9 +142,13 @@
   color: var(--color-text-primary);
 }
 
+.section-header-row .section-title {
+  margin-bottom: 0;
+}
+
 .section-subtitle {
-  color: var(--color-text-secondary);
-  font-size: 1.125rem;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
   max-width: 42rem;
 }
 
@@ -141,7 +156,7 @@
 .hero-banner {
   position: relative;
   width: 100%;
-  height: 400px;
+  height: 300px;
   border-radius: 1rem;
   overflow: hidden;
   border: 1px solid var(--color-border);
@@ -149,7 +164,7 @@
 
 @media (min-width: 768px) {
   .hero-banner {
-    height: 500px;
+    height: 400px;
   }
 }
 
@@ -287,13 +302,36 @@
 
 .view-link {
   color: var(--color-primary);
-  font-size: 0.875rem;
-  font-weight: 700;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-bold);
   text-decoration: none;
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  transition: color var(--transition-fast);
+}
+
+.view-link::after {
+  content: "";
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  width: 100%;
+  height: 1.5px;
+  background: var(--color-primary);
+  border-radius: var(--radius-full);
+  transform: scaleX(0);
+  transform-origin: center;
+  transition: transform var(--transition-fast);
 }
 
 .view-link:hover {
-  text-decoration: underline;
+  color: var(--color-primary-hover);
+}
+
+.view-link:hover::after {
+  transform: scaleX(1);
 }
 
 .hot-zones-map {
@@ -780,7 +818,12 @@ a.map-marker:hover .marker-label {
   background-color: var(--color-bg-card);
   border: 1px solid var(--color-border);
   padding: 1.5rem;
-  transition: border-color 0.3s ease;
+  transition: border-color 0.3s ease, transform var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.engage-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
 }
 
 @media (min-width: 768px) {
@@ -887,97 +930,4 @@ a.map-marker:hover .marker-label {
   }
 }
 
-/* Footer */
-.dashboard-footer {
-  width: 100%;
-  border-top: 1px solid var(--color-border);
-  background-color: var(--color-bg-card);
-  padding: 2.5rem;
-  margin-top: 3rem;
-}
-
-.footer-content {
-  max-width: 1440px;
-  margin: 0 auto;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 1.5rem;
-}
-
-@media (min-width: 768px) {
-  .footer-content {
-    flex-direction: row;
-    justify-content: space-between;
-  }
-}
-
-.footer-brand {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-  text-align: center;
-}
-
-@media (min-width: 768px) {
-  .footer-brand {
-    text-align: left;
-  }
-}
-
-.footer-logo {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-  color: var(--color-text-primary);
-}
-
-@media (min-width: 768px) {
-  .footer-logo {
-    justify-content: flex-start;
-  }
-}
-
-.footer-logo h2 {
-  font-size: 1.125rem;
-  font-weight: 700;
-  margin: 0;
-}
-
-.footer-brand p {
-  color: var(--color-text-secondary);
-  font-size: 0.875rem;
-  margin: 0;
-}
-
-.footer-links {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 1.5rem;
-  font-size: 0.875rem;
-  font-weight: 500;
-}
-
-@media (min-width: 768px) {
-  .footer-links {
-    gap: 2rem;
-  }
-}
-
-.footer-links a {
-  color: var(--color-text-secondary);
-  text-decoration: none;
-  transition: color 0.2s;
-}
-
-.footer-links a:hover {
-  color: var(--color-primary);
-}
-
-.footer-copyright {
-  color: var(--color-text-secondary);
-  font-size: 0.875rem;
-  text-align: center;
-}
+/* Footer styles handled by shared Footer.css */

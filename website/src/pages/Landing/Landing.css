@@ -634,7 +634,7 @@
   filter: blur(0);
 }
 
-.status-badge {
+.landing-page .status-badge {
   position: absolute;
   top: var(--spacing-sm);
   right: var(--spacing-sm);
@@ -649,7 +649,7 @@
   box-shadow: var(--shadow-sm);
 }
 
-.status-badge.found {
+.landing-page .status-badge.found {
   background-color: var(--color-success);
 }
 

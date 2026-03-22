@@ -11,11 +11,7 @@ import java.util.List;
 @Repository
 public interface MessageRepository extends MongoRepository<MessageEntity, String> {
 
-    List<MessageEntity> findByChatIdOrderByCreatedAtAsc(String chatId);
-
     Page<MessageEntity> findByChatIdOrderByCreatedAtDesc(String chatId, Pageable pageable);
-
-    List<MessageEntity> findByChatIdAndIsReadFalse(String chatId);
 
     List<MessageEntity> findByChatIdAndIsReadFalseAndSenderIdNot(String chatId, String userId);
 

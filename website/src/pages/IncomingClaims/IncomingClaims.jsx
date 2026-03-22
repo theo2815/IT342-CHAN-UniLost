@@ -79,8 +79,8 @@ function IncomingClaims() {
                     <div className="content-wrapper">
                         <div className="not-found-state">
                             <h2>{error || 'Item Not Found'}</h2>
-                            <button className="back-btn" onClick={() => navigate('/profile')}>
-                                <ArrowLeft size={18} /> Back to Profile
+                            <button className="back-btn" onClick={handleGoBack}>
+                                <ArrowLeft size={18} /> Go Back
                             </button>
                         </div>
                     </div>
@@ -93,6 +93,14 @@ function IncomingClaims() {
         if (!name) return '??';
         const parts = name.split(' ');
         return parts.map((p) => p.charAt(0)).join('').toUpperCase();
+    };
+
+    const handleGoBack = () => {
+        if (window.history.state && window.history.state.idx > 0) {
+            navigate(-1);
+        } else {
+            navigate('/profile?tab=items');
+        }
     };
 
     const handleApprove = async (claimId) => {
@@ -127,8 +135,8 @@ function IncomingClaims() {
 
             <main className="main-content">
                 <div className="content-wrapper">
-                    <button className="back-link" onClick={() => navigate('/profile')}>
-                        <ArrowLeft size={18} /> Back to Profile
+                    <button className="back-link" onClick={handleGoBack}>
+                        <ArrowLeft size={18} /> Go Back
                     </button>
 
                     {/* Item Summary */}

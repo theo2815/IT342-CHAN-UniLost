@@ -124,6 +124,15 @@ public class NotificationService {
                 chatId);
     }
 
+    public void notifyHandoverDisputed(String holderUserId, String ownerName,
+                                        String itemTitle, String chatId) {
+        createAndPush(holderUserId, "HANDOVER_DISPUTED",
+                "Handover disputed",
+                ownerName + " reported they did not receive '" + itemTitle
+                        + "'. Please arrange another handover.",
+                chatId);
+    }
+
     public void notifyItemReturned(String userId, String itemTitle,
                                     int karmaAwarded, String chatId) {
         createAndPush(userId, "ITEM_RETURNED",

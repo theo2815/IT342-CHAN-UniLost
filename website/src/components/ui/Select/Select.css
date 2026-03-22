@@ -1,0 +1,130 @@
+/* ============================================
+   Select Component — UniLost Design System
+   Matches Input.css styling exactly
+   ============================================ */
+
+.ui-select-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+  width: 100%;
+}
+
+/* Label */
+.ui-select__label {
+  font-family: var(--font-display);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+}
+
+.ui-select__label--required::after {
+  content: ' *';
+  color: var(--color-error);
+}
+
+/* Select group */
+.ui-select-group {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  padding: 0 var(--spacing-md);
+  background: var(--color-bg-input);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  transition:
+    border-color var(--transition-fast),
+    box-shadow var(--transition-fast);
+  min-height: 44px;
+  position: relative;
+}
+
+.ui-select-group:focus-within {
+  border-color: var(--color-border-focus);
+  box-shadow: 0 0 0 var(--focus-ring-width) var(--focus-ring-color);
+}
+
+.ui-select-group--error {
+  border-color: var(--color-error);
+}
+
+.ui-select-group--error:focus-within {
+  box-shadow: 0 0 0 var(--focus-ring-width) rgba(239, 68, 68, 0.2);
+}
+
+.ui-select-group--disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  background: var(--color-bg-hover);
+}
+
+/* Sizes */
+.ui-select-group--sm { min-height: 36px; padding: 0 var(--spacing-sm); }
+.ui-select-group--lg { min-height: 52px; padding: 0 var(--spacing-lg); }
+
+/* Left Icon */
+.ui-select__icon {
+  flex-shrink: 0;
+  color: var(--color-text-muted);
+  display: flex;
+  align-items: center;
+}
+
+.ui-select-group:focus-within .ui-select__icon {
+  color: var(--color-primary);
+}
+
+/* Right Chevron */
+.ui-select__chevron {
+  flex-shrink: 0;
+  color: var(--color-text-muted);
+  display: flex;
+  align-items: center;
+  pointer-events: none;
+}
+
+.ui-select-group:focus-within .ui-select__chevron {
+  color: var(--color-primary);
+}
+
+/* Actual native select */
+.ui-select-group .ui-select__field,
+.ui-select-group .ui-select__field:focus,
+.ui-select-group .ui-select__field:active {
+  flex: 1;
+  width: 100%;
+  height: 100%;
+  min-height: inherit;
+  -webkit-appearance: none;
+  appearance: none;
+  border: none !important;
+  border-width: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  outline: none !important;
+  border-radius: 0;
+  font-family: var(--font-body);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-primary);
+  padding: 0;
+  padding-right: var(--spacing-sm);
+  cursor: pointer;
+}
+
+.ui-select__field:disabled {
+  cursor: not-allowed;
+}
+
+/* Helper & Error text */
+.ui-select__helper {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+}
+
+.ui-select__error {
+  font-size: var(--font-size-xs);
+  color: var(--color-error);
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+}

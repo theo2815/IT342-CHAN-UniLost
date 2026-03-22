@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import authService from "../services/authService";
 import { useUnread } from "../context/UnreadContext";
+import { Dropdown } from "./ui";
 import NotificationDropdown from "./NotificationDropdown";
 import "./Header.css";
 
@@ -25,9 +26,7 @@ function Header() {
   const navigate = useNavigate();
   const location = useLocation();
   const [user] = useState(() => authService.getCurrentUser());
-  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
-  const dropdownRef = useRef(null);
   const notificationRef = useRef(null);
   const isAdmin = authService.isAdmin();
 
@@ -40,9 +39,6 @@ function Header() {
 
   useEffect(() => {
     const handleClickOutside = (event) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
-        setIsDropdownOpen(false);
-      }
       if (
         notificationRef.current &&
         !notificationRef.current.contains(event.target)
@@ -61,10 +57,6 @@ function Header() {
     cleanupWs();
     authService.logout();
     navigate("/login");
-  };
-
-  const toggleDropdown = () => {
-    setIsDropdownOpen(!isDropdownOpen);
   };
 
   const getInitials = () => {
@@ -154,27 +146,28 @@ function Header() {
             <Link
               to="/post-item"
               className="btn btn-primary header-post-btn"
-              style={{ gap: "0.5rem", display: "flex", alignItems: "center" }}
             >
               <PlusCircle size={16} />
               <span className="desktop-only text-sm font-bold">Post Item</span>
             </Link>
 
-            <div className="user-menu" ref={dropdownRef}>
-              <button className="user-btn" onClick={toggleDropdown}>
-                <div className="user-avatar">{getInitials()}</div>
-                <span className="user-name">
-                  {user ? `Hello, ${user.fullName?.split(' ')[0] || 'User'}` : "Guest"}
-                </span>
-                <ChevronDown
-                  size={16}
-                  className={`chevron ${isDropdownOpen ? "open" : ""}`}
-                />
-              </button>
-
-              {isDropdownOpen && (
-                <div className="dropdown-menu glass">
-                  <div className="dropdown-header">
+            <Dropdown
+              trigger={(isOpen) => (
+                <button className="user-btn">
+                  <div className="user-avatar">{getInitials()}</div>
+                  <span className="user-name">
+                    {user ? `Hello, ${user.fullName?.split(' ')[0] || 'User'}` : "Guest"}
+                  </span>
+                  <ChevronDown size={16} className={`chevron ${isOpen ? 'open' : ''}`} />
+                </button>
+              )}
+              align="right"
+              width={240}
+              className="user-menu"
+            >
+              {({ close }) => (
+                <>
+                  <Dropdown.Header>
                     <p className="dropdown-name">
                       {user?.fullName || "Guest User"}
                     </p>
@@ -184,64 +177,61 @@ function Header() {
                         {user.role.replace("_", " ")}
                       </span>
                     )}
-                  </div>
-                  <div className="dropdown-divider"></div>
+                  </Dropdown.Header>
+                  <Dropdown.Divider />
                   <Link
                     to="/profile"
-                    className="dropdown-item"
-                    onClick={() => setIsDropdownOpen(false)}
+                    className="ui-dropdown-item"
+                    onClick={close}
                   >
                     <User size={18} />
                     <span>Profile</span>
                   </Link>
                   <Link
                     to="/settings"
-                    className="dropdown-item"
-                    onClick={() => setIsDropdownOpen(false)}
+                    className="ui-dropdown-item"
+                    onClick={close}
                   >
                     <Settings size={18} />
                     <span>Settings</span>
                   </Link>
                   <Link
-                    to="/profile"
-                    className="dropdown-item"
-                    onClick={() => setIsDropdownOpen(false)}
+                    to="/profile?tab=items"
+                    className="ui-dropdown-item"
+                    onClick={close}
                   >
                     <Package size={18} />
                     <span>My Items</span>
                   </Link>
                   <Link
-                    to="/my-claims"
-                    className="dropdown-item"
-                    onClick={() => setIsDropdownOpen(false)}
+                    to="/profile?tab=claims"
+                    className="ui-dropdown-item"
+                    onClick={close}
                   >
                     <FileText size={18} />
                     <span>My Claims</span>
                   </Link>
                   {isAdmin && (
                     <>
-                      <div className="dropdown-divider"></div>
+                      <Dropdown.Divider />
                       <Link
                         to="/admin"
-                        className="dropdown-item"
-                        onClick={() => setIsDropdownOpen(false)}
+                        className="ui-dropdown-item"
+                        onClick={close}
                       >
                         <Shield size={18} />
                         <span>Admin Panel</span>
                       </Link>
                     </>
                   )}
-                  <div className="dropdown-divider"></div>
-                  <button
-                    className="dropdown-item logout"
-                    onClick={handleLogout}
-                  >
+                  <Dropdown.Divider />
+                  <Dropdown.Item variant="danger" onClick={handleLogout}>
                     <LogOut size={18} />
                     <span>Logout</span>
-                  </button>
-                </div>
+                  </Dropdown.Item>
+                </>
               )}
-            </div>
+            </Dropdown>
           </>
         )}
       </div>

@@ -1,8 +1,10 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+/* global google */
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { Map, AdvancedMarker, InfoWindow, useMap } from "@vis.gl/react-google-maps";
-import { MapPin, Loader, AlertCircle, Navigation } from "lucide-react";
+import { MapPin, Loader, AlertCircle, Navigation, ChevronDown } from "lucide-react";
 import Header from "../../components/Header";
+import { Dropdown } from "../../components/ui";
 import useGoogleMaps from "../../hooks/useGoogleMaps";
 import itemService from "../../services/itemService";
 import { useCampuses } from "../../context/CampusContext";
@@ -238,18 +240,50 @@ function MapView() {
 
             {/* Campus Filter */}
             <div className="form-group map-filter-group">
-              <select
-                value={activeCampus}
-                onChange={(e) => handleCampusChange(e.target.value)}
-                className="map-select"
+              <Dropdown
+                width={340}
+                trigger={(isOpen) => (
+                  <div
+                    className={`ui-select-group ui-select-group--md ${isOpen ? "focus-within" : ""}`}
+                    style={{ cursor: "pointer", background: "var(--color-bg-card)", width: "100%" }}
+                  >
+                    <div className="ui-select__field" style={{ display: "flex", alignItems: "center" }}>
+                      {activeCampus
+                        ? campuses.find((c) => c.id === activeCampus)?.name || "All Campuses"
+                        : "All Campuses"}
+                    </div>
+                    <span className="ui-select__chevron" style={{ color: isOpen ? "var(--color-primary)" : "" }}>
+                      <ChevronDown size={16} className={`ui-dropdown-chevron ${isOpen ? "open" : ""}`} />
+                    </span>
+                  </div>
+                )}
               >
-                <option value="">All Campuses</option>
-                {campuses.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.name}
-                  </option>
-                ))}
-              </select>
+                {({ close }) => (
+                  <>
+                    <Dropdown.Item
+                      className={!activeCampus ? "active" : ""}
+                      onClick={() => {
+                        handleCampusChange("");
+                        close();
+                      }}
+                    >
+                      All Campuses
+                    </Dropdown.Item>
+                    {campuses.map((campus) => (
+                      <Dropdown.Item
+                        key={campus.id}
+                        className={activeCampus === campus.id ? "active" : ""}
+                        onClick={() => {
+                          handleCampusChange(campus.id);
+                          close();
+                        }}
+                      >
+                        {campus.name}
+                      </Dropdown.Item>
+                    ))}
+                  </>
+                )}
+              </Dropdown>
             </div>
 
             {/* Type Filter */}

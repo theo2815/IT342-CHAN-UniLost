@@ -84,6 +84,17 @@
   flex: 1;
 }
 
+.item-card-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--spacing-xs);
+}
+
+.item-card-header .status-badge {
+  flex-shrink: 0;
+}
+
 .item-card-title {
   font-size: var(--font-size-base);
   font-weight: 600;

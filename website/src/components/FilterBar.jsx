@@ -1,6 +1,7 @@
-import { Search } from "lucide-react";
+import { Search, ChevronDown } from "lucide-react";
 import { ITEM_CATEGORIES, CATEGORY_LABELS } from "../constants/categories";
 import { useCampuses } from "../context/CampusContext";
+import { Input, Dropdown } from "./ui";
 import "./FilterBar.css";
 
 function FilterBar({
@@ -19,16 +20,13 @@ function FilterBar({
   return (
     <div className="filter-bar">
       <div className="search-row">
-        <div className="search-input-wrapper">
-          <Search size={18} className="search-icon" />
-          <input
-            type="text"
-            className="search-input"
-            placeholder="Search items..."
-            value={searchQuery}
-            onChange={(e) => onSearchChange(e.target.value)}
-          />
-        </div>
+        <Input
+          icon={Search}
+          placeholder="Search items..."
+          value={searchQuery}
+          onChange={(e) => onSearchChange(e.target.value)}
+          className="filter-search-input"
+        />
       </div>
 
       <div className="filter-row">
@@ -45,31 +43,93 @@ function FilterBar({
         </div>
 
         <div className="filter-selects">
-          <select
-            className="filter-select"
-            value={activeCategory}
-            onChange={(e) => onCategoryChange(e.target.value)}
+          <Dropdown
+            width={220}
+            trigger={(isOpen) => (
+              <div
+                className={`ui-select-group ui-select-group--md ${isOpen ? "focus-within" : ""}`}
+                style={{ cursor: "pointer", background: "var(--color-bg-card)", minWidth: "160px" }}
+              >
+                <div className="ui-select__field" style={{ display: "flex", alignItems: "center" }}>
+                  {activeCategory ? CATEGORY_LABELS[activeCategory] || activeCategory : "All Categories"}
+                </div>
+                <span className="ui-select__chevron" style={{ color: isOpen ? "var(--color-primary)" : "" }}>
+                  <ChevronDown size={16} className={`ui-dropdown-chevron ${isOpen ? "open" : ""}`} />
+                </span>
+              </div>
+            )}
           >
-            <option value="">All Categories</option>
-            {ITEM_CATEGORIES.map((cat) => (
-              <option key={cat} value={cat}>
-                {CATEGORY_LABELS[cat] || cat}
-              </option>
-            ))}
-          </select>
+            {({ close }) => (
+              <>
+                <Dropdown.Item
+                  className={!activeCategory ? "active" : ""}
+                  onClick={() => {
+                    onCategoryChange("");
+                    close();
+                  }}
+                >
+                  All Categories
+                </Dropdown.Item>
+                {ITEM_CATEGORIES.map((cat) => (
+                  <Dropdown.Item
+                    key={cat}
+                    className={activeCategory === cat ? "active" : ""}
+                    onClick={() => {
+                      onCategoryChange(cat);
+                      close();
+                    }}
+                  >
+                    {CATEGORY_LABELS[cat] || cat}
+                  </Dropdown.Item>
+                ))}
+              </>
+            )}
+          </Dropdown>
 
-          <select
-            className="filter-select"
-            value={activeSchool}
-            onChange={(e) => onSchoolChange(e.target.value)}
+          <Dropdown
+            width={240}
+            trigger={(isOpen) => (
+              <div
+                className={`ui-select-group ui-select-group--md ${isOpen ? "focus-within" : ""}`}
+                style={{ cursor: "pointer", background: "var(--color-bg-card)", minWidth: "160px" }}
+              >
+                <div className="ui-select__field" style={{ display: "flex", alignItems: "center" }}>
+                  {activeSchool
+                    ? campuses.find((c) => c.id === activeSchool)?.name || "All Schools"
+                    : "All Schools"}
+                </div>
+                <span className="ui-select__chevron" style={{ color: isOpen ? "var(--color-primary)" : "" }}>
+                  <ChevronDown size={16} className={`ui-dropdown-chevron ${isOpen ? "open" : ""}`} />
+                </span>
+              </div>
+            )}
           >
-            <option value="">All Schools</option>
-            {campuses.map((campus) => (
-              <option key={campus.id} value={campus.id}>
-                {campus.name}
-              </option>
-            ))}
-          </select>
+            {({ close }) => (
+              <>
+                <Dropdown.Item
+                  className={!activeSchool ? "active" : ""}
+                  onClick={() => {
+                    onSchoolChange("");
+                    close();
+                  }}
+                >
+                  All Schools
+                </Dropdown.Item>
+                {campuses.map((campus) => (
+                  <Dropdown.Item
+                    key={campus.id}
+                    className={activeSchool === campus.id ? "active" : ""}
+                    onClick={() => {
+                      onSchoolChange(campus.id);
+                      close();
+                    }}
+                  >
+                    {campus.name}
+                  </Dropdown.Item>
+                ))}
+              </>
+            )}
+          </Dropdown>
         </div>
       </div>
     </div>

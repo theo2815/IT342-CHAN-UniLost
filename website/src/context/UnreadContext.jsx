@@ -13,6 +13,7 @@ export const UnreadProvider = ({ children }) => {
     const [unreadNotifications, setUnreadNotifications] = useState(0);
     const [unreadMessages, setUnreadMessages] = useState(0);
     const stompClientRef = useRef(null);
+    const activeChatIdRef = useRef(null);
     const user = authService.getCurrentUser();
 
     const fetchUnread = useCallback(() => {
@@ -60,10 +61,28 @@ export const UnreadProvider = ({ children }) => {
             connectHeaders: { Authorization: `Bearer ${token}` },
             reconnectDelay: 5000,
             onConnect: () => {
-                client.subscribe('/user/queue/notifications', () => {
+                client.subscribe('/user/queue/notifications', (frame) => {
+                    try {
+                        const payload = JSON.parse(frame.body);
+                        // Suppress badge increment if this is for the active chat
+                        if (payload.type === 'NEW_MESSAGE' && payload.linkId === activeChatIdRef.current) {
+                            return;
+                        }
+                    } catch (e) {
+                        // If parsing fails, still increment
+                    }
                     setUnreadNotifications(prev => prev + 1);
                 });
-                client.subscribe('/user/queue/messages', () => {
+                client.subscribe('/user/queue/messages', (frame) => {
+                    try {
+                        const payload = JSON.parse(frame.body);
+                        // Suppress badge increment if this notification is for the active chat
+                        if (payload.linkId === activeChatIdRef.current) {
+                            return;
+                        }
+                    } catch (e) {
+                        // If parsing fails, still increment
+                    }
                     setUnreadMessages(prev => prev + 1);
                 });
             },
@@ -98,6 +117,11 @@ export const UnreadProvider = ({ children }) => {
         }
     }, []);
 
+    // Allow Messages page to suppress unread badge increment for the active chat
+    const setActiveChatForBadge = useCallback((chatId) => {
+        activeChatIdRef.current = chatId;
+    }, []);
+
     return (
         <UnreadContext.Provider value={{
             unreadNotifications,
@@ -106,6 +130,7 @@ export const UnreadProvider = ({ children }) => {
             refreshMessageCount,
             fetchUnread,
             handleLogout,
+            setActiveChatForBadge,
         }}>
             {children}
         </UnreadContext.Provider>

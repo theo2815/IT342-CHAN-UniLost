@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import {
     PlusCircle, GraduationCap, ShieldCheck, BadgeCheck, CheckCircle,
     Package, FileText, ClipboardList, Smile, BellRing,
@@ -7,6 +7,8 @@ import {
 } from 'lucide-react';
 import Header from '../../components/Header';
 import StatusBadge from '../../components/StatusBadge';
+import EmptyState from '../../components/EmptyState';
+import { Button, Card } from '../../components/ui';
 import authService from '../../services/authService';
 import itemService from '../../services/itemService';
 import userService from '../../services/userService';
@@ -17,6 +19,7 @@ import './Profile.css';
 
 function Profile() {
     const navigate = useNavigate();
+    const location = useLocation();
     const storedUser = authService.getCurrentUser();
 
     const [user, setUser] = useState(storedUser);
@@ -26,6 +29,16 @@ function Profile() {
     const [leaderboard, setLeaderboard] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
+
+    useEffect(() => {
+        const queryParams = new URLSearchParams(location.search);
+        const tab = queryParams.get('tab');
+        if (tab === 'items') {
+            setActiveTab('LOST');
+        } else if (tab === 'claims') {
+            setActiveTab('CLAIMS');
+        }
+    }, [location.search]);
 
     const fetchProfileData = useCallback(async () => {
         if (!storedUser?.id) return;
@@ -127,31 +140,33 @@ function Profile() {
         );
     }
 
+    const isResolved = (status) => status === 'RETURNED' || status === 'COMPLETED';
+
     const renderItemList = (items, type) => {
         if (items.length === 0) {
             const isLost = type === 'LOST';
             return (
-                <div className="empty-state-large glass-panel">
-                    <div className="empty-icon-circle">
-                        <Smile size={40} />
-                    </div>
-                    <h2>{isLost ? 'No lost item reports' : 'No found items yet'}</h2>
-                    <p>{isLost
-                        ? "You haven't reported any lost items."
-                        : 'Help your community! Post any items you\'ve found on campus.'
-                    }</p>
-                    <button className="btn-primary-alt" onClick={() => navigate('/post-item')}>
-                        {isLost ? <BellRing size={18} /> : <PlusCircle size={18} />}
-                        {isLost ? 'Report Lost Item' : 'Post Found Item'}
-                    </button>
-                </div>
+                <Card glass padded className="empty-state-large">
+                    <EmptyState
+                        icon={<Smile size={48} />}
+                        title={isLost ? 'No lost item reports' : 'No found items yet'}
+                        message={isLost
+                            ? "You haven't reported any lost items."
+                            : 'Help your community! Post any items you\'ve found on campus.'
+                        }
+                        actionLabel={isLost ? 'Report Lost Item' : 'Post Found Item'}
+                        onAction={() => navigate('/post-item')}
+                    />
+                </Card>
             );
         }
 
         return items.map((item, index) => (
-            <div
+            <Card
                 key={item.id}
-                className="profile-row-card glass-panel animate-in"
+                hoverable
+                glass
+                className={`profile-row-card animate-in${isResolved(item.status) ? ' resolved-item' : ''}`}
                 style={{ animationDelay: `${index * 0.05}s` }}
                 onClick={() => navigate(`/items/${item.id}`)}
             >
@@ -176,31 +191,31 @@ function Profile() {
                 <div className="item-row-arrow">
                     <ArrowRight size={20} />
                 </div>
-            </div>
+            </Card>
         ));
     };
 
     const renderClaims = () => {
         if (myClaims.length === 0) {
             return (
-                <div className="empty-state-large glass-panel">
-                    <div className="empty-icon-circle">
-                        <ClipboardList size={40} />
-                    </div>
-                    <h2>No claims yet</h2>
-                    <p>You haven't submitted any claims. Browse items to find something you lost.</p>
-                    <button className="btn-primary-alt" onClick={() => navigate('/items')}>
-                        <Package size={18} />
-                        Browse Items
-                    </button>
-                </div>
+                <Card glass padded className="empty-state-large">
+                    <EmptyState
+                        icon={<ClipboardList size={48} />}
+                        title="No claims yet"
+                        message="You haven't submitted any claims. Browse items to find something you lost."
+                        actionLabel="Browse Items"
+                        onAction={() => navigate('/items')}
+                    />
+                </Card>
             );
         }
 
         return myClaims.map((claim, index) => (
-            <div
+            <Card
                 key={claim.id}
-                className="profile-row-card glass-panel animate-in"
+                hoverable
+                glass
+                className={`profile-row-card animate-in${isResolved(claim.status) ? ' resolved-item' : ''}`}
                 style={{ animationDelay: `${index * 0.05}s` }}
                 onClick={() => navigate(`/items/${claim.itemId}`)}
             >
@@ -223,7 +238,7 @@ function Profile() {
                 <div className="item-row-arrow">
                     <ArrowRight size={20} />
                 </div>
-            </div>
+            </Card>
         ));
     };
 
@@ -265,10 +280,9 @@ function Profile() {
                         </div>
 
                         <div className="hero-actions">
-                            <button className="btn-primary-alt" onClick={() => navigate('/settings')}>
-                                <Edit3 size={16} />
+                            <Button variant="secondary" icon={Edit3} onClick={() => navigate('/settings')}>
                                 Edit Profile
-                            </button>
+                            </Button>
                         </div>
                     </div>
                 </div>
@@ -319,7 +333,9 @@ function Profile() {
                                 </div>
                                 <div className="info-block">
                                     <label>Account Status</label>
-                                    <p className="status-active">{user.accountStatus || 'ACTIVE'}</p>
+                                    <div>
+                                        <StatusBadge status={user.accountStatus || 'ACTIVE'} />
+                                    </div>
                                 </div>
                             </div>
                         </div>

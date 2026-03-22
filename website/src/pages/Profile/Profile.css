@@ -343,11 +343,6 @@
     color: var(--color-text-primary);
 }
 
-/* Account Status */
-.status-active {
-    color: var(--color-success);
-    font-weight: 600;
-}
 
 /* Info Blocks */
 .info-blocks {
@@ -555,11 +550,14 @@
     align-items: center;
     transition: transform 0.2s ease, background 0.2s ease;
     cursor: pointer;
+    position: relative;
+    overflow: visible;
 }
 
 .profile-row-card:hover {
-    transform: translateX(5px);
+    transform: translateX(5px) !important;
     background: var(--color-bg-base);
+    box-shadow: var(--shadow-lg);
 }
 
 .item-thumbnail {
@@ -643,6 +641,32 @@
 .profile-row-card:hover .item-row-arrow {
     color: var(--color-primary);
     transform: translateX(3px);
+}
+
+/* Resolved (Returned/Completed) Item Styles */
+.profile-row-card.resolved-item {
+    position: relative;
+    opacity: 0.7;
+    background: var(--color-bg-base);
+    border: 1px solid var(--color-border);
+}
+
+.profile-row-card.resolved-item:hover {
+    opacity: 0.85;
+}
+
+.profile-row-card.resolved-item .item-thumbnail img {
+    filter: grayscale(40%) brightness(0.95);
+}
+
+.profile-row-card.resolved-item .item-details h3 {
+    color: var(--color-text-muted);
+}
+
+
+
+[data-theme="dark"] .profile-row-card.resolved-item {
+    background: rgba(30, 41, 59, 0.4);
 }
 
 /* Empty State */

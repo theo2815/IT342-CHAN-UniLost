@@ -4,9 +4,6 @@
     background: var(--gradient-bg);
 }
 
-.notifications-page .main-content {
-    padding-top: 80px;
-}
 
 .notifications-page .content-wrapper {
     max-width: 800px;

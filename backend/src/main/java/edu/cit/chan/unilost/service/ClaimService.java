@@ -515,7 +515,7 @@ public class ClaimService {
 
             // Notify the actual holder that the owner disputed
             String actualHolderId = "LOST".equals(item.getType()) ? claim.getClaimantId() : claim.getFinderId();
-            notificationService.notifyItemMarkedReturned(
+            notificationService.notifyHandoverDisputed(
                     actualHolderId, caller.getFullName(), item.getTitle(), chatId);
         }
 
@@ -528,6 +528,12 @@ public class ClaimService {
      */
     @Transactional
     public ClaimDTO adminForceCompleteHandover(String claimId, String adminEmail) {
+        UserEntity admin = userRepository.findByEmail(adminEmail)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+        if (admin.getRole() != Role.ADMIN) {
+            throw new ForbiddenException("Only admins can force-complete handovers");
+        }
+
         ClaimEntity claim = claimRepository.findById(claimId)
                 .orElseThrow(() -> new ResourceNotFoundException("Claim not found"));
 

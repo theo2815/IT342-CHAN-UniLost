@@ -27,14 +27,17 @@ import Header from "../../components/Header";
 import StatusBadge from "../../components/StatusBadge";
 import chatService from "../../services/chatService";
 import claimService from "../../services/claimService";
-import itemService from "../../services/itemService";
 import authService from "../../services/authService";
 import ConfirmDialog from "../../components/ConfirmDialog";
+import { useToast } from "../../hooks/useToast";
+import { useUnread } from "../../context/UnreadContext";
 import "./Messages.css";
 
 function Messages() {
   const [searchParams] = useSearchParams();
   const initialChatId = searchParams.get("chatId");
+  const toast = useToast();
+  const { setActiveChatForBadge, refreshMessageCount } = useUnread();
 
   const [chats, setChats] = useState([]);
   const [activeChatId, setActiveChatId] = useState(initialChatId || null);
@@ -44,12 +47,16 @@ function Messages() {
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState("");
   const [messagesLoading, setMessagesLoading] = useState(false);
+  const [loadingOlder, setLoadingOlder] = useState(false);
+  const [messagesPage, setMessagesPage] = useState(0);
+  const [hasMoreMessages, setHasMoreMessages] = useState(false);
   const [sending, setSending] = useState(false);
   const [handoverLoading, setHandoverLoading] = useState(false);
   const [claimActionLoading, setClaimActionLoading] = useState(false);
   const [confirmDialog, setConfirmDialog] = useState({ isOpen: false });
   const [filter, setFilter] = useState("all");
   const [showMobileSidebar, setShowMobileSidebar] = useState(!initialChatId);
+  const [wsStatus, setWsStatus] = useState("connected"); // "connected" | "reconnecting" | "disconnected"
 
   const messagesEndRef = useRef(null);
   const chatContainerRef = useRef(null);
@@ -61,7 +68,10 @@ function Messages() {
   // Keep ref in sync
   useEffect(() => {
     activeChatIdRef.current = activeChatId;
-  }, [activeChatId]);
+    // Suppress unread badge increment for the active chat
+    setActiveChatForBadge(activeChatId);
+    return () => setActiveChatForBadge(null);
+  }, [activeChatId, setActiveChatForBadge]);
 
   // Load chat list
   useEffect(() => {
@@ -98,29 +108,48 @@ function Messages() {
   const loadChatDetail = async (chatId) => {
     const result = await chatService.getChatById(chatId);
     if (result.success && activeChatIdRef.current === chatId) {
-      const chatData = result.data;
-      // Fetch item image directly if ChatDTO doesn't have it
-      if (!chatData.itemImageUrl && chatData.itemId) {
-        const itemResult = await itemService.getItemById(chatData.itemId);
-        if (itemResult.success && itemResult.data.imageUrls?.length > 0) {
-          chatData.itemImageUrl = itemResult.data.imageUrls[0];
-        }
-      }
-      setActiveChat(chatData);
+      setActiveChat(result.data);
     }
   };
 
   // H1 fix: check chatId is still active before setting state
   const loadMessages = async (chatId) => {
     setMessagesLoading(true);
-    const result = await chatService.getMessages(chatId);
+    setMessagesPage(0);
+    setHasMoreMessages(false);
+    const result = await chatService.getMessages(chatId, 0, 50);
     if (result.success && activeChatIdRef.current === chatId) {
       const reversed = [...(result.data.content || [])].reverse();
       setMessages(reversed);
+      setHasMoreMessages(!result.data.last);
+      setMessagesPage(0);
     }
     if (activeChatIdRef.current === chatId) {
       setMessagesLoading(false);
     }
+  };
+
+  const loadOlderMessages = async () => {
+    if (loadingOlder || !hasMoreMessages || !activeChatId) return;
+    const chatId = activeChatId;
+    const nextPage = messagesPage + 1;
+    setLoadingOlder(true);
+    const result = await chatService.getMessages(chatId, nextPage, 50);
+    if (result.success && activeChatIdRef.current === chatId) {
+      const container = chatContainerRef.current;
+      const prevScrollHeight = container?.scrollHeight || 0;
+      const olderMessages = [...(result.data.content || [])].reverse();
+      setMessages(prev => [...olderMessages, ...prev]);
+      setMessagesPage(nextPage);
+      setHasMoreMessages(!result.data.last);
+      // Preserve scroll position after prepending older messages
+      requestAnimationFrame(() => {
+        if (container) {
+          container.scrollTop = container.scrollHeight - prevScrollHeight;
+        }
+      });
+    }
+    setLoadingOlder(false);
   };
 
   // C2 fix: debounce markRead to avoid flooding server
@@ -131,6 +160,7 @@ function Messages() {
       setChats(prev => prev.map(c =>
         c.id === chatId ? { ...c, unreadCount: 0 } : c
       ));
+      refreshMessageCount();
     }, 500);
   };
 
@@ -143,6 +173,15 @@ function Messages() {
       messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
     }
   }, [messages]);
+
+  // Load older messages on scroll-to-top
+  const handleMessagesScroll = () => {
+    const container = chatContainerRef.current;
+    if (!container || loadingOlder || !hasMoreMessages) return;
+    if (container.scrollTop < 60) {
+      loadOlderMessages();
+    }
+  };
 
   // WebSocket connection — C1 fix: send auth token
   useEffect(() => {
@@ -157,6 +196,7 @@ function Messages() {
       connectHeaders: { Authorization: `Bearer ${token}` },
       reconnectDelay: 5000,
       onConnect: () => {
+        setWsStatus("connected");
         client.subscribe(`/topic/chat/${activeChatId}`, (frame) => {
           const msg = JSON.parse(frame.body);
           const msgType = msg.type || "TEXT";
@@ -177,9 +217,14 @@ function Messages() {
       },
       onStompError: (frame) => {
         console.error("STOMP error:", frame.headers?.message);
+        setWsStatus("disconnected");
       },
       onWebSocketError: (error) => {
         console.error("WebSocket error:", error);
+        setWsStatus("reconnecting");
+      },
+      onDisconnect: () => {
+        setWsStatus("reconnecting");
       },
     });
 
@@ -228,6 +273,7 @@ function Messages() {
     } else {
       // Rollback: remove the optimistic message
       setMessages(prev => prev.filter(m => m.id !== optimisticId));
+      toast.error(result.error || "Message failed to send. Please try again.");
     }
     setSending(false);
   };
@@ -237,6 +283,7 @@ function Messages() {
       e.preventDefault();
       handleSend();
     }
+    // Shift+Enter allows newline in textarea (default behavior)
   };
 
   const handleMarkReturned = () => {
@@ -252,7 +299,6 @@ function Messages() {
         const result = await claimService.markItemReturned(activeChat.claimId);
         if (result.success) {
           await loadChatDetail(activeChatId);
-          await loadMessages(activeChatId);
           loadChats();
         }
         setHandoverLoading(false);
@@ -273,7 +319,6 @@ function Messages() {
         const result = await claimService.confirmItemReceived(activeChat.claimId);
         if (result.success) {
           await loadChatDetail(activeChatId);
-          await loadMessages(activeChatId);
           loadChats();
         }
         setHandoverLoading(false);
@@ -294,10 +339,9 @@ function Messages() {
         const result = await claimService.disputeHandover(activeChat.claimId);
         if (result.success) {
           await loadChatDetail(activeChatId);
-          await loadMessages(activeChatId);
           loadChats();
         } else {
-          alert(result.error || "Failed to dispute handover. Please try again.");
+          toast.error(result.error || "Failed to dispute handover. Please try again.");
         }
         setHandoverLoading(false);
       },
@@ -310,10 +354,9 @@ function Messages() {
     const result = await claimService.acceptClaim(activeChat.claimId);
     if (result.success) {
       await loadChatDetail(activeChatId);
-      await loadMessages(activeChatId);
       loadChats();
     } else {
-      alert(result.error || "Failed to accept claim. Please try again.");
+      toast.error(result.error || "Failed to accept claim. Please try again.");
     }
     setClaimActionLoading(false);
   };
@@ -324,10 +367,9 @@ function Messages() {
     const result = await claimService.rejectClaim(activeChat.claimId);
     if (result.success) {
       await loadChatDetail(activeChatId);
-      await loadMessages(activeChatId);
       loadChats();
     } else {
-      alert(result.error || "Failed to reject claim. Please try again.");
+      toast.error(result.error || "Failed to reject claim. Please try again.");
     }
     setClaimActionLoading(false);
   };
@@ -349,6 +391,7 @@ function Messages() {
   const isHandoverComplete = activeChat?.claimStatus === "COMPLETED";
   const isClaimRejected = activeChat?.claimStatus === "REJECTED";
   const isClaimCancelled = activeChat?.claimStatus === "CANCELLED";
+  const isChatEnded = isHandoverComplete || isClaimRejected || isClaimCancelled;
 
   const getProgressSteps = () => {
     if (!activeChat) return [];
@@ -425,9 +468,21 @@ function Messages() {
     return new Date(dateStr).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
   };
 
-  const filteredChats = filter === "unread"
+  const formatDateSeparator = (dateStr) => {
+    if (!dateStr) return "";
+    const date = new Date(dateStr);
+    const today = new Date();
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+    if (date.toDateString() === today.toDateString()) return "Today";
+    if (date.toDateString() === yesterday.toDateString()) return "Yesterday";
+    return date.toLocaleDateString(undefined, { year: "numeric", month: "long", day: "numeric" });
+  };
+
+  const filteredChats = (filter === "unread"
     ? chats.filter(c => c.unreadCount > 0)
-    : chats;
+    : [...chats]
+  ).sort((a, b) => new Date(b.lastMessageAt || 0) - new Date(a.lastMessageAt || 0));
 
   return (
     <div className="messages-page">
@@ -570,7 +625,13 @@ function Messages() {
                 </div>
               )}
 
-              <div className="chat-messages" ref={chatContainerRef}>
+              <div className="chat-messages" ref={chatContainerRef} onScroll={handleMessagesScroll}>
+                {loadingOlder && (
+                  <div className="loading-older">
+                    <Loader size={16} className="spin" />
+                    <span>Loading older messages...</span>
+                  </div>
+                )}
                 {messagesLoading ? (
                   <div className="chat-empty-state">
                     <Loader size={24} className="spin" />
@@ -583,9 +644,25 @@ function Messages() {
                     <span className="text-muted">Send a message to start the conversation</span>
                   </div>
                 ) : (
-                  messages.map((msg) => {
+                  messages.map((msg, idx) => {
                     const msgType = msg.type || "TEXT";
                     const isSent = msg.senderId === currentUser?.id;
+
+                    // Date separator between messages on different days
+                    let dateSep = null;
+                    if (msg.createdAt) {
+                      const msgDate = new Date(msg.createdAt).toDateString();
+                      const prevDate = idx > 0 && messages[idx - 1].createdAt
+                        ? new Date(messages[idx - 1].createdAt).toDateString()
+                        : null;
+                      if (msgDate !== prevDate) {
+                        dateSep = (
+                          <div key={`sep-${msg.id}`} className="date-separator">
+                            <span>{formatDateSeparator(msg.createdAt)}</span>
+                          </div>
+                        );
+                      }
+                    }
 
                     // System / structured messages
                     if (msgType === "SYSTEM" || msgType === "HANDOVER_REQUEST" || msgType === "HANDOVER_CONFIRMED"
@@ -598,6 +675,7 @@ function Messages() {
                         HANDOVER_REQUEST: "handover-request",
                       }[msgType] || "";
                       return (
+                        <>{dateSep}
                         <div key={msg.id} className={`system-message ${systemMsgClass}`}>
                           <div className="system-message-content">
                             {msgType === "HANDOVER_REQUEST" && <HandMetal size={16} />}
@@ -616,6 +694,7 @@ function Messages() {
                           )}
                           <span className="system-msg-time">{formatMessageTime(msg.createdAt)}</span>
                         </div>
+                        </>
                       );
                     }
 
@@ -624,6 +703,7 @@ function Messages() {
                       const meta = msg.metadata || {};
                       const claimImage = meta.itemImageUrl || activeChat?.itemImageUrl;
                       return (
+                        <>{dateSep}
                         <div key={msg.id} className="system-message">
                           <div className="claim-card">
                             {claimImage && (
@@ -656,7 +736,8 @@ function Messages() {
                                   <span className="claim-field-label">Message:</span> {meta.claimMessage}
                                 </div>
                               )}
-                              {isFinder && activeChat?.claimStatus === "PENDING" && !isLostItem && (
+                              {isFinder && activeChat?.claimStatus === "PENDING" && !isLostItem
+                                && meta.claimId === activeChat?.claimId && (
                                 <div className="claim-action-buttons">
                                   <button
                                     className="claim-action-btn accept"
@@ -680,11 +761,13 @@ function Messages() {
                           </div>
                           <span className="system-msg-time">{formatMessageTime(msg.createdAt)}</span>
                         </div>
+                        </>
                       );
                     }
 
                     // Regular TEXT message
                     return (
+                      <>{dateSep}
                       <div key={msg.id} className={`message ${isSent ? "sent" : "received"}`}>
                         {!isSent && (
                           <div className="msg-avatar avatar-initials small">
@@ -703,24 +786,39 @@ function Messages() {
                           </span>
                         </div>
                       </div>
+                      </>
                     );
                   })
                 )}
                 <div ref={messagesEndRef} />
               </div>
 
+              {/* WebSocket connection status */}
+              {wsStatus === "reconnecting" && (
+                <div className="ws-status-banner reconnecting">
+                  <Loader size={12} className="spin" /> Reconnecting...
+                </div>
+              )}
+              {wsStatus === "disconnected" && (
+                <div className="ws-status-banner disconnected">
+                  <AlertCircle size={12} /> Connection lost. Messages may be delayed.
+                </div>
+              )}
+
               {/* Quick Replies */}
-              <div className="quick-replies">
-                <button className="reply-btn" onClick={() => setNewMessage("I'm here now")}>
-                  <Check size={14} /> I'm here
-                </button>
-                <button className="reply-btn" onClick={() => setNewMessage("Running a bit late, be there soon")}>
-                  Running late
-                </button>
-                <button className="reply-btn" onClick={() => setNewMessage("Can we meet at the security office?")}>
-                  Meet at Security
-                </button>
-              </div>
+              {!isChatEnded && (
+                <div className="quick-replies">
+                  <button className="reply-btn" onClick={() => setNewMessage("I'm here now")}>
+                    <Check size={14} /> I'm here
+                  </button>
+                  <button className="reply-btn" onClick={() => setNewMessage("Running a bit late, be there soon")}>
+                    Running late
+                  </button>
+                  <button className="reply-btn" onClick={() => setNewMessage("Can we meet at the security office?")}>
+                    Meet at Security
+                  </button>
+                </div>
+              )}
 
               {/* Handover Actions */}
               {(showMarkReturned || showConfirmReceived) && (
@@ -765,26 +863,43 @@ function Messages() {
               )}
 
               {/* Input */}
-              <div className="chat-input-area">
-                <div className="input-container">
-                  <input
-                    type="text"
-                    placeholder="Type a message..."
-                    className="message-input"
-                    value={newMessage}
-                    onChange={(e) => setNewMessage(e.target.value)}
-                    onKeyDown={handleKeyDown}
-                    maxLength={2000}
-                  />
-                  <button
-                    className="send-btn"
-                    onClick={handleSend}
-                    disabled={!newMessage.trim() || sending}
-                  >
-                    <Send size={18} />
-                  </button>
+              {isChatEnded ? (
+                <div className="chat-ended-banner">
+                  <Info size={16} />
+                  <span>This conversation has ended.</span>
                 </div>
-              </div>
+              ) : (
+                <div className="chat-input-area">
+                  <div className="input-container">
+                    <textarea
+                      placeholder="Type a message..."
+                      className="message-textarea"
+                      value={newMessage}
+                      onChange={(e) => {
+                        setNewMessage(e.target.value);
+                        // Auto-expand textarea
+                        e.target.style.height = "auto";
+                        e.target.style.height = Math.min(e.target.scrollHeight, 120) + "px";
+                      }}
+                      onKeyDown={handleKeyDown}
+                      maxLength={2000}
+                      rows={1}
+                    />
+                    <button
+                      className="send-btn"
+                      onClick={handleSend}
+                      disabled={!newMessage.trim() || sending}
+                    >
+                      <Send size={18} />
+                    </button>
+                  </div>
+                  {newMessage.length > 1800 && (
+                    <div className={`char-counter ${newMessage.length >= 2000 ? "at-limit" : "near-limit"}`}>
+                      {2000 - newMessage.length} characters remaining
+                    </div>
+                  )}
+                </div>
+              )}
             </>
           )}
         </main>

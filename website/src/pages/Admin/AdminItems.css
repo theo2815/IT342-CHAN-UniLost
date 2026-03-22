@@ -224,7 +224,7 @@
     color: #10b981;
 }
 
-.status-badge {
+.admin-items-page .status-badge {
     display: inline-block;
     padding: 2px 8px;
     border-radius: var(--radius-full);
@@ -234,27 +234,27 @@
     letter-spacing: 0.3px;
 }
 
-.status-badge.active {
+.admin-items-page .status-badge.active {
     background: rgba(59, 130, 246, 0.1);
     color: #3b82f6;
 }
 
-.status-badge.claimed {
+.admin-items-page .status-badge.claimed {
     background: rgba(139, 92, 246, 0.1);
     color: #8b5cf6;
 }
 
-.status-badge.handed-over {
+.admin-items-page .status-badge.handed-over {
     background: rgba(16, 185, 129, 0.1);
     color: #10b981;
 }
 
-.status-badge.expired {
+.admin-items-page .status-badge.expired {
     background: rgba(107, 114, 128, 0.1);
     color: #6b7280;
 }
 
-.status-badge.cancelled {
+.admin-items-page .status-badge.cancelled {
     background: rgba(107, 114, 128, 0.1);
     color: #6b7280;
 }
@@ -339,17 +339,17 @@
 }
 
 /* New status badges */
-.status-badge.turned-over-to-office {
+.admin-items-page .status-badge.turned-over-to-office {
     background: rgba(99, 102, 241, 0.1);
     color: #6366f1;
 }
 
-.status-badge.returned {
+.admin-items-page .status-badge.returned {
     background: rgba(5, 150, 105, 0.1);
     color: #059669;
 }
 
-.status-badge.hidden {
+.admin-items-page .status-badge.hidden {
     background: rgba(107, 114, 128, 0.1);
     color: #6b7280;
 }

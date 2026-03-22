@@ -9,7 +9,6 @@ import ItemDetail from './pages/ItemDetail/ItemDetail';
 import PostItem from './pages/PostItem/PostItem';
 import IncomingClaims from './pages/IncomingClaims/IncomingClaims';
 import ClaimDetail from './pages/ClaimDetail/ClaimDetail';
-import MyClaims from './pages/MyClaims/MyClaims';
 import Notifications from './pages/Notifications/Notifications';
 import AdminDashboard from './pages/Admin/AdminDashboard';
 import AdminItems from './pages/Admin/AdminItems';
@@ -70,7 +69,6 @@ function App() {
               <Route path="/messages" element={<Messages />} />
             <Route path="/post-item" element={<PostItem />} />
             <Route path="/my-items/:itemId/claims" element={<IncomingClaims />} />
-            <Route path="/my-claims" element={<MyClaims />} />
             <Route path="/claims/:claimId" element={<ClaimDetail />} />
             <Route path="/notifications" element={<Notifications />} />
             <Route path="/profile" element={<Profile />} />

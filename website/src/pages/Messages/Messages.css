@@ -1298,3 +1298,118 @@
     gap: 0.5rem;
   }
 }
+
+/* Loading older messages */
+.loading-older {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.75rem;
+  color: var(--color-text-muted);
+  font-size: 0.8rem;
+}
+
+/* Chat ended banner */
+.chat-ended-banner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  background-color: var(--color-bg-card);
+  border-top: 1px solid var(--color-border);
+  color: var(--color-text-muted);
+  font-size: 0.85rem;
+}
+
+[data-theme="dark"] .chat-ended-banner {
+  background-color: var(--color-bg-card);
+}
+
+/* WebSocket connection status */
+.ws-status-banner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.375rem 1rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.ws-status-banner.reconnecting {
+  background-color: #fef3c7;
+  color: #92400e;
+}
+
+.ws-status-banner.disconnected {
+  background-color: #fee2e2;
+  color: #991b1b;
+}
+
+[data-theme="dark"] .ws-status-banner.reconnecting {
+  background-color: rgba(254, 243, 199, 0.15);
+  color: #fcd34d;
+}
+
+[data-theme="dark"] .ws-status-banner.disconnected {
+  background-color: rgba(254, 226, 226, 0.15);
+  color: #fca5a5;
+}
+
+/* Character counter */
+.char-counter {
+  font-size: 0.7rem;
+  color: var(--color-text-muted);
+  text-align: right;
+  padding: 0 1.5rem 0.25rem;
+}
+
+.char-counter.near-limit {
+  color: #f59e0b;
+}
+
+.char-counter.at-limit {
+  color: #ef4444;
+}
+
+/* Textarea auto-expand (replaces input) */
+.message-textarea {
+  flex: 1;
+  background: transparent;
+  border: none;
+  outline: none;
+  font-size: 0.875rem;
+  padding: 0.5rem;
+  color: var(--color-text-primary);
+  resize: none;
+  max-height: 120px;
+  min-height: 1.5em;
+  line-height: 1.5;
+  font-family: inherit;
+  overflow-y: auto;
+}
+
+/* Date separator */
+.date-separator {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.5rem 0;
+}
+
+.date-separator::before,
+.date-separator::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background-color: var(--color-border);
+}
+
+.date-separator span {
+  font-size: 0.7rem;
+  color: var(--color-text-muted);
+  white-space: nowrap;
+  font-weight: 500;
+}

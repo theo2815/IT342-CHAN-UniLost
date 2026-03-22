@@ -1,10 +1,12 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Plus } from 'lucide-react';
+import { Plus, AlertCircle } from 'lucide-react';
 import Header from '../../components/Header';
+import Footer from '../../components/Footer';
 import ItemCard from '../../components/ItemCard';
 import FilterBar from '../../components/FilterBar';
 import EmptyState from '../../components/EmptyState';
+import { Spinner } from '../../components/ui';
 import itemService from '../../services/itemService';
 import './ItemFeed.css';
 
@@ -129,7 +131,8 @@ function ItemFeed() {
                     />
 
                     {error && (
-                        <div className="feed-error" style={{ color: 'var(--color-danger)', padding: '1rem 0' }}>
+                        <div className="feed-error">
+                            <AlertCircle size={16} />
                             Failed to load items. Please try again.
                         </div>
                     )}
@@ -140,10 +143,8 @@ function ItemFeed() {
                                 Showing {items.length} of {totalItems} items
                             </div>
                             <div className="items-grid">
-                                {items.map((item, index) => (
-                                    <div key={item.id} style={{ animationDelay: `${index * 0.05}s` }}>
-                                        <ItemCard item={item} onClick={handleItemClick} />
-                                    </div>
+                                {items.map((item) => (
+                                    <ItemCard key={item.id} item={item} onClick={handleItemClick} />
                                 ))}
                             </div>
                             {hasMore && (
@@ -155,7 +156,9 @@ function ItemFeed() {
                             )}
                         </>
                     ) : loading ? (
-                        <div className="items-count">Loading items...</div>
+                        <div className="feed-loading">
+                            <Spinner size="md" label="Loading items..." />
+                        </div>
                     ) : (
                         <EmptyState
                             title="No items found"
@@ -166,6 +169,8 @@ function ItemFeed() {
                     )}
                 </div>
             </main>
+
+            <Footer />
         </div>
     );
 }

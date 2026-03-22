@@ -1,5 +1,6 @@
 import { MapPin, Clock, EyeOff } from "lucide-react";
 import { timeAgo } from "../utils/timeAgo";
+import StatusBadge from "./StatusBadge";
 import "./ItemCard.css";
 
 function ItemCard({ item, onClick, variant = "default" }) {
@@ -36,7 +37,12 @@ function ItemCard({ item, onClick, variant = "default" }) {
         )}
       </div>
       <div className="item-card-body">
-        <h3 className="item-card-title">{item.title}</h3>
+        <div className="item-card-header">
+          <h3 className="item-card-title">{item.title}</h3>
+          {item.status && item.status !== 'ACTIVE' && (
+            <StatusBadge status={item.status} />
+          )}
+        </div>
         <div className="item-card-tags">
           <span className="tag category-tag">{item.category}</span>
           {schoolName && <span className="tag school-tag">{schoolName}</span>}

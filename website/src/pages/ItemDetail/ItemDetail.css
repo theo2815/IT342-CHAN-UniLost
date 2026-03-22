@@ -4,9 +4,6 @@
     background: var(--gradient-bg);
 }
 
-.item-detail-page .main-content {
-    padding-top: 80px;
-}
 
 .item-detail-page .content-wrapper {
     max-width: 1100px;
@@ -188,13 +185,11 @@
     font-weight: 500;
 }
 
-/* Poster Card */
+/* Poster Card - Card component handles padding/radius */
 .poster-card {
     display: flex;
     align-items: center;
     gap: var(--spacing-md);
-    padding: var(--spacing-md);
-    border-radius: var(--radius-lg);
 }
 
 .poster-avatar {
@@ -235,55 +230,7 @@
     margin-top: var(--spacing-sm);
 }
 
-.action-btn {
-    display: inline-flex;
-    align-items: center;
-    gap: var(--spacing-xs);
-    padding: 10px 20px;
-    border: 1px solid var(--color-border);
-    border-radius: var(--radius-md);
-    font-size: var(--font-size-sm);
-    font-weight: 600;
-    cursor: pointer;
-    transition: all var(--transition-fast);
-    background: var(--color-bg-card);
-    color: var(--color-text-secondary);
-}
 
-.action-btn.primary {
-    background: var(--gradient-primary);
-    color: #fff;
-    border-color: transparent;
-}
-
-.action-btn.primary:hover {
-    opacity: 0.9;
-}
-
-.action-btn.success {
-    background: #10b981;
-    color: #fff;
-    border-color: transparent;
-}
-
-.action-btn.success:hover {
-    background: #059669;
-}
-
-.action-btn.danger {
-    color: #ef4444;
-    border-color: #ef4444;
-    background: transparent;
-}
-
-.action-btn.danger:hover {
-    background: rgba(239, 68, 68, 0.08);
-}
-
-.action-btn.secondary:hover {
-    border-color: var(--color-primary);
-    color: var(--color-primary);
-}
 
 /* Related Items */
 .related-section {
@@ -450,4 +397,61 @@
     .action-btn {
         justify-content: center;
     }
+
+    .resolved-banner.ui-alert {
+        text-align: center;
+    }
+}
+
+/* =============================================
+   Resolved / Completed Item Styles
+   ============================================= */
+
+.resolved-layout .detail-image-wrapper.resolved-image img {
+    filter: grayscale(30%) brightness(0.93);
+}
+
+/* Resolved Banner - uses Alert component, add layout tweaks */
+.resolved-banner.ui-alert {
+    border-radius: var(--radius-lg);
+}
+
+/* Resolved Info Card - uses Card component */
+.resolved-info-card.ui-card {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-sm);
+}
+
+.resolved-info-title {
+    font-size: var(--font-size-sm);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--color-text-muted);
+    margin: 0 0 var(--spacing-xs) 0;
+}
+
+/* Poster Card in resolved state - uses Card component */
+.resolved-layout .poster-card.ui-card {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: var(--spacing-md);
+}
+
+/* Resolved actions - use Button component */
+.resolved-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--spacing-sm);
+    margin-top: var(--spacing-sm);
+}
+
+.resolved-actions .ui-btn {
+    opacity: 0.85;
+}
+
+.resolved-actions .ui-btn:hover {
+    opacity: 1;
 }

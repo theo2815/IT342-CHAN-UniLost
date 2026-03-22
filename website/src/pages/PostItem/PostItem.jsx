@@ -1,9 +1,10 @@
 import { useState, useRef, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Upload, X, Eye, Image, MapPin, Calendar, Lock, ArrowLeft, Loader } from 'lucide-react';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { Upload, X, Eye, Image, MapPin, Calendar, Lock, ArrowLeft, Loader, ChevronDown } from 'lucide-react';
 import Header from '../../components/Header';
 import ItemCard from '../../components/ItemCard';
 import LocationPicker from '../../components/LocationPicker';
+import { Input, Dropdown } from '../../components/ui';
 import { ITEM_CATEGORIES, CATEGORY_LABELS } from '../../constants/categories';
 import authService from '../../services/authService';
 import itemService from '../../services/itemService';
@@ -11,8 +12,14 @@ import './PostItem.css';
 
 function PostItem() {
     const navigate = useNavigate();
+    const location = useLocation();
     const fileInputRef = useRef(null);
     const user = authService.getCurrentUser();
+
+    // Check for "Edit Mode"
+    const searchParams = new URLSearchParams(location.search);
+    const editId = searchParams.get('edit');
+    const isEditMode = !!editId;
 
     const [formData, setFormData] = useState({
         type: 'LOST',
@@ -29,7 +36,58 @@ function PostItem() {
     const [showPreview, setShowPreview] = useState(false);
     const [submitted, setSubmitted] = useState(false);
     const [submitting, setSubmitting] = useState(false);
+    const [loadingData, setLoadingData] = useState(isEditMode);
     const [error, setError] = useState('');
+
+    useEffect(() => {
+        if (!editId) return;
+
+        const loadItemData = async () => {
+            setLoadingData(true);
+            const result = await itemService.getItemById(editId);
+            if (result.success) {
+                const item = result.data;
+                let formattedDate = '';
+                if (item.dateLostFound) {
+                    formattedDate = item.dateLostFound.split('T')[0];
+                }
+
+                setFormData({
+                    type: item.type || 'LOST',
+                    title: item.title || '',
+                    description: item.description || '',
+                    category: item.category || '',
+                    locationDescription: item.location || '',
+                    latitude: item.latitude || null,
+                    longitude: item.longitude || null,
+                    date: formattedDate,
+                    secretDetail: item.secretDetailQuestion || '',
+                });
+
+                if (item.imageUrls && item.imageUrls.length > 0) {
+                    const loadedImages = item.imageUrls.map((url, i) => ({
+                        file: null, // No fresh File object for existing URLs
+                        preview: url,
+                        name: `Existing Image ${i + 1}`,
+                        isExisting: true
+                    }));
+                    setImages(loadedImages);
+                }
+            } else {
+                setError('Failed to load item data: ' + result.error);
+            }
+            setLoadingData(false);
+        };
+        loadItemData();
+    }, [editId]);
+
+    const handleGoBack = () => {
+        if (window.history.state && window.history.state.idx > 0) {
+            navigate(-1);
+        } else {
+            navigate(isEditMode ? `/items/${editId}` : '/items');
+        }
+    };
 
     // H11: Revoke object URLs on unmount to prevent memory leaks
     useEffect(() => {
@@ -97,13 +155,19 @@ function PostItem() {
             dateLostFound: formData.date ? `${formData.date}T00:00:00` : null,
         };
 
-        const imageFiles = images.map((img) => img.file);
-        const result = await itemService.createItem(itemData, imageFiles);
+        const imageFiles = images.map((img) => img.file).filter(file => file !== null);
+        
+        let result;
+        if (isEditMode) {
+            result = await itemService.updateItem(editId, itemData, imageFiles);
+        } else {
+            result = await itemService.createItem(itemData, imageFiles);
+        }
 
         if (result.success) {
             setSubmitted(true);
             setTimeout(() => {
-                navigate('/items');
+                navigate(isEditMode ? `/items/${editId}` : '/items');
             }, 2000);
         } else {
             setError(result.error);
@@ -139,8 +203,8 @@ function PostItem() {
                     <div className="content-wrapper">
                         <div className="success-state">
                             <div className="success-icon">&#10003;</div>
-                            <h2>Item Posted Successfully!</h2>
-                            <p>Your {formData.type.toLowerCase()} item report has been submitted. Redirecting to items feed...</p>
+                            <h2>Item {isEditMode ? 'Updated' : 'Posted'} Successfully!</h2>
+                            <p>Your {formData.type.toLowerCase()} item report has been {isEditMode ? 'updated' : 'submitted'}. Redirecting...</p>
                         </div>
                     </div>
                 </main>
@@ -154,21 +218,29 @@ function PostItem() {
 
             <main className="main-content">
                 <div className="content-wrapper">
-                    <button className="back-link" onClick={() => navigate('/items')}>
-                        <ArrowLeft size={18} /> Back to Feed
+                    <button className="back-link" onClick={handleGoBack}>
+                        <ArrowLeft size={18} /> Go Back
                     </button>
 
                     <div className="post-layout">
                         {/* Form */}
                         <div className="post-form-section">
-                            <h1>Report an Item</h1>
-                            <p className="post-subtitle">Help reunite lost items with their owners.</p>
+                            <h1>{isEditMode ? 'Edit Item' : 'Report an Item'}</h1>
+                            <p className="post-subtitle">
+                                {isEditMode ? 'Update the details of your item report.' : 'Help reunite lost items with their owners.'}
+                            </p>
 
                             {error && (
                                 <div className="form-error-banner">{error}</div>
                             )}
 
-                            <form onSubmit={handleSubmit}>
+                            {loadingData ? (
+                                <div className="loading-state" style={{ padding: '40px', textAlign: 'center', color: 'var(--color-text-muted)' }}>
+                                    <Loader className="spin" size={24} style={{ margin: '0 auto 12px' }} />
+                                    <p>Loading item details...</p>
+                                </div>
+                            ) : (
+                                <form onSubmit={handleSubmit}>
                                 {/* Type Toggle */}
                                 <div className="type-toggle">
                                     <button
@@ -188,66 +260,91 @@ function PostItem() {
                                 </div>
 
                                 {/* Title */}
-                                <div className="form-group">
-                                    <label htmlFor="title">Title <span className="required">*</span></label>
-                                    <input
-                                        id="title"
-                                        name="title"
-                                        type="text"
-                                        placeholder="e.g. Black Samsung Galaxy S24"
-                                        value={formData.title}
-                                        onChange={handleChange}
-                                        maxLength={100}
-                                        required
-                                    />
-                                </div>
+                                <Input
+                                    id="title"
+                                    name="title"
+                                    label="Title"
+                                    required
+                                    placeholder="e.g. Black Samsung Galaxy S24"
+                                    value={formData.title}
+                                    onChange={handleChange}
+                                    maxLength={100}
+                                />
 
                                 {/* Description */}
-                                <div className="form-group">
-                                    <label htmlFor="description">Description <span className="required">*</span></label>
-                                    <textarea
-                                        id="description"
-                                        name="description"
-                                        placeholder="Describe the item in detail — color, brand, distinguishing marks..."
-                                        value={formData.description}
-                                        onChange={handleChange}
-                                        rows={4}
-                                        maxLength={1000}
-                                        required
-                                    />
-                                    <span className="char-count">{formData.description.length}/1000</span>
-                                </div>
+                                <Input
+                                    id="description"
+                                    name="description"
+                                    label="Description"
+                                    required
+                                    textarea
+                                    placeholder="Describe the item in detail — color, brand, distinguishing marks..."
+                                    value={formData.description}
+                                    onChange={handleChange}
+                                    rows={4}
+                                    maxLength={1000}
+                                />
 
                                 {/* Category */}
-                                <div className="form-group">
-                                    <label htmlFor="category">Category <span className="required">*</span></label>
-                                    <select
+                                <div className="form-group-wrapper">
+                                    <label className="ui-input__label ui-input__label--required" htmlFor="category">Category</label>
+                                    <Dropdown
                                         id="category"
-                                        name="category"
-                                        value={formData.category}
-                                        onChange={handleChange}
-                                        required
+                                        trigger={(isOpen) => (
+                                            <div
+                                                className={`ui-select-group ui-select-group--md ${isOpen ? "focus-within" : ""}`}
+                                                style={{ cursor: "pointer", background: "var(--color-bg-card)", width: "100%" }}
+                                            >
+                                                <div className="ui-select__field" style={{ display: "flex", alignItems: "center" }}>
+                                                    {formData.category
+                                                        ? CATEGORY_LABELS[formData.category] || formData.category
+                                                        : "Select a category"}
+                                                </div>
+                                                <span className="ui-select__chevron" style={{ color: isOpen ? "var(--color-primary)" : "" }}>
+                                                    <ChevronDown size={16} className={`ui-dropdown-chevron ${isOpen ? "open" : ""}`} />
+                                                </span>
+                                            </div>
+                                        )}
                                     >
-                                        <option value="">Select a category</option>
-                                        {ITEM_CATEGORIES.map((cat) => (
-                                            <option key={cat} value={cat}>{CATEGORY_LABELS[cat] || cat}</option>
-                                        ))}
-                                    </select>
+                                        {({ close }) => (
+                                            <>
+                                                <Dropdown.Item
+                                                    className={!formData.category ? "active" : ""}
+                                                    onClick={() => {
+                                                        handleChange({ target: { name: 'category', value: '' } });
+                                                        close();
+                                                    }}
+                                                >
+                                                    Select a category
+                                                </Dropdown.Item>
+                                                {ITEM_CATEGORIES.map((cat) => (
+                                                    <Dropdown.Item
+                                                        key={cat}
+                                                        className={formData.category === cat ? "active" : ""}
+                                                        onClick={() => {
+                                                            handleChange({ target: { name: 'category', value: cat } });
+                                                            close();
+                                                        }}
+                                                    >
+                                                        {CATEGORY_LABELS[cat] || cat}
+                                                    </Dropdown.Item>
+                                                ))}
+                                            </>
+                                        )}
+                                    </Dropdown>
                                 </div>
 
                                 {/* Location */}
-                                <div className="form-group">
-                                    <label htmlFor="locationDescription">
-                                        <MapPin size={14} style={{ display: 'inline', verticalAlign: 'middle' }} /> Location <span className="required">*</span>
-                                    </label>
-                                    <input
+                                <div className="form-group-wrapper">
+                                    <Input
                                         id="locationDescription"
                                         name="locationDescription"
-                                        type="text"
+                                        label="Location"
+                                        required
+                                        icon={MapPin}
                                         placeholder="e.g. CIT-U Main Library, 2nd Floor"
                                         value={formData.locationDescription}
                                         onChange={handleChange}
-                                        required
                                     />
                                     <LocationPicker
                                         latitude={formData.latitude}
@@ -259,18 +356,15 @@ function PostItem() {
                                 </div>
 
                                 {/* Date */}
-                                <div className="form-group">
-                                    <label htmlFor="date">
-                                        <Calendar size={14} style={{ display: 'inline', verticalAlign: 'middle' }} /> When was it {formData.type === 'LOST' ? 'lost' : 'found'}?
-                                    </label>
-                                    <input
-                                        id="date"
-                                        name="date"
-                                        type="date"
-                                        value={formData.date}
-                                        onChange={handleChange}
-                                    />
-                                </div>
+                                <Input
+                                    id="date"
+                                    name="date"
+                                    type="date"
+                                    label={`When was it ${formData.type === 'LOST' ? 'lost' : 'found'}?`}
+                                    icon={Calendar}
+                                    value={formData.date}
+                                    onChange={handleChange}
+                                />
 
                                 {/* Image Upload */}
                                 <div className="form-group">
@@ -308,19 +402,17 @@ function PostItem() {
 
                                 {/* Secret Detail (FOUND only) */}
                                 {formData.type === 'FOUND' && (
-                                    <div className="form-group secret-detail-group">
-                                        <label htmlFor="secretDetail">
-                                            <Lock size={14} style={{ display: 'inline', verticalAlign: 'middle' }} /> Secret Detail
-                                        </label>
-                                        <input
+                                    <div className="secret-detail-section">
+                                        <Input
                                             id="secretDetail"
                                             name="secretDetail"
-                                            type="text"
+                                            label="Secret Detail"
+                                            icon={Lock}
                                             placeholder="e.g. There is a sticker on the back"
                                             value={formData.secretDetail}
                                             onChange={handleChange}
+                                            helper="Enter a detail only the true owner would know. This helps verify claims."
                                         />
-                                        <span className="helper-text">Enter a detail only the true owner would know. This helps verify claims.</span>
                                     </div>
                                 )}
 
@@ -338,10 +430,15 @@ function PostItem() {
                                         className="submit-btn"
                                         disabled={!isFormValid || submitting}
                                     >
-                                        {submitting ? <><Loader size={16} className="spin" /> Posting...</> : 'Post Item'}
+                                        {submitting ? (
+                                            <><Loader size={16} className="spin" /> {isEditMode ? 'Saving...' : 'Posting...'}</>
+                                        ) : (
+                                            isEditMode ? 'Save Changes' : 'Post Item'
+                                        )}
                                     </button>
                                 </div>
                             </form>
+                            )}
                         </div>
 
                         {/* Preview */}

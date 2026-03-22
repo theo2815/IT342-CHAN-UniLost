@@ -86,23 +86,7 @@
 
 .map-filter-group {
   margin-bottom: 0.75rem;
-}
-
-.map-select {
   width: 100%;
-  padding: 0.5rem 0.75rem;
-  border-radius: 0.5rem;
-  border: 1px solid var(--color-border);
-  background-color: var(--color-bg-input, var(--color-bg-base));
-  color: var(--color-text-primary);
-  font-size: 0.875rem;
-  cursor: pointer;
-}
-
-.map-select:focus {
-  outline: none;
-  border-color: var(--color-primary);
-  box-shadow: 0 0 0 2px rgba(var(--color-primary-rgb, 59, 130, 246), 0.2);
 }
 
 .filters-scroll-row {
