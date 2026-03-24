@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
     PlusCircle, GraduationCap, ShieldCheck, BadgeCheck, CheckCircle,
@@ -21,6 +21,7 @@ function Profile() {
     const navigate = useNavigate();
     const location = useLocation();
     const storedUser = authService.getCurrentUser();
+    const tabsRef = useRef(null);
 
     const [user, setUser] = useState(storedUser);
     const [activeTab, setActiveTab] = useState('LOST');
@@ -33,12 +34,29 @@ function Profile() {
     useEffect(() => {
         const queryParams = new URLSearchParams(location.search);
         const tab = queryParams.get('tab');
-        if (tab === 'items') {
-            setActiveTab('LOST');
-        } else if (tab === 'claims') {
-            setActiveTab('CLAIMS');
+        if (tab === 'items' || tab === 'claims') {
+            if (tab === 'items') {
+                setActiveTab('LOST');
+            } else if (tab === 'claims') {
+                setActiveTab('CLAIMS');
+            }
+            
+            // Wait until data has finished loading before attempting to calculate scroll position
+            if (!loading) {
+                setTimeout(() => {
+                    if (tabsRef.current) {
+                        const headerOffset = 90; // Adjust for sticky header
+                        const elementPosition = tabsRef.current.getBoundingClientRect().top;
+                        const offsetPosition = elementPosition + window.scrollY - headerOffset;
+                        window.scrollTo({
+                             top: offsetPosition,
+                             behavior: "smooth"
+                        });
+                    }
+                }, 150);
+            }
         }
-    }, [location.search]);
+    }, [location.search, loading]);
 
     const fetchProfileData = useCallback(async () => {
         if (!storedUser?.id) return;
@@ -379,7 +397,7 @@ function Profile() {
 
                     {/* Main Column: Tabs & Content */}
                     <div className="profile-column column-center">
-                        <div className="profile-main-tabs glass-panel">
+                        <div className="profile-main-tabs glass-panel" ref={tabsRef}>
                             <button
                                 className={`main-tab ${activeTab === 'LOST' ? 'active' : ''}`}
                                 onClick={() => setActiveTab('LOST')}

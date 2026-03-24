@@ -58,8 +58,9 @@ public class ItemController {
     @GetMapping("/map")
     public ResponseEntity<List<ItemDTO>> getMapItems(
             @RequestParam(required = false) String campusId,
-            @RequestParam(required = false) String type) {
-        return ResponseEntity.ok(itemService.getMapItems(campusId, type));
+            @RequestParam(required = false) String type,
+            @RequestParam(required = false) Integer limit) {
+        return ResponseEntity.ok(itemService.getMapItems(campusId, type, limit));
     }
 
     @GetMapping("/{id}")

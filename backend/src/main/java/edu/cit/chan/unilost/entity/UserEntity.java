@@ -27,6 +27,8 @@ public class UserEntity {
 
     private String fullName;
 
+    private String profilePictureUrl;
+
     // Reference to campuses.id
     @Indexed
     private String universityTag;
@@ -58,4 +60,10 @@ public class UserEntity {
 
     @JsonIgnore
     private boolean otpVerified = false;
+
+    @JsonIgnore
+    private String resetToken;
+
+    @JsonIgnore
+    private LocalDateTime resetTokenExpiry;
 }

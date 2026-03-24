@@ -1,16 +1,33 @@
-import { MapPin, Clock, EyeOff } from "lucide-react";
+import { useState } from "react";
+import { MapPin, Clock, EyeOff, ChevronLeft, ChevronRight } from "lucide-react";
 import { timeAgo } from "../utils/timeAgo";
 import StatusBadge from "./StatusBadge";
 import "./ItemCard.css";
 
 function ItemCard({ item, onClick, variant = "default" }) {
+  const [activeIndex, setActiveIndex] = useState(0);
+
   const isFound = item.type === "FOUND";
-  // Support both API (imageUrls array) and mock (imageUrl string) data shapes
-  const imageUrl = item.imageUrls?.[0] || item.imageUrl || "https://picsum.photos/seed/placeholder/400/300";
+  
+  // Get all images if available, otherwise fallback to single image or placeholder
+  const images = item.imageUrls?.length > 0 ? item.imageUrls : (item.imageUrl ? [item.imageUrl] : ["https://picsum.photos/seed/placeholder/400/300"]);
+  const hasMultipleImages = images.length > 1;
+  const activeImage = images[activeIndex] || images[0];
+
   // Support both API (campus object) and mock (school object) data shapes
   const schoolName = item.campus?.name || item.school?.shortName || "";
   // Support both API (location string) and mock (locationDescription string)
   const locationText = item.location || item.locationDescription || "";
+
+  const handlePrevImage = (e) => {
+    e.stopPropagation();
+    setActiveIndex((prev) => (prev === 0 ? images.length - 1 : prev - 1));
+  };
+
+  const handleNextImage = (e) => {
+    e.stopPropagation();
+    setActiveIndex((prev) => (prev === images.length - 1 ? 0 : prev + 1));
+  };
 
   return (
     <div
@@ -19,11 +36,28 @@ function ItemCard({ item, onClick, variant = "default" }) {
     >
       <div className={`item-card-image ${variant === "snapshot" && isFound ? "snapshot-reveal" : ""}`}>
         <img
-          src={imageUrl}
+          src={activeImage}
           alt={item.title}
           className={isFound ? "blurred" : ""}
           loading="lazy"
         />
+        
+        {/* Gallery Navigation overlay */}
+        {hasMultipleImages && (
+          <>
+            <button type="button" className="card-gallery-nav prev" onClick={handlePrevImage} aria-label="Previous image">
+              <ChevronLeft size={16} />
+            </button>
+            <button type="button" className="card-gallery-nav next" onClick={handleNextImage} aria-label="Next image">
+              <ChevronRight size={16} />
+            </button>
+            <div className="card-gallery-dots">
+              {images.map((_, idx) => (
+                <span key={idx} className={`card-gallery-dot ${idx === activeIndex ? "active" : ""}`} />
+              ))}
+            </div>
+          </>
+        )}
         <span className={`type-badge ${item.type.toLowerCase()}`}>
           {item.type}
         </span>

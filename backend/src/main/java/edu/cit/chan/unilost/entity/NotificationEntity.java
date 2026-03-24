@@ -5,6 +5,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.index.CompoundIndex;
+import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.time.LocalDateTime;
@@ -20,6 +21,7 @@ public class NotificationEntity {
     private String id;
 
     /** Reference to users.id — the recipient */
+    @Indexed
     private String userId;
 
     /** CLAIM_RECEIVED, CLAIM_ACCEPTED, CLAIM_REJECTED, NEW_MESSAGE, ITEM_FLAGGED */

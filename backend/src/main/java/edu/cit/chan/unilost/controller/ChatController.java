@@ -27,6 +27,16 @@ public class ChatController {
         return ResponseEntity.ok(chatService.getMyChats(auth.getName()));
     }
 
+    @GetMapping("/paged")
+    public ResponseEntity<Page<ChatDTO>> getMyChatsPaged(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size,
+            Authentication auth) {
+        return ResponseEntity.ok(chatService.getMyChats(
+                auth.getName(),
+                PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "lastMessageAt"))));
+    }
+
     /** Get a specific chat room */
     @GetMapping("/{chatId}")
     public ResponseEntity<ChatDTO> getChatById(@PathVariable String chatId, Authentication auth) {

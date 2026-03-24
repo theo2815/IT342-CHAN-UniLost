@@ -5,6 +5,7 @@ import edu.cit.chan.unilost.entity.CampusEntity;
 import edu.cit.chan.unilost.entity.ItemStatus;
 import edu.cit.chan.unilost.repository.CampusRepository;
 import edu.cit.chan.unilost.repository.ItemRepository;
+import edu.cit.chan.unilost.util.DtoMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.mongodb.core.geo.GeoJsonPoint;
 import org.springframework.stereotype.Service;
@@ -29,6 +30,16 @@ public class CampusService {
     private final ItemRepository itemRepository;
 
     public CampusDTO createCampus(CampusDTO campusDTO) {
+        if (campusDTO.getId() != null && campusRepository.existsById(campusDTO.getId())) {
+            throw new IllegalArgumentException("A campus with ID '" + campusDTO.getId() + "' already exists");
+        }
+
+        if (campusDTO.getDomainWhitelist() != null && !campusDTO.getDomainWhitelist().isBlank()
+                && campusRepository.findByDomainWhitelist(campusDTO.getDomainWhitelist().trim()).isPresent()) {
+            throw new IllegalArgumentException(
+                    "A campus with domain '" + campusDTO.getDomainWhitelist().trim() + "' already exists");
+        }
+
         CampusEntity campus = new CampusEntity();
         campus.setId(campusDTO.getId());
         campus.setUniversityCode(campusDTO.getUniversityCode());
@@ -117,20 +128,6 @@ public class CampusService {
     }
 
     private CampusDTO convertToDTO(CampusEntity campus) {
-        CampusDTO dto = new CampusDTO();
-        dto.setId(campus.getId());
-        dto.setUniversityCode(campus.getUniversityCode());
-        dto.setCampusName(campus.getCampusName());
-        dto.setName(campus.getName());
-        dto.setShortLabel(campus.getShortLabel());
-        dto.setAddress(campus.getAddress());
-        dto.setDomainWhitelist(campus.getDomainWhitelist());
-        if (campus.getCenterCoordinates() != null) {
-            dto.setCenterCoordinates(new double[]{
-                    campus.getCenterCoordinates().getX(),
-                    campus.getCenterCoordinates().getY()
-            });
-        }
-        return dto;
+        return DtoMapper.toCampusDTO(campus);
     }
 }

@@ -1,6 +1,5 @@
 package edu.cit.chan.unilost.service;
 
-import edu.cit.chan.unilost.dto.CampusDTO;
 import edu.cit.chan.unilost.dto.RegisterRequest;
 import edu.cit.chan.unilost.dto.UpdateUserRequest;
 import edu.cit.chan.unilost.dto.UserDTO;
@@ -13,23 +12,25 @@ import edu.cit.chan.unilost.exception.ForbiddenException;
 import edu.cit.chan.unilost.exception.ResourceNotFoundException;
 import edu.cit.chan.unilost.repository.CampusRepository;
 import edu.cit.chan.unilost.repository.UserRepository;
+import edu.cit.chan.unilost.util.DtoMapper;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Service;
 import org.springframework.data.mongodb.core.FindAndModifyOptions;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.data.mongodb.core.query.Update;
-import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.stereotype.Service;
-
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 
+import org.springframework.web.multipart.MultipartFile;
+
+import java.io.IOException;
 import java.security.SecureRandom;
 import java.time.LocalDateTime;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
@@ -46,6 +47,7 @@ public class UserService {
     private final PasswordEncoder passwordEncoder;
     private final EmailService emailService;
     private final MongoTemplate mongoTemplate;
+    private final CloudinaryService cloudinaryService;
 
     private static final int OTP_LENGTH = 6;
     private static final int OTP_EXPIRY_MINUTES = 10;
@@ -125,8 +127,15 @@ public class UserService {
     }
 
     public Page<UserDTO> getAllUsers(Pageable pageable) {
-        return userRepository.findAll(pageable)
-                .map(this::convertToDTO);
+        Page<UserEntity> userPage = userRepository.findAll(pageable);
+        // Batch-load campuses to prevent N+1 queries
+        Set<String> campusIds = userPage.getContent().stream()
+                .map(UserEntity::getUniversityTag)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+        Map<String, CampusEntity> campusMap = campusRepository.findAllById(campusIds).stream()
+                .collect(Collectors.toMap(CampusEntity::getId, c -> c));
+        return userPage.map(user -> convertToDTO(user, campusMap));
     }
 
     public Optional<UserDTO> getUserById(String id) {
@@ -145,11 +154,40 @@ public class UserService {
                     if (updateDTO.getFullName() != null) {
                         existingUser.setFullName(updateDTO.getFullName());
                     }
-                    if (updateDTO.getPassword() != null && !updateDTO.getPassword().isEmpty()) {
-                        existingUser.setPasswordHash(passwordEncoder.encode(updateDTO.getPassword()));
-                    }
                     return convertToDTO(userRepository.save(existingUser));
                 });
+    }
+
+    private static final long MAX_PROFILE_PICTURE_SIZE = 5 * 1024 * 1024; // 5 MB
+
+    public UserDTO updateProfilePicture(String userId, MultipartFile file) throws IOException {
+        if (file.getSize() > MAX_PROFILE_PICTURE_SIZE) {
+            throw new IllegalArgumentException("File size must not exceed 5 MB");
+        }
+
+        UserEntity user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+
+        // Delete old profile picture from Cloudinary if present
+        if (user.getProfilePictureUrl() != null && !user.getProfilePictureUrl().isEmpty()) {
+            cloudinaryService.deleteImage(user.getProfilePictureUrl());
+        }
+
+        String url = cloudinaryService.uploadImage(file);
+        user.setProfilePictureUrl(url);
+        return convertToDTO(userRepository.save(user));
+    }
+
+    public void changePassword(String userId, String currentPassword, String newPassword) {
+        UserEntity user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+
+        if (!passwordEncoder.matches(currentPassword, user.getPasswordHash())) {
+            throw new AuthenticationException("Current password is incorrect");
+        }
+
+        user.setPasswordHash(passwordEncoder.encode(newPassword));
+        userRepository.save(user);
     }
 
     public boolean deleteUser(String id) {
@@ -175,11 +213,22 @@ public class UserService {
             topUsers = userRepository.findByAccountStatusAndKarmaScoreGreaterThanOrderByKarmaScoreDesc(
                     AccountStatus.ACTIVE, 0, pageable);
         }
+        // Batch-load campuses to resolve campus names (single query)
+        Set<String> campusIds = topUsers.stream()
+                .map(UserEntity::getUniversityTag)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+        Map<String, CampusEntity> campusMap = campusRepository.findAllById(campusIds).stream()
+                .collect(Collectors.toMap(CampusEntity::getId, c -> c));
         return topUsers.stream().map(user -> {
-            UserDTO dto = convertToDTO(user);
+            UserDTO dto = DtoMapper.toUserSummaryDTO(user);
             dto.setEmail(null); // strip email for public endpoint
             dto.setAccountStatus(null);
             dto.setRole(null);
+            CampusEntity campus = campusMap.get(user.getUniversityTag());
+            if (campus != null) {
+                dto.setCampus(DtoMapper.toCampusPreviewDTO(campus));
+            }
             return dto;
         }).collect(Collectors.toList());
     }
@@ -189,7 +238,12 @@ public class UserService {
     public void requestPasswordReset(String email) {
         Optional<UserEntity> userOpt = userRepository.findByEmail(email);
         if (userOpt.isEmpty()) {
-            // Silently return to prevent user enumeration
+            // Add random delay to prevent timing-based user enumeration
+            try {
+                Thread.sleep(200 + new SecureRandom().nextInt(301)); // 200-500ms
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
             return;
         }
         UserEntity user = userOpt.get();
@@ -205,7 +259,9 @@ public class UserService {
     private static final int MAX_OTP_ATTEMPTS = 5;
     private static final int OTP_LOCKOUT_MINUTES = 15;
 
-    public void verifyResetOtp(String email, String otp) {
+    private static final int RESET_TOKEN_EXPIRY_MINUTES = 10;
+
+    public String verifyResetOtp(String email, String otp) {
         UserEntity user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new ResourceNotFoundException("No account found with that email address."));
 
@@ -247,25 +303,40 @@ public class UserService {
             throw new AuthenticationException("Invalid verification code. Please try again.");
         }
 
-        // Success: invalidate OTP immediately and mark as verified
+        // Success: invalidate OTP, generate a single-use reset token bound to this session
+        String resetToken = UUID.randomUUID().toString();
         user.setPasswordResetToken(null);
         user.setPasswordResetExpiry(null);
         user.setOtpAttempts(0);
         user.setOtpLockoutUntil(null);
         user.setOtpVerified(true);
+        user.setResetToken(resetToken);
+        user.setResetTokenExpiry(LocalDateTime.now().plusMinutes(RESET_TOKEN_EXPIRY_MINUTES));
         userRepository.save(user);
+
+        return resetToken;
     }
 
-    public void resetPassword(String email, String newPassword) {
+    public void resetPassword(String email, String newPassword, String resetToken) {
         UserEntity user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new ResourceNotFoundException("No account found with that email address."));
 
-        if (!user.isOtpVerified()) {
-            throw new IllegalArgumentException("OTP has not been verified. Please verify your code first.");
+        if (user.getResetToken() == null || !user.getResetToken().equals(resetToken)) {
+            throw new IllegalArgumentException("Invalid or expired reset token. Please verify your code again.");
+        }
+
+        if (user.getResetTokenExpiry() == null || LocalDateTime.now().isAfter(user.getResetTokenExpiry())) {
+            user.setResetToken(null);
+            user.setResetTokenExpiry(null);
+            user.setOtpVerified(false);
+            userRepository.save(user);
+            throw new IllegalArgumentException("Reset token has expired. Please verify your code again.");
         }
 
         user.setPasswordHash(passwordEncoder.encode(newPassword));
         user.setOtpVerified(false);
+        user.setResetToken(null);
+        user.setResetTokenExpiry(null);
         userRepository.save(user);
     }
 
@@ -296,32 +367,23 @@ public class UserService {
     }
 
     private UserDTO convertToDTO(UserEntity user) {
-        UserDTO dto = new UserDTO();
-        dto.setId(user.getId());
-        dto.setEmail(user.getEmail());
-        dto.setFullName(user.getFullName());
-        dto.setUniversityTag(user.getUniversityTag());
-        dto.setKarmaScore(user.getKarmaScore());
-        dto.setRole(user.getRole().name());
-        dto.setAccountStatus(user.getAccountStatus().name());
-        dto.setCreatedAt(user.getCreatedAt());
+        return convertToDTO(user, null);
+    }
+
+    private UserDTO convertToDTO(UserEntity user, Map<String, CampusEntity> campusMap) {
+        UserDTO dto = DtoMapper.toUserSummaryDTO(user);
 
         // Resolve campus details
         if (user.getUniversityTag() != null) {
-            campusRepository.findById(user.getUniversityTag())
-                    .ifPresent(campus -> {
-                        CampusDTO campusDTO = new CampusDTO();
-                        campusDTO.setId(campus.getId());
-                        campusDTO.setName(campus.getName());
-                        campusDTO.setDomainWhitelist(campus.getDomainWhitelist());
-                        if (campus.getCenterCoordinates() != null) {
-                            campusDTO.setCenterCoordinates(new double[]{
-                                    campus.getCenterCoordinates().getX(),
-                                    campus.getCenterCoordinates().getY()
-                            });
-                        }
-                        dto.setCampus(campusDTO);
-                    });
+            CampusEntity campus = null;
+            if (campusMap != null) {
+                campus = campusMap.get(user.getUniversityTag());
+            } else {
+                campus = campusRepository.findById(user.getUniversityTag()).orElse(null);
+            }
+            if (campus != null) {
+                dto.setCampus(DtoMapper.toCampusPreviewDTO(campus));
+            }
         }
 
         return dto;

@@ -25,10 +25,10 @@ import "./Header.css";
 function Header() {
   const navigate = useNavigate();
   const location = useLocation();
-  const [user] = useState(() => authService.getCurrentUser());
+  const [user, setUser] = useState(() => authService.getCurrentUser());
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
   const notificationRef = useRef(null);
-  const isAdmin = authService.isAdmin();
+  const isAdmin = user?.role === 'ADMIN' || user?.role === 'FACULTY';
 
   const {
     unreadNotifications,
@@ -50,6 +50,39 @@ function Header() {
     document.addEventListener("mousedown", handleClickOutside);
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
+
+  useEffect(() => {
+    const handleProfileUpdate = () => {
+      setUser(authService.getCurrentUser());
+    };
+    window.addEventListener('userProfileUpdated', handleProfileUpdate);
+    return () => {
+      window.removeEventListener('userProfileUpdated', handleProfileUpdate);
+    };
+  }, []);
+
+  useEffect(() => {
+    let mounted = true;
+
+    const syncUser = async () => {
+      if (!authService.isAuthenticated()) {
+        if (mounted) {
+          setUser(null);
+        }
+        return;
+      }
+
+      const result = await authService.syncCurrentUser();
+      if (mounted && result.success) {
+        setUser(result.data);
+      }
+    };
+
+    syncUser();
+    return () => {
+      mounted = false;
     };
   }, []);
 
@@ -131,7 +164,7 @@ function Header() {
                 onClick={() => setIsNotificationOpen(!isNotificationOpen)}
               >
                 <Bell size={20} />
-                {unreadNotifications > 0 && (
+                {localStorage.getItem('notificationsEnabled') !== 'false' && unreadNotifications > 0 && (
                   <span className="notification-badge">{unreadNotifications}</span>
                 )}
               </button>
@@ -154,7 +187,13 @@ function Header() {
             <Dropdown
               trigger={(isOpen) => (
                 <button className="user-btn">
-                  <div className="user-avatar">{getInitials()}</div>
+                  <div className="user-avatar">
+                    {user?.profilePictureUrl ? (
+                      <img src={user.profilePictureUrl} alt={user.fullName} className="user-avatar-img" />
+                    ) : (
+                      getInitials()
+                    )}
+                  </div>
                   <span className="user-name">
                     {user ? `Hello, ${user.fullName?.split(' ')[0] || 'User'}` : "Guest"}
                   </span>

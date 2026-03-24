@@ -2,6 +2,7 @@ package edu.cit.chan.unilost.controller;
 
 import edu.cit.chan.unilost.dto.CampusDTO;
 import edu.cit.chan.unilost.service.CampusService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -23,7 +24,7 @@ public class CampusController {
     private final CampusService campusService;
 
     @PostMapping
-    public ResponseEntity<CampusDTO> createCampus(@RequestBody CampusDTO campusDTO) {
+    public ResponseEntity<CampusDTO> createCampus(@Valid @RequestBody CampusDTO campusDTO) {
         CampusDTO created = campusService.createCampus(campusDTO);
         return new ResponseEntity<>(created, HttpStatus.CREATED);
     }
@@ -55,7 +56,7 @@ public class CampusController {
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<CampusDTO> updateCampus(@PathVariable String id, @RequestBody CampusDTO campusDTO) {
+    public ResponseEntity<CampusDTO> updateCampus(@PathVariable String id, @Valid @RequestBody CampusDTO campusDTO) {
         return campusService.updateCampus(id, campusDTO)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());

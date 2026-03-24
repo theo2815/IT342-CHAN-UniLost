@@ -56,6 +56,10 @@ public class NotificationController {
     }
 
     private String getEmail() {
-        return SecurityContextHolder.getContext().getAuthentication().getPrincipal().toString();
+        var auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null || !auth.isAuthenticated() || "anonymousUser".equals(auth.getPrincipal())) {
+            throw new org.springframework.security.access.AccessDeniedException("Not authenticated");
+        }
+        return auth.getPrincipal().toString();
     }
 }

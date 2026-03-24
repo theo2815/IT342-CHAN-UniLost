@@ -15,7 +15,14 @@
       "WebFetch(domain:www.coordinatesfinder.com)",
       "WebFetch(domain:mapcarta.com)",
       "WebFetch(domain:www.distancesfrom.com)",
-      "Bash(npm uninstall:*)"
+      "Bash(npm uninstall:*)",
+      "Bash(curl:*)",
+      "Bash(javap -p '/c/Users/Theo Cedric Chan/Documents/Start Up project/IT342-CHAN-UniLost/backend/target/classes/edu/cit/chan/unilost/controller/AuthController.class')",
+      "Bash(javap -v '/c/Users/Theo Cedric Chan/Documents/Start Up project/IT342-CHAN-UniLost/backend/target/classes/edu/cit/chan/unilost/controller/AuthController.class')",
+      "Bash(mvn compile:*)",
+      "Bash(mvn dependency:tree -q)",
+      "Bash(mvn dependency:tree)",
+      "Bash(mvn clean:*)"
     ]
   },
   "defaultMode": "acceptEdits"

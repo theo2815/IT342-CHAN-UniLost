@@ -64,8 +64,8 @@ public class AuthController {
             if (email == null || otp == null) {
                 return ResponseEntity.badRequest().body(Map.of("error", "Email and OTP are required"));
             }
-            userService.verifyResetOtp(email.trim().toLowerCase(), otp.trim());
-            return ResponseEntity.ok(Map.of("message", "Code verified successfully."));
+            String resetToken = userService.verifyResetOtp(email.trim().toLowerCase(), otp.trim());
+            return ResponseEntity.ok(Map.of("message", "Code verified successfully.", "resetToken", resetToken));
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
@@ -76,14 +76,15 @@ public class AuthController {
         try {
             String email = body.get("email");
             String newPassword = body.get("newPassword");
-            if (email == null || newPassword == null) {
-                return ResponseEntity.badRequest().body(Map.of("error", "Email and new password are required"));
+            String resetToken = body.get("resetToken");
+            if (email == null || newPassword == null || resetToken == null) {
+                return ResponseEntity.badRequest().body(Map.of("error", "Email, new password, and reset token are required"));
             }
             if (newPassword.length() < 8 || !PASSWORD_PATTERN.matcher(newPassword).matches()) {
                 return ResponseEntity.badRequest().body(Map.of("error",
                         "Password must be at least 8 characters with an uppercase letter, a number, and a special character"));
             }
-            userService.resetPassword(email.trim().toLowerCase(), newPassword);
+            userService.resetPassword(email.trim().toLowerCase(), newPassword, resetToken.trim());
             return ResponseEntity.ok(Map.of("message", "Password reset successfully. You can now sign in."));
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));

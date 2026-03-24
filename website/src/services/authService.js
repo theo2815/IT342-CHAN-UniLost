@@ -9,6 +9,7 @@ const authService = {
                 fullName: userData.fullName,
                 email: userData.email,
                 password: userData.password,
+                ...(userData.campusId ? { campusId: userData.campusId } : {}),
             });
             return { success: true, data: response.data };
         } catch (error) {
@@ -47,6 +48,11 @@ const authService = {
 
     // Get current user from localStorage
     getCurrentUser: () => {
+        if (!authService.isAuthenticated()) {
+            localStorage.removeItem('user');
+            return null;
+        }
+
         try {
             const user = localStorage.getItem('user');
             return user ? JSON.parse(user) : null;
@@ -76,19 +82,30 @@ const authService = {
         }
     },
 
+    syncCurrentUser: async () => {
+        if (!authService.isAuthenticated()) {
+            return { success: false, error: 'Not authenticated' };
+        }
+
+        try {
+            const response = await api.get('/auth/me');
+            const user = response.data;
+            localStorage.setItem('user', JSON.stringify(user));
+            return { success: true, data: user };
+        } catch (error) {
+            if (error.response?.status === 401 || error.response?.status === 403) {
+                localStorage.removeItem('user');
+                localStorage.removeItem('token');
+            }
+            const message = error.response?.data || error.message || 'Failed to fetch current user';
+            return { success: false, error: message };
+        }
+    },
+
     // Get current user's role
     getUserRole: () => {
-        try {
-            const user = localStorage.getItem('user');
-            if (user) {
-                const parsed = JSON.parse(user);
-                return parsed.role || ROLES.STUDENT;
-            }
-            return null;
-        } catch {
-            localStorage.removeItem('user');
-            return null;
-        }
+        const user = authService.getCurrentUser();
+        return user?.role || null;
     },
 
     // Check if current user is admin
@@ -116,16 +133,16 @@ const authService = {
     verifyOtp: async (email, otp) => {
         try {
             const response = await api.post('/auth/verify-otp', { email, otp });
-            return { success: true, message: response.data.message };
+            return { success: true, data: response.data, message: response.data.message };
         } catch (error) {
             const message = error.response?.data || error.message || 'OTP verification failed';
             return { success: false, error: message };
         }
     },
 
-    resetPassword: async (email, otp, newPassword) => {
+    resetPassword: async (email, resetToken, newPassword) => {
         try {
-            const response = await api.post('/auth/reset-password', { email, otp, newPassword });
+            const response = await api.post('/auth/reset-password', { email, resetToken, newPassword });
             return { success: true, message: response.data.message };
         } catch (error) {
             const message = error.response?.data || error.message || 'Password reset failed';

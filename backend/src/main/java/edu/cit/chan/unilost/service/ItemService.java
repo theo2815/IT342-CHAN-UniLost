@@ -1,9 +1,7 @@
 package edu.cit.chan.unilost.service;
 
-import edu.cit.chan.unilost.dto.CampusDTO;
 import edu.cit.chan.unilost.dto.ItemDTO;
 import edu.cit.chan.unilost.dto.ItemRequest;
-import edu.cit.chan.unilost.dto.UserDTO;
 import edu.cit.chan.unilost.entity.CampusEntity;
 import edu.cit.chan.unilost.entity.ItemEntity;
 import edu.cit.chan.unilost.entity.ItemStatus;
@@ -14,6 +12,7 @@ import edu.cit.chan.unilost.exception.ResourceNotFoundException;
 import edu.cit.chan.unilost.repository.CampusRepository;
 import edu.cit.chan.unilost.repository.ItemRepository;
 import edu.cit.chan.unilost.repository.UserRepository;
+import edu.cit.chan.unilost.util.DtoMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
@@ -259,7 +258,7 @@ public class ItemService {
                 .orElse(false);
     }
 
-    public List<ItemDTO> getMapItems(String campusId, String type) {
+    public List<ItemDTO> getMapItems(String campusId, String type, Integer limit) {
         Query query = new Query();
         query.addCriteria(Criteria.where("isDeleted").is(false));
         query.addCriteria(Criteria.where("status").in(
@@ -267,13 +266,8 @@ public class ItemService {
                 ItemStatus.CLAIMED.name(),
                 ItemStatus.PENDING_OWNER_CONFIRMATION.name()));
 
-        // When a specific campus is selected, include ALL items for that campus
-        // (items without coordinates will be placed at the campus center by the frontend).
-        // When no campus filter is set, require coordinates so items can be placed on the map.
-        if (campusId == null || campusId.isEmpty()) {
-            query.addCriteria(Criteria.where("latitude").ne(null));
-            query.addCriteria(Criteria.where("longitude").ne(null));
-        }
+        // Include all items; items without coordinates are given approximate positions 
+        // by the frontend based on their campusId.
 
         if (campusId != null && !campusId.isEmpty()) {
             query.addCriteria(Criteria.where("campusId").is(campusId));
@@ -286,7 +280,8 @@ public class ItemService {
         }
 
         query.with(Sort.by(Sort.Direction.DESC, "createdAt"));
-        query.limit(200);
+        int cappedLimit = Math.min(Math.max(limit != null ? limit : 100, 20), 150);
+        query.limit(cappedLimit);
 
         List<ItemEntity> items = mongoTemplate.find(query, ItemEntity.class);
         List<ItemDTO> dtos = convertToDTOs(items);
@@ -348,14 +343,7 @@ public class ItemService {
             resolvedReporter = userRepository.findById(item.getReporterId()).orElse(null);
         }
         if (resolvedReporter != null) {
-            UserDTO userDTO = new UserDTO();
-            userDTO.setId(resolvedReporter.getId());
-            userDTO.setEmail(resolvedReporter.getEmail());
-            userDTO.setFullName(resolvedReporter.getFullName());
-            userDTO.setUniversityTag(resolvedReporter.getUniversityTag());
-            userDTO.setKarmaScore(resolvedReporter.getKarmaScore());
-            userDTO.setRole(resolvedReporter.getRole().name());
-            dto.setReporter(userDTO);
+            dto.setReporter(DtoMapper.toUserSummaryDTO(resolvedReporter));
         }
 
         // Resolve campus — use provided entity or fetch if needed
@@ -364,21 +352,7 @@ public class ItemService {
             resolvedCampus = campusRepository.findById(item.getCampusId()).orElse(null);
         }
         if (resolvedCampus != null) {
-            CampusDTO campusDTO = new CampusDTO();
-            campusDTO.setId(resolvedCampus.getId());
-            campusDTO.setUniversityCode(resolvedCampus.getUniversityCode());
-            campusDTO.setCampusName(resolvedCampus.getCampusName());
-            campusDTO.setName(resolvedCampus.getName());
-            campusDTO.setShortLabel(resolvedCampus.getShortLabel());
-            campusDTO.setAddress(resolvedCampus.getAddress());
-            campusDTO.setDomainWhitelist(resolvedCampus.getDomainWhitelist());
-            if (resolvedCampus.getCenterCoordinates() != null) {
-                campusDTO.setCenterCoordinates(new double[]{
-                        resolvedCampus.getCenterCoordinates().getX(),
-                        resolvedCampus.getCenterCoordinates().getY()
-                });
-            }
-            dto.setCampus(campusDTO);
+            dto.setCampus(DtoMapper.toCampusDTO(resolvedCampus));
         }
 
         return dto;

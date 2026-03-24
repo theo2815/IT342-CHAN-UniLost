@@ -11,7 +11,7 @@ function ResetPassword() {
     const navigate = useNavigate();
     const toast = useToast();
     const email = location.state?.email;
-    const otp = location.state?.otp;
+    const resetToken = location.state?.resetToken;
 
     const [formData, setFormData] = useState({ password: '', confirmPassword: '' });
     const [showPassword, setShowPassword] = useState(false);
@@ -20,16 +20,16 @@ function ResetPassword() {
     const [errors, setErrors] = useState({});
 
     useEffect(() => {
-        if (!email || !otp) {
+        if (!email || !resetToken) {
             navigate('/forgot-password', { replace: true });
         }
-    }, [email, otp, navigate]);
+    }, [email, resetToken, navigate]);
 
     const passwordStrength = useMemo(() => {
         const pw = formData.password;
         if (!pw) return null;
         let score = 0;
-        if (pw.length >= 6) score++;
+        if (pw.length >= 8) score++;
         if (pw.length >= 10) score++;
         if (/[A-Z]/.test(pw)) score++;
         if (/[0-9]/.test(pw)) score++;
@@ -49,8 +49,8 @@ function ResetPassword() {
         const newErrors = {};
         if (!formData.password) {
             newErrors.password = 'Password is required';
-        } else if (formData.password.length < 6) {
-            newErrors.password = 'Password must be at least 6 characters';
+        } else if (formData.password.length < 8) {
+            newErrors.password = 'Password must be at least 8 characters';
         }
         if (!formData.confirmPassword) {
             newErrors.confirmPassword = 'Please confirm your password';
@@ -67,7 +67,7 @@ function ResetPassword() {
 
         setIsLoading(true);
         try {
-            const result = await authService.resetPassword(email, otp, formData.password);
+            const result = await authService.resetPassword(email, resetToken, formData.password);
             if (result.success) {
                 toast.success('Your password has been reset. Please sign in.', { title: 'Password Reset', duration: 3000 });
                 setTimeout(() => navigate('/login', { replace: true }), 800);
@@ -82,7 +82,7 @@ function ResetPassword() {
         }
     };
 
-    if (!email || !otp) return null;
+    if (!email || !resetToken) return null;
 
     return (
         <div className="reset-page">

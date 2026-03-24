@@ -5,11 +5,15 @@ import edu.cit.chan.unilost.entity.*;
 import edu.cit.chan.unilost.exception.ForbiddenException;
 import edu.cit.chan.unilost.exception.ResourceNotFoundException;
 import edu.cit.chan.unilost.repository.*;
+import edu.cit.chan.unilost.util.DtoMapper;
+import org.bson.Document;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.data.mongodb.core.aggregation.Aggregation;
+import org.springframework.data.mongodb.core.aggregation.AggregationResults;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
@@ -30,6 +34,7 @@ public class AdminService {
     private final ClaimRepository claimRepository;
     private final CampusRepository campusRepository;
     private final MongoTemplate mongoTemplate;
+    private final NotificationService notificationService;
 
     // ── Dashboard Stats ────────────────────────────────────
 
@@ -286,6 +291,8 @@ public class AdminService {
         item.setFlagCount(item.getFlagCount() + 1);
         item.setUpdatedAt(LocalDateTime.now());
         itemRepository.save(item);
+
+        notificationService.notifyItemFlagged(item.getReporterId(), item.getTitle(), itemId);
     }
 
     // ── Analytics ──────────────────────────────────────────
@@ -294,55 +301,39 @@ public class AdminService {
         UserEntity admin = resolveAdmin(adminEmail);
         String campusId = admin.getUniversityTag();
 
-        Criteria baseCriteria = Criteria.where("campusId").is(campusId).and("isDeleted").is(false);
+        Map<String, Long> rawStatusCounts = aggregateCountByField(
+                "items",
+                Criteria.where("campusId").is(campusId).and("isDeleted").is(false).and("status").ne(null),
+                "status");
+        Map<String, Long> rawTypeCounts = aggregateCountByField(
+                "items",
+                Criteria.where("campusId").is(campusId).and("isDeleted").is(false).and("type").ne(null),
+                "type");
+        Map<String, Long> categoryCounts = aggregateCountByField(
+                "items",
+                Criteria.where("campusId").is(campusId).and("isDeleted").is(false)
+                        .and("category").ne(null).and("category").ne(""),
+                "category");
+        Map<String, Long> locationCounts = aggregateCountByField(
+                "items",
+                Criteria.where("campusId").is(campusId).and("isDeleted").is(false)
+                        .and("location").ne(null).and("location").ne(""),
+                "location");
 
-        // Use count queries instead of loading all items
-        long totalItems = itemRepository.countByCampusIdAndIsDeletedFalse(campusId);
-        long lostCount = mongoTemplate.count(Query.query(baseCriteria.and("type").is("LOST")), ItemEntity.class);
-        // Re-create criteria for each query to avoid mutation
-        long foundCount = mongoTemplate.count(Query.query(
-                Criteria.where("campusId").is(campusId).and("isDeleted").is(false).and("type").is("FOUND")), ItemEntity.class);
-
-        // Status counts using individual count queries
         Map<String, Long> statusCounts = new LinkedHashMap<>();
-        for (ItemStatus s : ItemStatus.values()) {
-            long count = itemRepository.countByCampusIdAndStatusAndIsDeletedFalse(campusId, s);
-            if (count > 0) statusCounts.put(s.name(), count);
+        for (ItemStatus status : ItemStatus.values()) {
+            long count = rawStatusCounts.getOrDefault(status.name(), 0L);
+            if (count > 0) {
+                statusCounts.put(status.name(), count);
+            }
         }
 
-        // Top categories — use projection to only load category field
-        Query catQuery = Query.query(Criteria.where("campusId").is(campusId).and("isDeleted").is(false)
-                .and("category").ne(null));
-        catQuery.fields().include("category");
-        List<ItemEntity> catItems = mongoTemplate.find(catQuery, ItemEntity.class);
-        Map<String, Long> categoryCounts = catItems.stream()
-                .collect(Collectors.groupingBy(ItemEntity::getCategory, Collectors.counting()));
-        List<Map<String, Object>> topCategories = categoryCounts.entrySet().stream()
-                .sorted(Map.Entry.<String, Long>comparingByValue().reversed())
-                .limit(5)
-                .map(e -> {
-                    Map<String, Object> cat = new LinkedHashMap<>();
-                    cat.put("category", e.getKey());
-                    cat.put("count", e.getValue());
-                    return cat;
-                }).toList();
+        long totalItems = rawStatusCounts.values().stream().mapToLong(Long::longValue).sum();
+        long lostCount = rawTypeCounts.getOrDefault("LOST", 0L);
+        long foundCount = rawTypeCounts.getOrDefault("FOUND", 0L);
 
-        // Top locations — use projection
-        Query locQuery = Query.query(Criteria.where("campusId").is(campusId).and("isDeleted").is(false)
-                .and("location").ne(null).and("location").ne(""));
-        locQuery.fields().include("location");
-        List<ItemEntity> locItems = mongoTemplate.find(locQuery, ItemEntity.class);
-        Map<String, Long> locationCounts = locItems.stream()
-                .collect(Collectors.groupingBy(ItemEntity::getLocation, Collectors.counting()));
-        List<Map<String, Object>> topLocations = locationCounts.entrySet().stream()
-                .sorted(Map.Entry.<String, Long>comparingByValue().reversed())
-                .limit(5)
-                .map(e -> {
-                    Map<String, Object> loc = new LinkedHashMap<>();
-                    loc.put("location", e.getKey());
-                    loc.put("count", e.getValue());
-                    return loc;
-                }).toList();
+        List<Map<String, Object>> topCategories = topCountEntries(categoryCounts, "category");
+        List<Map<String, Object>> topLocations = topCountEntries(locationCounts, "location");
 
         // Recovery rate
         long resolved = statusCounts.getOrDefault("CLAIMED", 0L)
@@ -367,16 +358,31 @@ public class AdminService {
 
     public List<Map<String, Object>> getCrossCampusStats() {
         List<CampusEntity> campuses = campusRepository.findAll();
+        Map<String, Long> userCountsByCampus = aggregateCountByField(
+                "users",
+                Criteria.where("universityTag").ne(null),
+                "universityTag");
+        Map<String, Long> itemCountsByCampus = aggregateCountByField(
+                "items",
+                Criteria.where("isDeleted").is(false).and("campusId").ne(null),
+                "campusId");
+        Map<String, Long> claimedCountsByCampus = aggregateCountByField(
+                "items",
+                Criteria.where("isDeleted").is(false)
+                        .and("campusId").ne(null)
+                        .and("status").in(
+                        ItemStatus.CLAIMED,
+                        ItemStatus.PENDING_OWNER_CONFIRMATION,
+                        ItemStatus.RETURNED,
+                        ItemStatus.HANDED_OVER),
+                "campusId");
         List<Map<String, Object>> result = new ArrayList<>();
 
         for (CampusEntity campus : campuses) {
             String cId = campus.getId();
-            long userCount = userRepository.countByUniversityTag(cId);
-            long itemCount = itemRepository.countByCampusIdAndIsDeletedFalse(cId);
-            long claimedCount = itemRepository.countByCampusIdAndStatusAndIsDeletedFalse(cId, ItemStatus.CLAIMED)
-                    + itemRepository.countByCampusIdAndStatusAndIsDeletedFalse(cId, ItemStatus.PENDING_OWNER_CONFIRMATION)
-                    + itemRepository.countByCampusIdAndStatusAndIsDeletedFalse(cId, ItemStatus.RETURNED)
-                    + itemRepository.countByCampusIdAndStatusAndIsDeletedFalse(cId, ItemStatus.HANDED_OVER);
+            long userCount = userCountsByCampus.getOrDefault(cId, 0L);
+            long itemCount = itemCountsByCampus.getOrDefault(cId, 0L);
+            long claimedCount = claimedCountsByCampus.getOrDefault(cId, 0L);
             double recoveryRate = itemCount == 0 ? 0 : Math.round((double) claimedCount / itemCount * 1000.0) / 10.0;
 
             Map<String, Object> entry = new LinkedHashMap<>();
@@ -397,6 +403,37 @@ public class AdminService {
 
     // ── Helper Methods ─────────────────────────────────────
 
+    private Map<String, Long> aggregateCountByField(String collectionName, Criteria criteria, String fieldName) {
+        Aggregation aggregation = Aggregation.newAggregation(
+                Aggregation.match(criteria),
+                Aggregation.group(fieldName).count().as("count")
+        );
+        AggregationResults<Document> results = mongoTemplate.aggregate(aggregation, collectionName, Document.class);
+
+        Map<String, Long> counts = new HashMap<>();
+        for (Document row : results.getMappedResults()) {
+            Object id = row.get("_id");
+            Number count = (Number) row.get("count");
+            if (id != null && count != null) {
+                counts.put(id.toString(), count.longValue());
+            }
+        }
+        return counts;
+    }
+
+    private List<Map<String, Object>> topCountEntries(Map<String, Long> counts, String keyName) {
+        return counts.entrySet().stream()
+                .sorted(Map.Entry.<String, Long>comparingByValue().reversed())
+                .limit(5)
+                .map(entry -> {
+                    Map<String, Object> row = new LinkedHashMap<>();
+                    row.put(keyName, entry.getKey());
+                    row.put("count", entry.getValue());
+                    return row;
+                })
+                .toList();
+    }
+
     private UserEntity resolveAdmin(String adminEmail) {
         UserEntity admin = userRepository.findByEmail(adminEmail)
                 .orElseThrow(() -> new ResourceNotFoundException("Admin user not found"));
@@ -407,7 +444,7 @@ public class AdminService {
     }
 
     private void verifyCampusAccess(UserEntity admin, String targetCampusId) {
-        if (!admin.getUniversityTag().equals(targetCampusId)) {
+        if (!Objects.equals(admin.getUniversityTag(), targetCampusId)) {
             throw new ForbiddenException("You can only manage resources within your campus");
         }
     }
@@ -480,14 +517,7 @@ public class AdminService {
             resolvedReporter = userRepository.findById(item.getReporterId()).orElse(null);
         }
         if (resolvedReporter != null) {
-            UserDTO userDTO = new UserDTO();
-            userDTO.setId(resolvedReporter.getId());
-            userDTO.setEmail(resolvedReporter.getEmail());
-            userDTO.setFullName(resolvedReporter.getFullName());
-            userDTO.setUniversityTag(resolvedReporter.getUniversityTag());
-            userDTO.setKarmaScore(resolvedReporter.getKarmaScore());
-            userDTO.setRole(resolvedReporter.getRole().name());
-            dto.setReporter(userDTO);
+            dto.setReporter(DtoMapper.toUserSummaryDTO(resolvedReporter));
         }
 
         CampusEntity resolvedCampus = campus;
@@ -495,11 +525,7 @@ public class AdminService {
             resolvedCampus = campusRepository.findById(item.getCampusId()).orElse(null);
         }
         if (resolvedCampus != null) {
-            CampusDTO campusDTO = new CampusDTO();
-            campusDTO.setId(resolvedCampus.getId());
-            campusDTO.setName(resolvedCampus.getName());
-            campusDTO.setDomainWhitelist(resolvedCampus.getDomainWhitelist());
-            dto.setCampus(campusDTO);
+            dto.setCampus(DtoMapper.toCampusPreviewDTO(resolvedCampus));
         }
 
         return dto;
@@ -517,26 +543,18 @@ public class AdminService {
             UserDTO dto = convertUserToDTO(user);
             CampusEntity campus = campusesById.get(user.getUniversityTag());
             if (campus != null) {
-                CampusDTO campusDTO = new CampusDTO();
-                campusDTO.setId(campus.getId());
-                campusDTO.setName(campus.getName());
-                campusDTO.setDomainWhitelist(campus.getDomainWhitelist());
-                dto.setCampus(campusDTO);
+                dto.setCampus(DtoMapper.toCampusPreviewDTO(campus));
             }
             return dto;
         }).toList();
     }
 
     private UserDTO convertUserToDTO(UserEntity user) {
-        UserDTO dto = new UserDTO();
-        dto.setId(user.getId());
-        dto.setEmail(user.getEmail());
-        dto.setFullName(user.getFullName());
-        dto.setUniversityTag(user.getUniversityTag());
-        dto.setKarmaScore(user.getKarmaScore());
-        dto.setRole(user.getRole().name());
-        dto.setAccountStatus(user.getAccountStatus().name());
-        dto.setCreatedAt(user.getCreatedAt());
+        UserDTO dto = DtoMapper.toUserSummaryDTO(user);
+        if (user.getUniversityTag() != null) {
+            campusRepository.findById(user.getUniversityTag())
+                    .ifPresent(campus -> dto.setCampus(DtoMapper.toCampusPreviewDTO(campus)));
+        }
         return dto;
     }
 

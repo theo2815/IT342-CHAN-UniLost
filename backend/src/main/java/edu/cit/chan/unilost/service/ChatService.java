@@ -17,6 +17,7 @@ import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.aggregation.Aggregation;
 import org.springframework.data.mongodb.core.aggregation.AggregationResults;
 import org.springframework.data.mongodb.core.query.Criteria;
+import org.springframework.data.mongodb.core.query.Query;
 
 import java.time.LocalDateTime;
 import java.util.*;
@@ -74,6 +75,22 @@ public class ChatService {
         List<ChatEntity> chats = chatRepository.findByFinderIdOrOwnerIdOrderByLastMessageAtDesc(
                 currentUser.getId(), currentUser.getId());
 
+        return buildChatDTOs(chats, currentUser.getId());
+    }
+
+    public Page<ChatDTO> getMyChats(String currentEmail, Pageable pageable) {
+        UserEntity currentUser = userRepository.findByEmail(currentEmail)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+
+        Page<ChatEntity> chatPage = chatRepository.findByFinderIdOrOwnerIdOrderByLastMessageAtDesc(
+                currentUser.getId(), currentUser.getId(), pageable);
+
+        List<ChatDTO> dtos = buildChatDTOs(chatPage.getContent(), currentUser.getId());
+        return new PageImpl<>(dtos, pageable, chatPage.getTotalElements());
+    }
+
+    private List<ChatDTO> buildChatDTOs(List<ChatEntity> chats, String currentUserId) {
+
         if (chats.isEmpty()) return List.of();
 
         // Batch-load all referenced entities to avoid N+1
@@ -98,9 +115,11 @@ public class ChatService {
 
         // Batch-load unread counts via aggregation to avoid N+1 per-chat count queries
         List<String> chatIds = chats.stream().map(ChatEntity::getId).toList();
-        Map<String, Long> unreadCountsMap = getUnreadCountsForChats(chatIds, currentUser.getId());
+        Map<String, Long> unreadCountsMap = getUnreadCountsForChats(chatIds, currentUserId);
 
-        return chats.stream().map(chat -> convertToDTO(chat, currentUser.getId(), usersById, itemsById, claimsById, unreadCountsMap)).toList();
+        return chats.stream()
+                .map(chat -> convertToDTO(chat, currentUserId, usersById, itemsById, claimsById, unreadCountsMap))
+                .toList();
     }
 
     /**
@@ -284,11 +303,8 @@ public class ChatService {
 
         String userId = currentUser.getId();
 
-        // Get all chat IDs the user participates in
-        List<ChatEntity> chats = chatRepository.findByFinderIdOrOwnerIdOrderByLastMessageAtDesc(userId, userId);
-        if (chats.isEmpty()) return 0;
-
-        List<String> chatIds = chats.stream().map(ChatEntity::getId).toList();
+        List<String> chatIds = getParticipantChatIds(userId);
+        if (chatIds.isEmpty()) return 0;
 
         // Single aggregation: count all unread messages not sent by the current user across all their chats
         Aggregation aggregation = Aggregation.newAggregation(
@@ -305,6 +321,18 @@ public class ChatService {
     }
 
     // --- Private helpers ---
+
+    private List<String> getParticipantChatIds(String userId) {
+        Query query = new Query(new Criteria().orOperator(
+                Criteria.where("finderId").is(userId),
+                Criteria.where("ownerId").is(userId)
+        ));
+        query.fields().include("_id");
+        return mongoTemplate.find(query, ChatEntity.class).stream()
+                .map(ChatEntity::getId)
+                .filter(Objects::nonNull)
+                .toList();
+    }
 
     private void verifyParticipant(ChatEntity chat, String userId) {
         if (!chat.getFinderId().equals(userId) && !chat.getOwnerId().equals(userId)) {

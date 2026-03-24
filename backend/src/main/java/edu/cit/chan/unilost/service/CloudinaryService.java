@@ -62,9 +62,15 @@ public class CloudinaryService {
         }
     }
 
+    private static final long MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB
+
     private void validateImageFile(MultipartFile file) {
         if (file.isEmpty()) {
             throw new IllegalArgumentException("Image file is empty");
+        }
+        if (file.getSize() > MAX_FILE_SIZE) {
+            throw new IllegalArgumentException(
+                    "File size exceeds maximum allowed size of 10 MB");
         }
         String contentType = file.getContentType();
         if (contentType == null || !ALLOWED_CONTENT_TYPES.contains(contentType)) {

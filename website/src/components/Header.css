@@ -222,6 +222,13 @@
   transition: border-color var(--transition-fast);
 }
 
+.user-avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
+}
+
 .user-btn:hover .user-avatar {
   border-color: rgba(255, 255, 255, 0.25);
 }

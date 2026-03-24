@@ -82,8 +82,15 @@ function VerifyOTP() {
         try {
             const result = await authService.verifyOtp(email, code);
             if (result.success) {
+                const resetToken = result.data?.resetToken;
+                if (!resetToken) {
+                    const msg = 'Verification succeeded but reset session data is missing. Please try again.';
+                    setError(msg);
+                    toast.error(msg, { title: 'Verification Failed' });
+                    return;
+                }
                 toast.success('Code verified!', { title: 'Verified', duration: 2000 });
-                navigate('/reset-password', { state: { email, otp: code } });
+                navigate('/reset-password', { state: { email, resetToken } });
             } else {
                 const msg = typeof result.error === 'string' ? result.error : 'Invalid code.';
                 setError(msg);

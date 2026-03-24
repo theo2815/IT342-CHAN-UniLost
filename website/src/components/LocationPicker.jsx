@@ -1,5 +1,5 @@
 import { useState, useCallback } from "react";
-import { Map, AdvancedMarker, useMap } from "@vis.gl/react-google-maps";
+import { Map, AdvancedMarker } from "@vis.gl/react-google-maps";
 import { MapPin, Loader, X } from "lucide-react";
 import useGoogleMaps from "../hooks/useGoogleMaps";
 import "./LocationPicker.css";
@@ -40,7 +40,7 @@ function LocationPicker({ latitude, longitude, onChange }) {
           onClick={() => setShowMap(true)}
         >
           <MapPin size={16} />
-          {hasPin ? "Change Map Pin" : "Add Map Pin (optional)"}
+          {hasPin ? "Change Map Pin" : "Add Map Pin"}
         </button>
         {hasPin && (
           <span className="pin-coords">

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, MapPin, Calendar, Clock, Tag, Share2, Flag, Hand, Search, X, CheckCircle2, User, MessageSquare, Edit3, Trash2 } from 'lucide-react';
+import { ArrowLeft, MapPin, Calendar, Clock, Tag, Share2, Flag, Hand, Search, X, CheckCircle2, User, MessageSquare, Edit3, Trash2, ExternalLink, ChevronLeft, ChevronRight } from 'lucide-react';
 import Header from '../../components/Header';
 import StatusBadge from '../../components/StatusBadge';
 import ItemCard from '../../components/ItemCard';
@@ -28,11 +28,15 @@ function ItemDetail() {
     const [flagReason, setFlagReason] = useState('');
     const [flagLoading, setFlagLoading] = useState(false);
     const [flagMessage, setFlagMessage] = useState('');
+    const [activeImageIndex, setActiveImageIndex] = useState(0);
+    const [showDeleteModal, setShowDeleteModal] = useState(false);
+    const [deleteLoading, setDeleteLoading] = useState(false);
 
     useEffect(() => {
         const fetchItem = async () => {
             setLoading(true);
             setFetchError('');
+            setActiveImageIndex(0);
             const result = await itemService.getItemById(id);
             if (result.success) {
                 setItem(result.data);
@@ -103,7 +107,19 @@ function ItemDetail() {
     const isOwner = currentUser && item.reporterId === currentUser.id;
     const isFound = item.type === 'FOUND';
     const isResolved = item.status === 'RETURNED' || item.status === 'COMPLETED';
-    const imageUrl = item.imageUrls?.[0] || 'https://picsum.photos/seed/placeholder/600/400';
+    const images = item.imageUrls?.length > 0 ? item.imageUrls : ['https://picsum.photos/seed/placeholder/600/400'];
+    const hasMultipleImages = images.length > 1;
+    const activeImage = images[activeImageIndex] || images[0];
+
+    const handlePrevImage = (e) => {
+        e.stopPropagation();
+        setActiveImageIndex((prev) => (prev === 0 ? images.length - 1 : prev - 1));
+    };
+
+    const handleNextImage = (e) => {
+        e.stopPropagation();
+        setActiveImageIndex((prev) => (prev === images.length - 1 ? 0 : prev + 1));
+    };
 
     const getInitials = (fullName) => {
         if (!fullName) return '??';
@@ -132,13 +148,29 @@ function ItemDetail() {
         setFlagLoading(false);
     };
 
-    const handleDelete = async () => {
-        if (window.confirm('Are you sure you want to delete this item?')) {
-            const result = await itemService.deleteItem(id);
-            if (result.success) {
-                navigate('/items');
-            }
+    const handleDelete = () => {
+        setShowDeleteModal(true);
+    };
+
+    const confirmDelete = async () => {
+        setDeleteLoading(true);
+        const result = await itemService.deleteItem(id);
+        if (result.success) {
+            navigate('/items');
+        } else {
+            console.error('Failed to delete item:', result.error);
+            setDeleteLoading(false);
+            setShowDeleteModal(false);
         }
+    };
+
+    const handleViewLocation = () => {
+        const params = new URLSearchParams({
+            lat: item.latitude,
+            lng: item.longitude,
+            itemId: item.id,
+        });
+        window.open(`/map?${params.toString()}`, '_blank');
     };
 
     return (
@@ -154,17 +186,41 @@ function ItemDetail() {
                     {isResolved ? (
                         /* Completed / Returned State - Read-only history view */
                         <div className="detail-layout resolved-layout">
-                            {/* Left: Image */}
+                            {/* Left: Image Gallery */}
                             <div className="detail-image-section">
                                 <div className="detail-image-wrapper resolved-image">
                                     <img
-                                        src={imageUrl}
-                                        alt={item.title}
+                                        src={activeImage}
+                                        alt={`${item.title} - Photo ${activeImageIndex + 1}`}
                                     />
                                     <span className={`type-badge ${item.type.toLowerCase()}`}>
                                         {item.type}
                                     </span>
+                                    {hasMultipleImages && (
+                                        <>
+                                            <button className="gallery-nav gallery-prev" onClick={handlePrevImage} aria-label="Previous image">
+                                                <ChevronLeft size={20} />
+                                            </button>
+                                            <button className="gallery-nav gallery-next" onClick={handleNextImage} aria-label="Next image">
+                                                <ChevronRight size={20} />
+                                            </button>
+                                            <span className="gallery-counter">{activeImageIndex + 1} / {images.length}</span>
+                                        </>
+                                    )}
                                 </div>
+                                {hasMultipleImages && (
+                                    <div className="gallery-thumbnails">
+                                        {images.map((url, idx) => (
+                                            <button
+                                                key={idx}
+                                                className={`gallery-thumb${idx === activeImageIndex ? ' active' : ''}`}
+                                                onClick={() => setActiveImageIndex(idx)}
+                                            >
+                                                <img src={url} alt={`Thumbnail ${idx + 1}`} />
+                                            </button>
+                                        ))}
+                                    </div>
+                                )}
                             </div>
 
                             {/* Right: Completed Details */}
@@ -239,7 +295,11 @@ function ItemDetail() {
 
                                 {/* Read-only actions */}
                                 <div className="detail-actions resolved-actions">
-            
+                                    {item.latitude != null && item.longitude != null && (
+                                        <Button variant="secondary" icon={MapPin} onClick={handleViewLocation}>
+                                            View Location
+                                        </Button>
+                                    )}
                                     {isOwner && (
                                         <Button variant="secondary" icon={MessageSquare} onClick={() => navigate(`/my-items/${item.id}/claims`)}>
                                             View Claims
@@ -250,12 +310,12 @@ function ItemDetail() {
                         </div>
                     ) : (
                     <div className="detail-layout">
-                        {/* Left: Image */}
+                        {/* Left: Image Gallery */}
                         <div className="detail-image-section">
                             <div className="detail-image-wrapper">
                                 <img
-                                    src={imageUrl}
-                                    alt={item.title}
+                                    src={activeImage}
+                                    alt={`${item.title} - Photo ${activeImageIndex + 1}`}
                                     className={isFound ? 'blurred' : ''}
                                 />
                                 {isFound && (
@@ -266,7 +326,31 @@ function ItemDetail() {
                                 <span className={`type-badge ${item.type.toLowerCase()}`}>
                                     {item.type}
                                 </span>
+                                {hasMultipleImages && (
+                                    <>
+                                        <button className="gallery-nav gallery-prev" onClick={handlePrevImage} aria-label="Previous image">
+                                            <ChevronLeft size={20} />
+                                        </button>
+                                        <button className="gallery-nav gallery-next" onClick={handleNextImage} aria-label="Next image">
+                                            <ChevronRight size={20} />
+                                        </button>
+                                        <span className="gallery-counter">{activeImageIndex + 1} / {images.length}</span>
+                                    </>
+                                )}
                             </div>
+                            {hasMultipleImages && (
+                                <div className="gallery-thumbnails">
+                                    {images.map((url, idx) => (
+                                        <button
+                                            key={idx}
+                                            className={`gallery-thumb${idx === activeImageIndex ? ' active' : ''}`}
+                                            onClick={() => setActiveImageIndex(idx)}
+                                        >
+                                            <img src={url} alt={`Thumbnail ${idx + 1}`} className={isFound ? 'blurred' : ''} />
+                                        </button>
+                                    ))}
+                                </div>
+                            )}
                         </div>
 
                         {/* Right: Details */}
@@ -344,6 +428,11 @@ function ItemDetail() {
                                         ) : (
                                             <Button variant="primary" onClick={() => navigate('/login', { state: { from: `/items/${id}` } })}>
                                                 Log in to Claim
+                                            </Button>
+                                        )}
+                                        {item.latitude != null && item.longitude != null && (
+                                            <Button variant="secondary" icon={MapPin} onClick={handleViewLocation}>
+                                                View Location
                                             </Button>
                                         )}
                                         <Button variant="secondary" icon={Share2}>
@@ -424,6 +513,37 @@ function ItemDetail() {
                             <button className="btn-secondary" onClick={() => setShowFlagModal(false)}>Cancel</button>
                             <button className="btn-danger" onClick={handleFlag} disabled={!flagReason || flagLoading}>
                                 {flagLoading ? 'Submitting...' : 'Submit Report'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Delete Confirmation Modal */}
+            {showDeleteModal && (
+                <div className="modal-overlay" onClick={() => !deleteLoading && setShowDeleteModal(false)}>
+                    <div className="modal-card glass" onClick={(e) => e.stopPropagation()}>
+                        <div className="modal-header">
+                            <Trash2 size={20} color="#ef4444" />
+                            <h3>Delete Listing</h3>
+                            <button className="modal-close" onClick={() => !deleteLoading && setShowDeleteModal(false)} disabled={deleteLoading}>
+                                <X size={18} />
+                            </button>
+                        </div>
+                        <div className="modal-body">
+                            <p style={{ marginBottom: '16px' }}>
+                                Are you sure you want to delete <strong>"{item.title}"</strong>?
+                            </p>
+                            <p className="upload-hint">
+                                This action cannot be undone. All claims and messages associated with this item will be removed.
+                            </p>
+                        </div>
+                        <div className="modal-footer" style={{ marginTop: '24px' }}>
+                            <button className="btn-secondary" onClick={() => setShowDeleteModal(false)} disabled={deleteLoading}>
+                                Cancel
+                            </button>
+                            <button className="btn-danger" onClick={confirmDelete} disabled={deleteLoading}>
+                                {deleteLoading ? <><span className="spin">⟳</span> Deleting...</> : 'Delete Item'}
                             </button>
                         </div>
                     </div>

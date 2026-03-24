@@ -34,7 +34,14 @@ public class SecurityConfig {
             edu.cit.chan.unilost.filter.JwtAuthenticationFilter jwtAuthenticationFilter,
             edu.cit.chan.unilost.filter.RateLimitFilter rateLimitFilter) throws Exception {
         http
+                // CSRF is disabled because this is a stateless JWT-based API with no cookie-based sessions.
+                // If cookie-based auth is ever added, CSRF must be re-enabled (especially for SockJS fallback).
                 .csrf(AbstractHttpConfigurer::disable)
+                .headers(headers -> headers
+                        .contentSecurityPolicy(csp -> csp.policyDirectives(
+                                "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' https://res.cloudinary.com data:; connect-src 'self' ws: wss:; frame-ancestors 'none'"
+                        ))
+                )
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .authorizeHttpRequests(auth -> auth

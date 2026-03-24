@@ -15,22 +15,37 @@ export const UnreadProvider = ({ children }) => {
     const stompClientRef = useRef(null);
     const activeChatIdRef = useRef(null);
     const user = authService.getCurrentUser();
+    const isAuthenticated = authService.isAuthenticated();
+    const isPublicAuthPage = typeof window !== 'undefined'
+        && ['/login', '/register', '/forgot-password', '/verify-otp', '/reset-password']
+            .includes(window.location.pathname);
+
+    const isNotificationsEnabled = () => {
+        const stored = localStorage.getItem('notificationsEnabled');
+        return stored === null ? true : stored === 'true';
+    };
 
     const fetchUnread = useCallback(() => {
-        if (!user) return;
+        if (isPublicAuthPage || !isAuthenticated || !user) return;
         chatService.getUnreadCount().then(result => {
             if (result.success) setUnreadMessages(result.data);
         });
-        notificationService.getUnreadCount().then(result => {
-            if (result.success) setUnreadNotifications(result.data);
-        });
-    }, [user]);
+        if (isNotificationsEnabled()) {
+            notificationService.getUnreadCount().then(result => {
+                if (result.success) setUnreadNotifications(result.data);
+            });
+        } else {
+            setUnreadNotifications(0);
+        }
+    }, [isPublicAuthPage, isAuthenticated, user]);
 
     // Fetch once on mount + poll every 60s (as safety net alongside WebSocket)
     useEffect(() => {
-        if (!user) return;
+        if (isPublicAuthPage || !isAuthenticated || !user) return;
 
-        fetchUnread();
+        const initialFetch = setTimeout(() => {
+            fetchUnread();
+        }, 0);
 
         const interval = setInterval(() => {
             if (document.visibilityState === 'visible') {
@@ -44,14 +59,15 @@ export const UnreadProvider = ({ children }) => {
         document.addEventListener('visibilitychange', handleVisibilityChange);
 
         return () => {
+            clearTimeout(initialFetch);
             clearInterval(interval);
             document.removeEventListener('visibilitychange', handleVisibilityChange);
         };
-    }, [fetchUnread]);
+    }, [fetchUnread, isPublicAuthPage, isAuthenticated, user]);
 
     // WebSocket for real-time notification pushes
     useEffect(() => {
-        if (!user) return;
+        if (isPublicAuthPage || !isAuthenticated || !user) return;
 
         const token = localStorage.getItem('token');
         if (!token) return;
@@ -62,13 +78,14 @@ export const UnreadProvider = ({ children }) => {
             reconnectDelay: 5000,
             onConnect: () => {
                 client.subscribe('/user/queue/notifications', (frame) => {
+                    if (!isNotificationsEnabled()) return;
                     try {
                         const payload = JSON.parse(frame.body);
                         // Suppress badge increment if this is for the active chat
                         if (payload.type === 'NEW_MESSAGE' && payload.linkId === activeChatIdRef.current) {
                             return;
                         }
-                    } catch (e) {
+                    } catch {
                         // If parsing fails, still increment
                     }
                     setUnreadNotifications(prev => prev + 1);
@@ -80,7 +97,7 @@ export const UnreadProvider = ({ children }) => {
                         if (payload.linkId === activeChatIdRef.current) {
                             return;
                         }
-                    } catch (e) {
+                    } catch {
                         // If parsing fails, still increment
                     }
                     setUnreadMessages(prev => prev + 1);
@@ -97,19 +114,21 @@ export const UnreadProvider = ({ children }) => {
                 stompClientRef.current.deactivate();
             }
         };
-    }, [user]);
+    }, [isPublicAuthPage, isAuthenticated, user]);
 
     const refreshNotificationCount = useCallback(() => {
+        if (isPublicAuthPage || !isAuthenticated || !user) return;
         notificationService.getUnreadCount().then(result => {
             if (result.success) setUnreadNotifications(result.data);
         });
-    }, []);
+    }, [isPublicAuthPage, isAuthenticated, user]);
 
     const refreshMessageCount = useCallback(() => {
+        if (isPublicAuthPage || !isAuthenticated || !user) return;
         chatService.getUnreadCount().then(result => {
             if (result.success) setUnreadMessages(result.data);
         });
-    }, []);
+    }, [isPublicAuthPage, isAuthenticated, user]);
 
     const handleLogout = useCallback(() => {
         if (stompClientRef.current?.active) {

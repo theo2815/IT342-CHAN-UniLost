@@ -121,6 +121,8 @@
     font-weight: 700;
     border: 3px solid var(--color-bg-card);
     box-shadow: var(--shadow-md);
+    position: relative;
+    overflow: hidden;
 }
 
 .avatar-actions {
@@ -228,6 +230,241 @@
 
 .btn-danger:hover {
     background: rgba(239, 68, 68, 0.1);
+}
+
+/* Profile Picture */
+.avatar-image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 50%;
+}
+
+.avatar-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.45);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    border-radius: 50%;
+    opacity: 0;
+    transition: opacity var(--transition-fast);
+}
+
+.avatar-large:hover .avatar-overlay {
+    opacity: 1;
+}
+
+.picture-message {
+    font-size: var(--font-size-sm);
+    margin-top: var(--spacing-xs);
+}
+
+.picture-message.success {
+    color: var(--color-success, #22c55e);
+}
+
+.picture-message.error {
+    color: var(--color-error, #ef4444);
+}
+
+/* Password Form */
+.password-form {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-md);
+}
+
+.password-input-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.password-input-wrapper .settings-input {
+    width: 100%;
+    padding-right: 2.5rem;
+}
+
+.password-toggle-btn {
+    position: absolute;
+    right: 0.75rem;
+    background: none;
+    border: none;
+    color: var(--color-text-secondary);
+    cursor: pointer;
+    padding: 0;
+    display: flex;
+    align-items: center;
+}
+
+.password-toggle-btn:hover {
+    color: var(--color-text-primary);
+}
+
+.password-strength {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    margin-top: var(--spacing-xs);
+}
+
+.strength-bar {
+    flex: 1;
+    height: 4px;
+    background: var(--color-border);
+    border-radius: 2px;
+    overflow: hidden;
+    max-width: 200px;
+}
+
+.strength-fill {
+    height: 100%;
+    border-radius: 2px;
+    transition: width 0.3s ease, background 0.3s ease;
+}
+
+.strength-fill.weak {
+    width: 33%;
+    background: #ef4444;
+}
+
+.strength-fill.medium {
+    width: 66%;
+    background: #f59e0b;
+}
+
+.strength-fill.strong {
+    width: 100%;
+    background: #22c55e;
+}
+
+.strength-label {
+    font-size: var(--font-size-xs, 0.75rem);
+    font-weight: 600;
+}
+
+.strength-label.weak {
+    color: #ef4444;
+}
+
+.strength-label.medium {
+    color: #f59e0b;
+}
+
+.strength-label.strong {
+    color: #22c55e;
+}
+
+.field-error {
+    color: var(--color-error, #ef4444);
+    font-size: var(--font-size-sm);
+    margin-top: var(--spacing-xs);
+}
+
+.password-message {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    padding: var(--spacing-sm) var(--spacing-md);
+    border-radius: var(--radius-md);
+    margin-bottom: var(--spacing-md);
+    font-size: var(--font-size-sm);
+    font-weight: 500;
+}
+
+.password-message.success {
+    background: rgba(34, 197, 94, 0.1);
+    color: #22c55e;
+    border: 1px solid rgba(34, 197, 94, 0.2);
+}
+
+.password-message.error {
+    background: rgba(239, 68, 68, 0.1);
+    color: #ef4444;
+    border: 1px solid rgba(239, 68, 68, 0.2);
+}
+
+.password-requirements {
+    list-style: none;
+    padding: 0;
+    margin: var(--spacing-sm) 0 0 0;
+    font-size: var(--font-size-sm);
+    color: var(--color-text-secondary);
+}
+
+.password-requirements li {
+    padding: 2px 0;
+}
+
+.password-requirements li::before {
+    content: '•';
+    margin-right: var(--spacing-xs);
+    color: var(--color-error, #ef4444);
+}
+
+/* Notification Toggle */
+.notification-setting-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--spacing-lg);
+    padding: var(--spacing-md) 0;
+}
+
+.notification-setting-info {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--spacing-md);
+    color: var(--color-text-secondary);
+}
+
+.notification-setting-label {
+    font-weight: 600;
+    color: var(--color-text-primary);
+    margin-bottom: 4px;
+}
+
+.notification-setting-desc {
+    font-size: var(--font-size-sm);
+    color: var(--color-text-secondary);
+    line-height: 1.4;
+}
+
+.toggle-switch {
+    position: relative;
+    width: 48px;
+    min-width: 48px;
+    height: 26px;
+    background: var(--color-border);
+    border: none;
+    border-radius: 13px;
+    cursor: pointer;
+    transition: background 0.2s ease;
+    padding: 0;
+    flex-shrink: 0;
+}
+
+.toggle-switch.active {
+    background: var(--color-primary);
+}
+
+.toggle-knob {
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    width: 20px;
+    height: 20px;
+    background: white;
+    border-radius: 50%;
+    transition: transform 0.2s ease;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+.toggle-switch.active .toggle-knob {
+    transform: translateX(22px);
 }
 
 .hidden {

@@ -1,6 +1,6 @@
 /* global google */
 import { useState, useEffect, useRef } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { Map, AdvancedMarker, InfoWindow, useMap } from "@vis.gl/react-google-maps";
 import { MapPin, Loader, AlertCircle, Navigation, ChevronDown } from "lucide-react";
 import Header from "../../components/Header";
@@ -8,6 +8,7 @@ import { Dropdown } from "../../components/ui";
 import useGoogleMaps from "../../hooks/useGoogleMaps";
 import itemService from "../../services/itemService";
 import { useCampuses } from "../../context/CampusContext";
+import { timeAgo } from "../../utils/timeAgo";
 import "./MapView.css";
 
 const CEBU_CENTER = { lat: 10.3157, lng: 123.8854 };
@@ -17,6 +18,7 @@ const MAP_ID = import.meta.env.VITE_GOOGLE_MAPS_MAP_ID || undefined;
 
 function MapView() {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const map = useMap("main-map");
 
   const [items, setItems] = useState([]);
@@ -32,6 +34,12 @@ function MapView() {
 
   const { isLoaded, loadError } = useGoogleMaps();
   const circleRef = useRef(null);
+  const hasFocusedRef = useRef(false);
+
+  // Read initial focus params from URL (set by "View Location" on ItemDetail)
+  const focusLat = parseFloat(searchParams.get("lat"));
+  const focusLng = parseFloat(searchParams.get("lng"));
+  const focusItemId = searchParams.get("itemId");
 
   // Request user's current location
   useEffect(() => {
@@ -79,6 +87,31 @@ function MapView() {
     loadItems();
   }, [activeFilter, activeCampus]);
 
+  // Auto-focus on a specific item when opened via query params
+  useEffect(() => {
+    if (hasFocusedRef.current) return;
+    if (!map || loading) return;
+    if (!isFinite(focusLat) || !isFinite(focusLng)) return;
+
+    hasFocusedRef.current = true;
+
+    // Pan and zoom to the target coordinates
+    map.panTo({ lat: focusLat, lng: focusLng });
+    map.setZoom(CAMPUS_ZOOM);
+
+    // If an itemId was provided, auto-select it so the InfoWindow opens
+    if (focusItemId && items.length > 0) {
+      const match = items.find((i) => i.id === focusItemId);
+      if (match) {
+        setSelectedItem(match);
+        setSelectedCampusMarker(null);
+      }
+    }
+
+    // Clean the query params so a refresh won't re-trigger focus
+    setSearchParams({}, { replace: true });
+  }, [map, loading, items, focusLat, focusLng, focusItemId, setSearchParams]);
+
   // User location accuracy circle (imperative — vis.gl has no Circle component)
   useEffect(() => {
     if (!map || !userLocation) {
@@ -125,11 +158,15 @@ function MapView() {
           lat: campus.centerCoordinates[1],
           lng: campus.centerCoordinates[0],
         });
-        map.setZoom(CAMPUS_ZOOM);
+        if (map.getZoom() !== CAMPUS_ZOOM) {
+            map.setZoom(CAMPUS_ZOOM);
+        }
       }
     } else if (map) {
       map.panTo(CEBU_CENTER);
-      map.setZoom(DEFAULT_ZOOM);
+      if (map.getZoom() !== DEFAULT_ZOOM) {
+          map.setZoom(DEFAULT_ZOOM);
+      }
     }
   };
 
@@ -159,14 +196,18 @@ function MapView() {
     const pos = resolvePosition(item);
     if (map && pos) {
       map.panTo({ lat: pos.lat, lng: pos.lng });
-      map.setZoom(CAMPUS_ZOOM);
+      if (map.getZoom() !== CAMPUS_ZOOM) {
+          map.setZoom(CAMPUS_ZOOM);
+      }
     }
   };
 
   const panToUserLocation = () => {
     if (userLocation && map) {
       map.panTo(userLocation);
-      map.setZoom(CAMPUS_ZOOM);
+      if (map.getZoom() !== CAMPUS_ZOOM) {
+          map.setZoom(CAMPUS_ZOOM);
+      }
     }
   };
 
@@ -197,18 +238,6 @@ function MapView() {
       itemCountByCampus[item.campusId] = (itemCountByCampus[item.campusId] || 0) + 1;
     }
   });
-
-  const formatTimeAgo = (dateStr) => {
-    if (!dateStr) return "";
-    const diff = Date.now() - new Date(dateStr).getTime();
-    if (diff < 0) return "just now";
-    const mins = Math.floor(diff / 60000);
-    if (mins < 60) return `${mins}m ago`;
-    const hrs = Math.floor(mins / 60);
-    if (hrs < 24) return `${hrs}h ago`;
-    const days = Math.floor(hrs / 24);
-    return `${days}d ago`;
-  };
 
   if (loadError) {
     return (
@@ -327,7 +356,7 @@ function MapView() {
                 >
                   <div className="card-image-col">
                     <div
-                      className="item-image"
+                      className={`item-image${item.type === "FOUND" ? " blurred" : ""}`}
                       style={{
                         backgroundImage: item.imageUrls?.[0]
                           ? `url(${item.imageUrls[0]})`
@@ -341,7 +370,7 @@ function MapView() {
                         <span className="status-dot"></span>
                         {item.type}
                       </span>
-                      <span className="time-ago-text">{formatTimeAgo(item.createdAt)}</span>
+                      <span className="time-ago-text">{timeAgo(item.createdAt)}</span>
                     </div>
                     <h4 className="item-title-text">{item.title}</h4>
                     <div className="card-content-bottom">
@@ -381,7 +410,9 @@ function MapView() {
               }}
             >
               {/* Campus Markers */}
-              {campuses.map((campus) => {
+              {campuses
+                .filter(campus => !activeCampus || campus.id === activeCampus)
+                .map((campus) => {
                 if (!campus.centerCoordinates) return null;
                 const pos = {
                   lat: campus.centerCoordinates[1],
@@ -480,7 +511,7 @@ function MapView() {
                       <img
                         src={selectedItem.imageUrls[0]}
                         alt={selectedItem.title}
-                        className="info-window-img"
+                        className={`info-window-img${selectedItem.type === "FOUND" ? " blurred" : ""}`}
                       />
                     )}
                     <h4>{selectedItem.title}</h4>

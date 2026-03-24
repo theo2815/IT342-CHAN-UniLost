@@ -14,6 +14,11 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.mongodb.core.FindAndModifyOptions;
+import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.query.Criteria;
+import org.springframework.data.mongodb.core.query.Query;
+import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -36,6 +41,7 @@ public class ClaimService {
     private final ChatService chatService;
     private final NotificationService notificationService;
     private final UserService userService;
+    private final MongoTemplate mongoTemplate;
 
     public ClaimDTO submitClaim(ClaimRequest request, String claimantEmail) {
         UserEntity claimant = userRepository.findByEmail(claimantEmail)
@@ -85,14 +91,29 @@ public class ClaimService {
 
         // LOST items: auto-accept the claim so the chat goes straight to handover mode
         if ("LOST".equals(item.getType())) {
+            // Atomically transition item from ACTIVE → CLAIMED to prevent race conditions
+            ItemEntity updatedItem = mongoTemplate.findAndModify(
+                    Query.query(Criteria.where("id").is(item.getId())
+                            .and("status").is(ItemStatus.ACTIVE)
+                            .and("isDeleted").is(false)),
+                    new Update()
+                            .set("status", ItemStatus.CLAIMED)
+                            .set("updatedAt", LocalDateTime.now()),
+                    FindAndModifyOptions.options().returnNew(true),
+                    ItemEntity.class
+            );
+
+            if (updatedItem == null) {
+                // Another thread already claimed this item — reject this claim
+                saved.setStatus(ClaimStatus.REJECTED);
+                saved.setUpdatedAt(LocalDateTime.now());
+                claimRepository.save(saved);
+                throw new IllegalArgumentException("This item has already been claimed by another user");
+            }
+
             saved.setStatus(ClaimStatus.ACCEPTED);
             saved.setUpdatedAt(LocalDateTime.now());
             saved = claimRepository.save(saved);
-
-            // Update item status to CLAIMED
-            item.setStatus(ItemStatus.CLAIMED);
-            item.setUpdatedAt(LocalDateTime.now());
-            itemRepository.save(item);
 
             // Auto-reject all other PENDING claims on the same item
             List<ClaimEntity> otherPending = claimRepository.findByItemIdAndStatus(item.getId(), ClaimStatus.PENDING);
@@ -186,8 +207,10 @@ public class ClaimService {
         ClaimEntity claim = claimRepository.findById(claimId)
                 .orElseThrow(() -> new ResourceNotFoundException("Claim not found"));
 
-        // Block accept for LOST items (they are auto-accepted on submission)
+        // Fetch item once and reuse throughout the method
         ItemEntity claimItem = itemRepository.findByIdAndIsDeletedFalse(claim.getItemId()).orElse(null);
+
+        // Block accept for LOST items (they are auto-accepted on submission)
         if (claimItem != null && "LOST".equals(claimItem.getType())) {
             throw new IllegalArgumentException("Lost item claims are auto-accepted and cannot be manually accepted");
         }
@@ -211,9 +234,7 @@ public class ClaimService {
             throw new IllegalArgumentException("This claim was modified by another request. Please refresh and try again.");
         }
 
-        // Resolve item title for notifications
-        String itemTitle = itemRepository.findByIdAndIsDeletedFalse(claim.getItemId())
-                .map(ItemEntity::getTitle).orElse("an item");
+        String itemTitle = claimItem != null ? claimItem.getTitle() : "an item";
 
         // Notify the accepted claimant
         notificationService.notifyClaimAccepted(claim.getClaimantId(), itemTitle, saved.getId());
@@ -230,12 +251,22 @@ public class ClaimService {
             claimRepository.saveAll(otherPending);
         }
 
-        // Update item status to CLAIMED
-        itemRepository.findByIdAndIsDeletedFalse(claim.getItemId()).ifPresent(i -> {
-            i.setStatus(ItemStatus.CLAIMED);
-            i.setUpdatedAt(LocalDateTime.now());
-            itemRepository.save(i);
-        });
+        // Atomically transition item from ACTIVE → CLAIMED to prevent concurrent accepts
+        if (claimItem != null) {
+            ItemEntity updatedItem = mongoTemplate.findAndModify(
+                    Query.query(Criteria.where("id").is(claimItem.getId())
+                            .and("status").is(ItemStatus.ACTIVE)
+                            .and("isDeleted").is(false)),
+                    new Update()
+                            .set("status", ItemStatus.CLAIMED)
+                            .set("updatedAt", LocalDateTime.now()),
+                    FindAndModifyOptions.options().returnNew(true),
+                    ItemEntity.class
+            );
+            if (updatedItem == null) {
+                throw new IllegalArgumentException("This item has already been claimed by another user. Please refresh and try again.");
+            }
+        }
 
         // Post CLAIM_ACCEPTED system message in chat (best-effort, don't rollback transaction on failure)
         try {
@@ -279,9 +310,8 @@ public class ClaimService {
         claim.setUpdatedAt(LocalDateTime.now());
         ClaimEntity saved = claimRepository.save(claim);
 
-        // Notify rejected claimant
-        String rejItemTitle = itemRepository.findByIdAndIsDeletedFalse(claim.getItemId())
-                .map(ItemEntity::getTitle).orElse("an item");
+        // Notify rejected claimant (reuse already-fetched item)
+        String rejItemTitle = claimItem != null ? claimItem.getTitle() : "an item";
         notificationService.notifyClaimRejected(claim.getClaimantId(), rejItemTitle, saved.getId());
 
         // Post CLAIM_REJECTED system message in chat (best-effort)

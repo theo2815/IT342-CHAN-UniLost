@@ -2,6 +2,7 @@ package edu.cit.chan.unilost.util;
 
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.security.Keys;
+import jakarta.annotation.PostConstruct;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
@@ -19,6 +20,13 @@ public class JwtUtils {
             @Value("${jwt.expiration}") long expirationTime) {
         this.key = Keys.hmacShaKeyFor(secret.getBytes());
         this.expirationTime = expirationTime;
+    }
+
+    @PostConstruct
+    void validateKeyLength() {
+        if (key.getEncoded().length < 32) {
+            throw new IllegalStateException("JWT_SECRET must be at least 32 bytes (256 bits) for HS256");
+        }
     }
 
     public String generateToken(String email, String role) {

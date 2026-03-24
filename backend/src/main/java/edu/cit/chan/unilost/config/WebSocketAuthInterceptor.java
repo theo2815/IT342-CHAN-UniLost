@@ -57,8 +57,10 @@ public class WebSocketAuthInterceptor implements ChannelInterceptor {
                     }
                 }
             }
-            // If no valid auth, user remains null — subscriptions will proceed anonymously
-            // We block unauthorized subscriptions in the SUBSCRIBE handler below
+            // Reject unauthenticated CONNECT frames to prevent resource consumption
+            if (accessor.getUser() == null) {
+                throw new MessageDeliveryException("Authentication required for WebSocket connection");
+            }
         }
 
         // Block SUBSCRIBE if user is not authenticated, and verify participant authorization for chat topics

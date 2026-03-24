@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Upload, X, Eye, Image, MapPin, Calendar, Lock, ArrowLeft, Loader, ChevronDown } from 'lucide-react';
+import { Upload, X, Eye, Image, MapPin, Calendar, Lock, ArrowLeft, Loader, ChevronDown, AlertCircle } from 'lucide-react';
 import Header from '../../components/Header';
 import ItemCard from '../../components/ItemCard';
 import LocationPicker from '../../components/LocationPicker';
@@ -33,14 +33,36 @@ function PostItem() {
         secretDetail: '',
     });
     const [images, setImages] = useState([]);
-    const [showPreview, setShowPreview] = useState(false);
+    const [showPreview, setShowPreview] = useState(true);
     const [submitted, setSubmitted] = useState(false);
     const [submitting, setSubmitting] = useState(false);
     const [loadingData, setLoadingData] = useState(isEditMode);
     const [error, setError] = useState('');
+    const [fieldErrors, setFieldErrors] = useState({});
+    const [touched, setTouched] = useState({});
+
+    const MAX_IMAGES = 3;
+    const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
 
     useEffect(() => {
-        if (!editId) return;
+        if (!editId) {
+            setFormData({
+                type: 'LOST',
+                title: '',
+                description: '',
+                category: '',
+                locationDescription: '',
+                latitude: null,
+                longitude: null,
+                date: '',
+                secretDetail: '',
+            });
+            setImages([]);
+            setFieldErrors({});
+            setTouched({});
+            setError('');
+            return;
+        }
 
         const loadItemData = async () => {
             setLoadingData(true);
@@ -99,6 +121,15 @@ function PostItem() {
     const handleChange = (e) => {
         const { name, value } = e.target;
         setFormData((prev) => ({ ...prev, [name]: value }));
+        // Clear field error when user types
+        if (fieldErrors[name]) {
+            setFieldErrors((prev) => ({ ...prev, [name]: '' }));
+        }
+    };
+
+    const handleBlur = (e) => {
+        const { name } = e.target;
+        setTouched((prev) => ({ ...prev, [name]: true }));
     };
 
     const handleTypeToggle = (type) => {
@@ -110,16 +141,38 @@ function PostItem() {
     const handleImageDrop = (e) => {
         e.preventDefault();
         const files = Array.from(e.dataTransfer?.files || e.target?.files || []);
-        const imageFiles = files.filter((f) => f.type.startsWith('image/'));
-        if (images.length + imageFiles.length > 3) {
-            setError('Maximum 3 images allowed');
+
+        // Filter for valid image types
+        const imageFiles = files.filter((f) => ALLOWED_TYPES.includes(f.type));
+        const invalidFiles = files.filter((f) => !f.type.startsWith('image/'));
+
+        if (invalidFiles.length > 0) {
+            setFieldErrors((prev) => ({ ...prev, images: `Only image files (JPG, PNG, GIF, WebP) are allowed. "${invalidFiles[0].name}" is not a valid image.` }));
+            if (fileInputRef.current) fileInputRef.current.value = '';
             return;
         }
+
+        const remaining = MAX_IMAGES - images.length;
+        if (remaining <= 0) {
+            setFieldErrors((prev) => ({ ...prev, images: `You can upload up to ${MAX_IMAGES} images only. Remove an existing image first.` }));
+            if (fileInputRef.current) fileInputRef.current.value = '';
+            return;
+        }
+
+        if (imageFiles.length > remaining) {
+            setFieldErrors((prev) => ({ ...prev, images: `You can upload up to ${MAX_IMAGES} images only. You tried to add ${imageFiles.length} but only ${remaining} slot${remaining > 1 ? 's' : ''} remaining.` }));
+            if (fileInputRef.current) fileInputRef.current.value = '';
+            return;
+        }
+
         const oversized = imageFiles.find((f) => f.size > MAX_FILE_SIZE_MB * 1024 * 1024);
         if (oversized) {
-            setError(`"${oversized.name}" exceeds the ${MAX_FILE_SIZE_MB}MB limit. Please choose a smaller file.`);
+            setFieldErrors((prev) => ({ ...prev, images: `"${oversized.name}" exceeds the ${MAX_FILE_SIZE_MB}MB limit. Please choose a smaller file.` }));
+            if (fileInputRef.current) fileInputRef.current.value = '';
             return;
         }
+
+        setFieldErrors((prev) => ({ ...prev, images: '' }));
         setError('');
         const newImages = imageFiles.map((file) => ({
             file,
@@ -127,6 +180,7 @@ function PostItem() {
             name: file.name,
         }));
         setImages((prev) => [...prev, ...newImages]);
+        if (fileInputRef.current) fileInputRef.current.value = '';
     };
 
     const removeImage = (index) => {
@@ -138,8 +192,39 @@ function PostItem() {
         });
     };
 
+    const validateForm = () => {
+        const errors = {};
+        if (!formData.title.trim()) errors.title = 'Item name is required.';
+        if (!formData.description.trim()) errors.description = 'Description is required.';
+        if (!formData.category) errors.category = 'Please select a category.';
+        if (!formData.locationDescription.trim()) errors.locationDescription = 'Location description is required.';
+        if (formData.latitude == null || formData.longitude == null) {
+            errors.location = 'Please drop a pin on the map to mark the exact location.';
+        }
+        if (!formData.date) {
+            errors.date = `Please provide the date when the item was ${formData.type === 'LOST' ? 'lost' : 'found'}.`;
+        }
+        if (images.length === 0 && !isEditMode) {
+            errors.images = 'Please upload at least one photo of the item.';
+        } else if (images.length === 0 && isEditMode) {
+             // In edit mode we also require at least one photo (could be existing)
+             errors.images = 'Please keep at least one photo of the item.';
+        }
+
+        setFieldErrors(errors);
+        // Mark all as touched so errors show
+        setTouched({ title: true, description: true, category: true, locationDescription: true, location: true, images: true, date: true });
+        return Object.keys(errors).length === 0;
+    };
+
     const handleSubmit = async (e) => {
         e.preventDefault();
+
+        if (!validateForm()) {
+            setError('Please fix the errors below before submitting.');
+            return;
+        }
+
         setSubmitting(true);
         setError('');
 
@@ -176,8 +261,6 @@ function PostItem() {
         setSubmitting(false);
     };
 
-    const isFormValid = formData.title && formData.description && formData.category && formData.locationDescription;
-
     // Build a preview item for the ItemCard
     const previewItem = {
         id: 'preview',
@@ -186,8 +269,8 @@ function PostItem() {
         description: formData.description || 'Item description...',
         category: formData.category || 'Category',
         status: 'ACTIVE',
-        imageUrls: images[0] ? [images[0].preview] : [],
-        imageUrl: images[0]?.preview || 'https://picsum.photos/seed/preview/400/300',
+        imageUrls: images.length > 0 ? images.map(img => img.preview) : [],
+        imageUrl: images[0]?.preview || 'https://placehold.co/600x400/png?text=No+Photo+Uploaded',
         campus: { name: user?.campus?.name || 'Your School' },
         school: { shortName: user?.campus?.name || 'Your School' },
         location: formData.locationDescription || 'Location',
@@ -260,30 +343,42 @@ function PostItem() {
                                 </div>
 
                                 {/* Title */}
-                                <Input
-                                    id="title"
-                                    name="title"
-                                    label="Title"
-                                    required
-                                    placeholder="e.g. Black Samsung Galaxy S24"
-                                    value={formData.title}
-                                    onChange={handleChange}
-                                    maxLength={100}
-                                />
+                                <div className="form-field-wrapper">
+                                    <Input
+                                        id="title"
+                                        name="title"
+                                        label="Title"
+                                        required
+                                        placeholder="e.g. Black Samsung Galaxy S24"
+                                        value={formData.title}
+                                        onChange={handleChange}
+                                        onBlur={handleBlur}
+                                        maxLength={100}
+                                    />
+                                    {touched.title && fieldErrors.title && (
+                                        <span className="field-error"><AlertCircle size={13} /> {fieldErrors.title}</span>
+                                    )}
+                                </div>
 
                                 {/* Description */}
-                                <Input
-                                    id="description"
-                                    name="description"
-                                    label="Description"
-                                    required
-                                    textarea
-                                    placeholder="Describe the item in detail — color, brand, distinguishing marks..."
-                                    value={formData.description}
-                                    onChange={handleChange}
-                                    rows={4}
-                                    maxLength={1000}
-                                />
+                                <div className="form-field-wrapper">
+                                    <Input
+                                        id="description"
+                                        name="description"
+                                        label="Description"
+                                        required
+                                        textarea
+                                        placeholder="Describe the item in detail — color, brand, distinguishing marks..."
+                                        value={formData.description}
+                                        onChange={handleChange}
+                                        onBlur={handleBlur}
+                                        rows={4}
+                                        maxLength={1000}
+                                    />
+                                    {touched.description && fieldErrors.description && (
+                                        <span className="field-error"><AlertCircle size={13} /> {fieldErrors.description}</span>
+                                    )}
+                                </div>
 
                                 {/* Category */}
                                 <div className="form-group-wrapper">
@@ -292,7 +387,7 @@ function PostItem() {
                                         id="category"
                                         trigger={(isOpen) => (
                                             <div
-                                                className={`ui-select-group ui-select-group--md ${isOpen ? "focus-within" : ""}`}
+                                                className={`ui-select-group ui-select-group--md ${isOpen ? "focus-within" : ""}${touched.category && fieldErrors.category ? " field-has-error" : ""}`}
                                                 style={{ cursor: "pointer", background: "var(--color-bg-card)", width: "100%" }}
                                             >
                                                 <div className="ui-select__field" style={{ display: "flex", alignItems: "center" }}>
@@ -332,6 +427,9 @@ function PostItem() {
                                             </>
                                         )}
                                     </Dropdown>
+                                    {touched.category && fieldErrors.category && (
+                                        <span className="field-error"><AlertCircle size={13} /> {fieldErrors.category}</span>
+                                    )}
                                 </div>
 
                                 {/* Location */}
@@ -345,53 +443,84 @@ function PostItem() {
                                         placeholder="e.g. CIT-U Main Library, 2nd Floor"
                                         value={formData.locationDescription}
                                         onChange={handleChange}
+                                        onBlur={handleBlur}
                                     />
+                                    {touched.locationDescription && fieldErrors.locationDescription && (
+                                        <span className="field-error"><AlertCircle size={13} /> {fieldErrors.locationDescription}</span>
+                                    )}
                                     <LocationPicker
                                         latitude={formData.latitude}
                                         longitude={formData.longitude}
-                                        onChange={({ latitude, longitude }) =>
-                                            setFormData((prev) => ({ ...prev, latitude, longitude }))
-                                        }
+                                        onChange={({ latitude, longitude }) => {
+                                            setFormData((prev) => ({ ...prev, latitude, longitude }));
+                                            setFieldErrors((prev) => ({ ...prev, location: '' }));
+                                        }}
                                     />
+                                    {touched.location && fieldErrors.location && (
+                                        <span className="field-error"><AlertCircle size={13} /> {fieldErrors.location}</span>
+                                    )}
                                 </div>
 
                                 {/* Date */}
-                                <Input
-                                    id="date"
-                                    name="date"
-                                    type="date"
-                                    label={`When was it ${formData.type === 'LOST' ? 'lost' : 'found'}?`}
-                                    icon={Calendar}
-                                    value={formData.date}
-                                    onChange={handleChange}
-                                />
+                                <div className="form-field-wrapper">
+                                    <Input
+                                        id="date"
+                                        name="date"
+                                        type="date"
+                                        required
+                                        label={`When was it ${formData.type === 'LOST' ? 'lost' : 'found'}?`}
+                                        icon={Calendar}
+                                        value={formData.date}
+                                        onChange={handleChange}
+                                        onBlur={handleBlur}
+                                    />
+                                    {touched.date && fieldErrors.date && (
+                                        <span className="field-error"><AlertCircle size={13} /> {fieldErrors.date}</span>
+                                    )}
+                                </div>
 
                                 {/* Image Upload */}
                                 <div className="form-group">
-                                    <label><Image size={14} style={{ display: 'inline', verticalAlign: 'middle' }} /> Photos (max 3)</label>
-                                    <div
-                                        className="image-upload-zone"
-                                        onDragOver={(e) => e.preventDefault()}
-                                        onDrop={handleImageDrop}
-                                        onClick={() => fileInputRef.current?.click()}
-                                    >
-                                        <Upload size={32} />
-                                        <span>Drag & drop images or click to browse</span>
-                                        <input
-                                            ref={fileInputRef}
-                                            type="file"
-                                            accept="image/*"
-                                            multiple
-                                            hidden
-                                            onChange={handleImageDrop}
-                                        />
-                                    </div>
+                                    <label className="ui-input__label ui-input__label--required">
+                                        <Image size={14} style={{ display: 'inline', verticalAlign: 'middle', marginRight: '4px' }} /> Photos
+                                        <span className="image-count-badge">{images.length} / {MAX_IMAGES}</span>
+                                    </label>
+                                    {images.length < MAX_IMAGES ? (
+                                        <div
+                                            className={`image-upload-zone${fieldErrors.images ? ' has-error' : ''}`}
+                                            onDragOver={(e) => e.preventDefault()}
+                                            onDrop={handleImageDrop}
+                                            onClick={() => fileInputRef.current?.click()}
+                                        >
+                                            <Upload size={32} />
+                                            <span>Drag & drop images or click to browse</span>
+                                            <span className="upload-hint">JPG, PNG, GIF, WebP — max {MAX_FILE_SIZE_MB}MB each</span>
+                                            <input
+                                                ref={fileInputRef}
+                                                type="file"
+                                                accept="image/jpeg,image/png,image/gif,image/webp"
+                                                multiple
+                                                hidden
+                                                onChange={handleImageDrop}
+                                            />
+                                        </div>
+                                    ) : (
+                                        <div className="image-upload-zone upload-full">
+                                            <span>Maximum {MAX_IMAGES} images reached. Remove an image to add a new one.</span>
+                                        </div>
+                                    )}
+                                    {fieldErrors.images && (
+                                        <span className="field-error"><AlertCircle size={13} /> {fieldErrors.images}</span>
+                                    )}
                                     {images.length > 0 && (
                                         <div className="image-previews">
                                             {images.map((img, i) => (
                                                 <div key={i} className="image-thumb">
                                                     <img src={img.preview} alt={img.name} />
-                                                    <button type="button" className="remove-img" onClick={() => removeImage(i)}>
+                                                    <button type="button" className="remove-img" onClick={() => {
+                                                        removeImage(i);
+                                                        setFieldErrors((prev) => ({ ...prev, images: '' }));
+                                                    }}>
                                                         <X size={14} />
                                                     </button>
                                                 </div>
@@ -428,7 +557,7 @@ function PostItem() {
                                     <button
                                         type="submit"
                                         className="submit-btn"
-                                        disabled={!isFormValid || submitting}
+                                        disabled={submitting}
                                     >
                                         {submitting ? (
                                             <><Loader size={16} className="spin" /> {isEditMode ? 'Saving...' : 'Posting...'}</>

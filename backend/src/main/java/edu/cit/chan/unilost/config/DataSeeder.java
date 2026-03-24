@@ -8,6 +8,7 @@ import edu.cit.chan.unilost.repository.CampusRepository;
 import edu.cit.chan.unilost.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.data.mongodb.core.geo.GeoJsonPoint;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -30,6 +31,9 @@ public class DataSeeder implements CommandLineRunner {
     private final CampusRepository campusRepository;
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+
+    @Value("${admin.seed-password:#{null}}")
+    private String adminPassword;
 
     @Override
     public void run(String... args) {
@@ -149,9 +153,11 @@ public class DataSeeder implements CommandLineRunner {
         log.info("  Seeded campus: {} - {} ({})", id, shortLabel, domain);
     }
 
-    private static final String ADMIN_PASSWORD = "Sitheogwapo@123";
-
     private void seedAdmin() {
+        if (adminPassword == null || adminPassword.isBlank()) {
+            log.info("  admin.seed-password not set — skipping admin seeding");
+            return;
+        }
         seedOrUpdateAdmin("admin@cit.edu", "UniLost Admin", "CIT-U-MAIN");
         seedOrUpdateAdmin("admin@unilost.com", "UniLost Super Admin", "CIT-U-MAIN");
     }
@@ -160,7 +166,7 @@ public class DataSeeder implements CommandLineRunner {
         var existing = userRepository.findByEmail(email);
         if (existing.isPresent()) {
             UserEntity user = existing.get();
-            user.setPasswordHash(passwordEncoder.encode(ADMIN_PASSWORD));
+            user.setPasswordHash(passwordEncoder.encode(adminPassword));
             userRepository.save(user);
             log.info("  Updated password for: {}", email);
             return;
@@ -168,7 +174,7 @@ public class DataSeeder implements CommandLineRunner {
 
         UserEntity admin = new UserEntity();
         admin.setEmail(email);
-        admin.setPasswordHash(passwordEncoder.encode(ADMIN_PASSWORD));
+        admin.setPasswordHash(passwordEncoder.encode(adminPassword));
         admin.setFullName(fullName);
         admin.setUniversityTag(universityTag);
         admin.setRole(Role.ADMIN);

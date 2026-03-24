@@ -40,6 +40,69 @@
   filter: blur(12px);
 }
 
+/* Card Gallery Navigation */
+.card-gallery-nav {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.4);
+  color: white;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  opacity: 0;
+  transition: all var(--transition-fast);
+  z-index: 2;
+  backdrop-filter: blur(4px);
+}
+
+.item-card-image:hover .card-gallery-nav {
+  opacity: 1;
+}
+
+.card-gallery-nav:hover {
+  background: rgba(0, 0, 0, 0.7);
+  transform: translateY(-50%) scale(1.1);
+}
+
+.card-gallery-nav.prev {
+  left: 8px;
+}
+
+.card-gallery-nav.next {
+  right: 8px;
+}
+
+.card-gallery-dots {
+  position: absolute;
+  bottom: 8px;
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: center;
+  gap: 4px;
+  z-index: 2;
+}
+
+.card-gallery-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.5);
+  transition: all var(--transition-fast);
+  box-shadow: 0 1px 2px rgba(0,0,0,0.3);
+}
+
+.card-gallery-dot.active {
+  background: #fff;
+  transform: scale(1.3);
+}
+
 .type-badge {
   position: absolute;
   top: 10px;

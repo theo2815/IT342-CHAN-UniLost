@@ -4,6 +4,7 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.time.LocalDateTime;
@@ -26,6 +27,7 @@ public class MessageEntity {
     private String id;
 
     /** Reference to chats.id */
+    @Indexed
     private String chatId;
 
     /** Reference to users.id — who sent this message. Null for system messages. */
