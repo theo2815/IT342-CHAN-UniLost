@@ -35,30 +35,32 @@ public class AdminService {
     private final CampusRepository campusRepository;
     private final MongoTemplate mongoTemplate;
     private final NotificationService notificationService;
+    private final AuditLogService auditLogService;
 
     // ── Dashboard Stats ────────────────────────────────────
 
     public Map<String, Object> getDashboardStats(String adminEmail) {
-        UserEntity admin = resolveAdmin(adminEmail);
-        String campusId = admin.getUniversityTag();
+        resolveAdmin(adminEmail);
 
-        long totalUsers = userRepository.countByUniversityTag(campusId);
-        long suspendedUsers = userRepository.countByUniversityTagAndAccountStatus(campusId, AccountStatus.SUSPENDED);
-        long activeItems = itemRepository.countByCampusIdAndStatusAndIsDeletedFalse(campusId, ItemStatus.ACTIVE);
-        long totalItems = itemRepository.countByCampusIdAndIsDeletedFalse(campusId);
+        long totalUsers = userRepository.count();
+        long suspendedUsers = mongoTemplate.count(
+                Query.query(Criteria.where("accountStatus").is(AccountStatus.SUSPENDED.name())),
+                UserEntity.class);
+        long activeItems = mongoTemplate.count(
+                Query.query(Criteria.where("status").is(ItemStatus.ACTIVE.name()).and("isDeleted").is(false)),
+                ItemEntity.class);
+        long totalItems = mongoTemplate.count(
+                Query.query(Criteria.where("isDeleted").is(false)),
+                ItemEntity.class);
 
-        // Count pending claims using aggregation instead of loading all items
-        long pendingClaims = countPendingClaimsForCampus(campusId);
+        long pendingClaims = mongoTemplate.count(
+                Query.query(Criteria.where("status").is("PENDING")),
+                ClaimEntity.class);
 
-        // Count recovered (CLAIMED + HANDED_OVER + RETURNED) this month
-        long recoveredThisMonth = countRecoveredThisMonth(campusId);
-
-        // Resolve campus name
-        String campusName = campusRepository.findById(campusId)
-                .map(CampusEntity::getName).orElse("Unknown Campus");
+        long recoveredThisMonth = countRecoveredThisMonth();
 
         Map<String, Object> stats = new LinkedHashMap<>();
-        stats.put("campusName", campusName);
+        stats.put("campusName", "All Campuses");
         stats.put("totalUsers", totalUsers);
         stats.put("suspendedUsers", suspendedUsers);
         stats.put("activeItems", activeItems);
@@ -68,15 +70,13 @@ public class AdminService {
         return stats;
     }
 
-    // ── Campus Items ───────────────────────────────────────
+    // ── All Items ─────────────────────────────────────────
 
     public Page<ItemDTO> getCampusItems(String adminEmail, String keyword, String type,
                                          String status, Pageable pageable) {
-        UserEntity admin = resolveAdmin(adminEmail);
-        String campusId = admin.getUniversityTag();
+        resolveAdmin(adminEmail);
 
         Query query = new Query();
-        query.addCriteria(Criteria.where("campusId").is(campusId));
         query.addCriteria(Criteria.where("isDeleted").is(false));
 
         if (keyword != null && !keyword.trim().isEmpty()) {
@@ -107,23 +107,24 @@ public class AdminService {
     // ── Flagged Items ──────────────────────────────────────
 
     public Page<ItemDTO> getFlaggedItems(String adminEmail, Pageable pageable) {
-        UserEntity admin = resolveAdmin(adminEmail);
-        String campusId = admin.getUniversityTag();
+        resolveAdmin(adminEmail);
 
-        Page<ItemEntity> page = itemRepository.findByCampusIdAndFlagCountGreaterThanAndIsDeletedFalse(
-                campusId, 0, pageable);
-        List<ItemDTO> dtos = convertItemsToDTOs(page.getContent());
-        return new PageImpl<>(dtos, pageable, page.getTotalElements());
+        Query query = new Query();
+        query.addCriteria(Criteria.where("isDeleted").is(false));
+        query.addCriteria(Criteria.where("flagCount").gt(0));
+        long total = mongoTemplate.count(Query.of(query).limit(-1).skip(-1), ItemEntity.class);
+        query.with(pageable);
+        List<ItemEntity> items = mongoTemplate.find(query, ItemEntity.class);
+        List<ItemDTO> dtos = convertItemsToDTOs(items);
+        return new PageImpl<>(dtos, pageable, total);
     }
 
     // ── Update Item Status (admin action) ──────────────────
 
     public ItemDTO updateItemStatus(String itemId, String newStatus, String adminEmail) {
-        UserEntity admin = resolveAdmin(adminEmail);
+        resolveAdmin(adminEmail);
         ItemEntity item = itemRepository.findByIdAndIsDeletedFalse(itemId)
                 .orElseThrow(() -> new ResourceNotFoundException("Item not found"));
-
-        verifyCampusAccess(admin, item.getCampusId());
 
         // Validate status transition
         ItemStatus parsedStatus;
@@ -143,36 +144,42 @@ public class AdminService {
             throw new IllegalArgumentException("Only items turned over to office can be marked as returned");
         }
 
+        String oldStatus = item.getStatus().name();
         item.setStatus(parsedStatus);
         item.setUpdatedAt(LocalDateTime.now());
         ItemEntity saved = itemRepository.save(item);
+
+        auditLogService.log("UPDATE_ITEM_STATUS", "ITEM", itemId, adminEmail,
+                "Changed item '" + item.getTitle() + "' status from " + oldStatus + " to " + newStatus,
+                Map.of("oldStatus", oldStatus, "newStatus", newStatus, "itemTitle", item.getTitle()));
+
         return convertItemToDTO(saved, null, null);
     }
 
     // ── Force Delete Item ──────────────────────────────────
 
     public void forceDeleteItem(String itemId, String adminEmail) {
-        UserEntity admin = resolveAdmin(adminEmail);
+        resolveAdmin(adminEmail);
         ItemEntity item = itemRepository.findByIdAndIsDeletedFalse(itemId)
                 .orElseThrow(() -> new ResourceNotFoundException("Item not found"));
-
-        verifyCampusAccess(admin, item.getCampusId());
 
         item.setDeleted(true);
         item.setDeletedAt(LocalDateTime.now());
         item.setUpdatedAt(LocalDateTime.now());
         itemRepository.save(item);
+
+        auditLogService.log("DELETE_ITEM", "ITEM", itemId, adminEmail,
+                "Soft-deleted item: " + item.getTitle(),
+                Map.of("itemTitle", item.getTitle()));
     }
 
-    // ── Campus Users ───────────────────────────────────────
+    // ── All Users ─────────────────────────────────────────
 
     public Page<UserDTO> getCampusUsers(String adminEmail, String keyword, String role,
                                          String accountStatus, Pageable pageable) {
-        UserEntity admin = resolveAdmin(adminEmail);
-        String campusId = admin.getUniversityTag();
+        resolveAdmin(adminEmail);
 
         Query query = new Query();
-        query.addCriteria(Criteria.where("universityTag").is(campusId));
 
         if (keyword != null && !keyword.trim().isEmpty()) {
             String escaped = Pattern.quote(keyword.trim());
@@ -202,11 +209,9 @@ public class AdminService {
     // ── Suspend / Reactivate User ──────────────────────────
 
     public UserDTO updateUserStatus(String userId, String newStatus, String adminEmail) {
-        UserEntity admin = resolveAdmin(adminEmail);
+        resolveAdmin(adminEmail);
         UserEntity target = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
-
-        verifyCampusAccess(admin, target.getUniversityTag());
 
         AccountStatus parsedStatus;
         try {
@@ -219,34 +224,28 @@ public class AdminService {
             throw new IllegalArgumentException("Invalid status. Use ACTIVE or SUSPENDED.");
         }
 
-        // Prevent admins/faculty from being suspended by other admins
-        if (target.getRole() != Role.STUDENT) {
-            throw new ForbiddenException("Cannot change status of admin or faculty accounts");
+        // Prevent admin from being suspended
+        if (target.getRole() == Role.ADMIN) {
+            throw new ForbiddenException("Cannot change status of admin accounts");
         }
 
+        String oldStatus = target.getAccountStatus().name();
         target.setAccountStatus(parsedStatus);
         UserEntity saved = userRepository.save(target);
+
+        auditLogService.log("UPDATE_USER_STATUS", "USER", userId, adminEmail,
+                "Changed user '" + target.getFullName() + "' status from " + oldStatus + " to " + newStatus,
+                Map.of("oldStatus", oldStatus, "newStatus", newStatus, "userName", target.getFullName()));
+
         return convertUserToDTO(saved);
     }
 
-    // ── Campus Claims ──────────────────────────────────────
+    // ── All Claims ────────────────────────────────────────
 
     public Page<ClaimDTO> getCampusClaims(String adminEmail, String status, Pageable pageable) {
-        UserEntity admin = resolveAdmin(adminEmail);
-        String campusId = admin.getUniversityTag();
-
-        // Get campus item IDs using projection (only IDs, not full entities)
-        Query itemIdQuery = new Query(Criteria.where("campusId").is(campusId).and("isDeleted").is(false));
-        itemIdQuery.fields().include("_id");
-        List<String> campusItemIds = mongoTemplate.find(itemIdQuery, ItemEntity.class)
-                .stream().map(ItemEntity::getId).toList();
-
-        if (campusItemIds.isEmpty()) {
-            return new PageImpl<>(List.of(), pageable, 0);
-        }
+        resolveAdmin(adminEmail);
 
         Query query = new Query();
-        query.addCriteria(Criteria.where("itemId").in(campusItemIds));
         if (status != null && !status.isEmpty()) {
             query.addCriteria(Criteria.where("status").is(status));
         }
@@ -293,31 +292,39 @@ public class AdminService {
         itemRepository.save(item);
 
         notificationService.notifyItemFlagged(item.getReporterId(), item.getTitle(), itemId);
+
+        // Notify admin when flag count reaches threshold
+        if (item.getFlagCount() >= 3) {
+            List<UserEntity> admins = userRepository.findByRole(Role.ADMIN);
+            for (UserEntity admin : admins) {
+                notificationService.notifyAdminFlagThreshold(
+                        admin.getId(), item.getTitle(), itemId, item.getFlagCount());
+            }
+        }
     }
 
     // ── Analytics ──────────────────────────────────────────
 
     public Map<String, Object> getAnalytics(String adminEmail) {
-        UserEntity admin = resolveAdmin(adminEmail);
-        String campusId = admin.getUniversityTag();
+        resolveAdmin(adminEmail);
 
         Map<String, Long> rawStatusCounts = aggregateCountByField(
                 "items",
-                Criteria.where("campusId").is(campusId).and("isDeleted").is(false).and("status").ne(null),
+                Criteria.where("isDeleted").is(false).and("status").ne(null),
                 "status");
         Map<String, Long> rawTypeCounts = aggregateCountByField(
                 "items",
-                Criteria.where("campusId").is(campusId).and("isDeleted").is(false).and("type").ne(null),
+                Criteria.where("isDeleted").is(false).and("type").ne(null),
                 "type");
         Map<String, Long> categoryCounts = aggregateCountByField(
                 "items",
-                Criteria.where("campusId").is(campusId).and("isDeleted").is(false)
-                        .and("category").ne(null).and("category").ne(""),
+                Criteria.where("isDeleted").is(false)
+                        .and("category").nin(null, ""),
                 "category");
         Map<String, Long> locationCounts = aggregateCountByField(
                 "items",
-                Criteria.where("campusId").is(campusId).and("isDeleted").is(false)
-                        .and("location").ne(null).and("location").ne(""),
+                Criteria.where("isDeleted").is(false)
+                        .and("location").nin(null, ""),
                 "location");
 
         Map<String, Long> statusCounts = new LinkedHashMap<>();
@@ -401,6 +408,158 @@ public class AdminService {
         return result;
     }
 
+    // ── System Health ─────────────────────────────────────
+
+    public Map<String, Object> getSystemHealth() {
+        Map<String, Object> health = new LinkedHashMap<>();
+
+        // MongoDB connection status
+        try {
+            mongoTemplate.getDb().runCommand(new org.bson.Document("ping", 1));
+            health.put("mongoStatus", "CONNECTED");
+        } catch (Exception e) {
+            health.put("mongoStatus", "DISCONNECTED");
+        }
+
+        // JVM Memory
+        Runtime runtime = Runtime.getRuntime();
+        long totalMemory = runtime.totalMemory();
+        long freeMemory = runtime.freeMemory();
+        long usedMemory = totalMemory - freeMemory;
+        long maxMemory = runtime.maxMemory();
+
+        Map<String, Object> memory = new LinkedHashMap<>();
+        memory.put("usedMb", usedMemory / (1024 * 1024));
+        memory.put("totalMb", totalMemory / (1024 * 1024));
+        memory.put("maxMb", maxMemory / (1024 * 1024));
+        memory.put("usagePercent", Math.round((double) usedMemory / maxMemory * 100));
+        health.put("memory", memory);
+
+        // Application uptime
+        long uptimeMs = java.lang.management.ManagementFactory.getRuntimeMXBean().getUptime();
+        long uptimeHours = uptimeMs / (1000 * 60 * 60);
+        long uptimeDays = uptimeHours / 24;
+        health.put("uptimeMs", uptimeMs);
+        health.put("uptimeFormatted", uptimeDays + "d " + (uptimeHours % 24) + "h");
+
+        // Collection counts
+        Map<String, Long> counts = new LinkedHashMap<>();
+        counts.put("users", userRepository.count());
+        counts.put("items", itemRepository.count());
+        counts.put("claims", claimRepository.count());
+        counts.put("auditLogs", mongoTemplate.getCollection("audit_logs").countDocuments());
+        health.put("collectionCounts", counts);
+
+        // Java version
+        health.put("javaVersion", System.getProperty("java.version"));
+
+        return health;
+    }
+
+    // ── Bulk Actions ──────────────────────────────────────
+
+    public List<ItemDTO> bulkUpdateItemStatus(List<String> itemIds, String newStatus, String adminEmail) {
+        resolveAdmin(adminEmail);
+        List<ItemDTO> results = new ArrayList<>();
+        for (String itemId : itemIds) {
+            try {
+                ItemEntity item = itemRepository.findByIdAndIsDeletedFalse(itemId).orElse(null);
+                if (item == null) continue;
+
+                ItemStatus parsedStatus = ItemStatus.valueOf(newStatus);
+                Set<ItemStatus> validStatuses = Set.of(ItemStatus.ACTIVE, ItemStatus.HIDDEN, ItemStatus.TURNED_OVER_TO_OFFICE, ItemStatus.RETURNED);
+                if (!validStatuses.contains(parsedStatus)) continue;
+                if (parsedStatus == ItemStatus.RETURNED && item.getStatus() != ItemStatus.TURNED_OVER_TO_OFFICE) continue;
+
+                item.setStatus(parsedStatus);
+                item.setUpdatedAt(LocalDateTime.now());
+                ItemEntity saved = itemRepository.save(item);
+                results.add(convertItemToDTO(saved, null, null));
+            } catch (Exception ignored) {}
+        }
+        auditLogService.log("BULK_UPDATE_ITEMS", "ITEM", null, adminEmail,
+                "Bulk updated " + results.size() + " items to " + newStatus,
+                Map.of("itemIds", itemIds, "newStatus", newStatus, "count", results.size()));
+        return results;
+    }
+
+    public int bulkDeleteItems(List<String> itemIds, String adminEmail) {
+        resolveAdmin(adminEmail);
+        int deleted = 0;
+        for (String itemId : itemIds) {
+            try {
+                ItemEntity item = itemRepository.findByIdAndIsDeletedFalse(itemId).orElse(null);
+                if (item == null) continue;
+                item.setDeleted(true);
+                item.setDeletedAt(LocalDateTime.now());
+                item.setUpdatedAt(LocalDateTime.now());
+                itemRepository.save(item);
+                deleted++;
+            } catch (Exception ignored) {}
+        }
+        auditLogService.log("BULK_DELETE_ITEMS", "ITEM", null, adminEmail,
+                "Bulk deleted " + deleted + " items",
+                Map.of("itemIds", itemIds, "count", deleted));
+        return deleted;
+    }
+
+    public List<UserDTO> bulkUpdateUserStatus(List<String> userIds, String newStatus, String adminEmail) {
+        resolveAdmin(adminEmail);
+        List<UserDTO> results = new ArrayList<>();
+        for (String userId : userIds) {
+            try {
+                UserEntity target = userRepository.findById(userId).orElse(null);
+                if (target == null) continue;
+                if (target.getRole() == Role.ADMIN) continue;
+
+                AccountStatus parsedStatus = AccountStatus.valueOf(newStatus);
+                if (parsedStatus != AccountStatus.ACTIVE && parsedStatus != AccountStatus.SUSPENDED) continue;
+
+                target.setAccountStatus(parsedStatus);
+                UserEntity saved = userRepository.save(target);
+                results.add(convertUserToDTO(saved));
+            } catch (Exception ignored) {}
+        }
+        auditLogService.log("BULK_UPDATE_USERS", "USER", null, adminEmail,
+                "Bulk updated " + results.size() + " users to " + newStatus,
+                Map.of("userIds", userIds, "newStatus", newStatus, "count", results.size()));
+        return results;
+    }
+
+    // ── Item Trends ───────────────────────────────────────
+
+    public List<Map<String, Object>> getItemTrends(int months) {
+        LocalDateTime startDate = LocalDateTime.now().minusMonths(months)
+                .withDayOfMonth(1).withHour(0).withMinute(0).withSecond(0).withNano(0);
+
+        Aggregation aggregation = Aggregation.newAggregation(
+                Aggregation.match(Criteria.where("isDeleted").is(false)
+                        .and("createdAt").gte(startDate)),
+                Aggregation.project()
+                        .andExpression("year(createdAt)").as("year")
+                        .andExpression("month(createdAt)").as("month"),
+                Aggregation.group("year", "month").count().as("count"),
+                Aggregation.sort(Sort.by(Sort.Direction.ASC, "_id.year", "_id.month"))
+        );
+
+        AggregationResults<Document> results = mongoTemplate.aggregate(
+                aggregation, "items", Document.class);
+
+        List<Map<String, Object>> trends = new ArrayList<>();
+        for (Document doc : results.getMappedResults()) {
+            Object idObj = doc.get("_id");
+            if (idObj instanceof Document id) {
+                String monthLabel = String.format("%d-%02d",
+                        id.getInteger("year"), id.getInteger("month"));
+                Map<String, Object> entry = new LinkedHashMap<>();
+                entry.put("month", monthLabel);
+                entry.put("count", doc.getInteger("count"));
+                trends.add(entry);
+            }
+        }
+        return trends;
+    }
+
     // ── Helper Methods ─────────────────────────────────────
 
     private Map<String, Long> aggregateCountByField(String collectionName, Criteria criteria, String fieldName) {
@@ -437,33 +596,15 @@ public class AdminService {
     private UserEntity resolveAdmin(String adminEmail) {
         UserEntity admin = userRepository.findByEmail(adminEmail)
                 .orElseThrow(() -> new ResourceNotFoundException("Admin user not found"));
-        if (admin.getRole() != Role.ADMIN && admin.getRole() != Role.FACULTY) {
+        if (admin.getRole() != Role.ADMIN) {
             throw new ForbiddenException("Access denied: admin role required");
         }
         return admin;
     }
 
-    private void verifyCampusAccess(UserEntity admin, String targetCampusId) {
-        if (!Objects.equals(admin.getUniversityTag(), targetCampusId)) {
-            throw new ForbiddenException("You can only manage resources within your campus");
-        }
-    }
-
-    private long countPendingClaimsForCampus(String campusId) {
-        // Use ID-only projection to avoid loading full item entities
-        Query itemIdQuery = new Query(Criteria.where("campusId").is(campusId).and("isDeleted").is(false));
-        itemIdQuery.fields().include("_id");
-        List<String> campusItemIds = mongoTemplate.find(itemIdQuery, ItemEntity.class)
-                .stream().map(ItemEntity::getId).toList();
-        if (campusItemIds.isEmpty()) return 0;
-        return mongoTemplate.count(Query.query(
-                Criteria.where("itemId").in(campusItemIds).and("status").is("PENDING")), ClaimEntity.class);
-    }
-
-    private long countRecoveredThisMonth(String campusId) {
+    private long countRecoveredThisMonth() {
         LocalDateTime startOfMonth = LocalDateTime.now().withDayOfMonth(1).withHour(0).withMinute(0).withSecond(0);
         Query query = new Query();
-        query.addCriteria(Criteria.where("campusId").is(campusId));
         query.addCriteria(Criteria.where("isDeleted").is(false));
         query.addCriteria(Criteria.where("status").in("CLAIMED", "PENDING_OWNER_CONFIRMATION", "RETURNED", "HANDED_OVER"));
         query.addCriteria(Criteria.where("updatedAt").gte(startOfMonth));

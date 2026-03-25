@@ -28,6 +28,7 @@ const typeConfig = {
   ITEM_EXPIRED: { icon: <AlertTriangle size={16} />, color: "#94a3b8" },
   ITEM_MATCH: { icon: <Search size={16} />, color: "#3b82f6" },
   ITEM_FLAGGED: { icon: <AlertTriangle size={16} />, color: "#f59e0b" },
+  ITEM_FLAG_THRESHOLD: { icon: <AlertTriangle size={16} />, color: "#ef4444" },
   NEW_MESSAGE: { icon: <MessageSquare size={16} />, color: "#3b82f6" },
 };
 
@@ -43,6 +44,8 @@ function getNotifRoute(notif) {
     case "ITEM_RETURNED":
     case "NEW_MESSAGE":
       return `/messages?chatId=${notif.linkId}`;
+    case "ITEM_FLAG_THRESHOLD":
+      return `/admin/items`;
     case "ITEM_FLAGGED":
     case "ITEM_EXPIRED":
     case "ITEM_MATCH":

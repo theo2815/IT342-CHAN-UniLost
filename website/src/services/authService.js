@@ -114,11 +114,6 @@ const authService = {
         return role === ROLES.ADMIN;
     },
 
-    // Check if current user is faculty
-    isFaculty: () => {
-        return authService.getUserRole() === ROLES.FACULTY;
-    },
-
     // Password reset flow
     forgotPassword: async (email) => {
         try {

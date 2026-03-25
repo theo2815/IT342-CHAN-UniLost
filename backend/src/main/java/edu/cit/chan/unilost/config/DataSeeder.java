@@ -158,8 +158,7 @@ public class DataSeeder implements CommandLineRunner {
             log.info("  admin.seed-password not set — skipping admin seeding");
             return;
         }
-        seedOrUpdateAdmin("admin@cit.edu", "UniLost Admin", "CIT-U-MAIN");
-        seedOrUpdateAdmin("admin@unilost.com", "UniLost Super Admin", "CIT-U-MAIN");
+        seedOrUpdateAdmin("admin@unilost.com", "UniLost Admin", "CIT-U-MAIN");
     }
 
     private void seedOrUpdateAdmin(String email, String fullName, String universityTag) {

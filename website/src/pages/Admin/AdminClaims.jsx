@@ -9,6 +9,7 @@ const tabs = [
     { key: 'ALL', label: 'All', param: null },
     { key: 'PENDING', label: 'Pending', param: 'PENDING' },
     { key: 'ACCEPTED', label: 'Accepted', param: 'ACCEPTED' },
+    { key: 'COMPLETED', label: 'Completed', param: 'COMPLETED' },
     { key: 'REJECTED', label: 'Rejected', param: 'REJECTED' },
     { key: 'CANCELLED', label: 'Cancelled', param: 'CANCELLED' },
 ];

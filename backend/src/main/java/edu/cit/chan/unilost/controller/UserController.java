@@ -51,7 +51,7 @@ public class UserController {
         // Strip sensitive fields for non-admin callers
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         boolean isAdmin = auth != null && auth.getAuthorities().stream()
-                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN") || a.getAuthority().equals("ROLE_FACULTY"));
+                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
         if (!isAdmin) {
             String currentEmail = auth != null ? (String) auth.getPrincipal() : null;
             users.getContent().forEach(user -> {
@@ -72,7 +72,7 @@ public class UserController {
                     String currentEmail = auth != null ? (String) auth.getPrincipal() : null;
                     boolean isSelf = user.getEmail() != null && user.getEmail().equals(currentEmail);
                     boolean isAdmin = auth != null && auth.getAuthorities().stream()
-                            .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN") || a.getAuthority().equals("ROLE_FACULTY"));
+                            .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
                     if (!isSelf && !isAdmin) {
                         user.setEmail(null);
                         user.setAccountStatus(null);

@@ -14,9 +14,12 @@ import AdminDashboard from './pages/Admin/AdminDashboard';
 import AdminItems from './pages/Admin/AdminItems';
 import AdminUsers from './pages/Admin/AdminUsers';
 import AdminClaims from './pages/Admin/AdminClaims';
-import SuperAdminPanel from './pages/Admin/SuperAdminPanel';
+import CampusManagement from './pages/Admin/CampusManagement';
+import AdminAuditLogs from './pages/Admin/AdminAuditLogs';
+import AdminAnalytics from './pages/Admin/AdminAnalytics';
+import AdminHealth from './pages/Admin/AdminHealth';
 import ProtectedRoute from './components/ProtectedRoute';
-import { AdminRoute, FacultyRoute } from './components/AdminRoute';
+import { AdminRoute } from './components/AdminRoute';
 import Landing from './pages/Landing/Landing';
 import ForgotPassword from './pages/ForgotPassword/ForgotPassword';
 import VerifyOTP from './pages/VerifyOTP/VerifyOTP';
@@ -80,9 +83,10 @@ function App() {
               <Route path="/admin/items" element={<AdminItems />} />
               <Route path="/admin/users" element={<AdminUsers />} />
               <Route path="/admin/claims" element={<AdminClaims />} />
-            </Route>
-            <Route element={<FacultyRoute />}>
-              <Route path="/superadmin" element={<SuperAdminPanel />} />
+              <Route path="/admin/campuses" element={<CampusManagement />} />
+              <Route path="/admin/audit-logs" element={<AdminAuditLogs />} />
+              <Route path="/admin/analytics" element={<AdminAnalytics />} />
+              <Route path="/admin/health" element={<AdminHealth />} />
             </Route>
           </Route>
         </Routes>

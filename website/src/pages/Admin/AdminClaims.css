@@ -32,30 +32,35 @@
 /* Tabs */
 .admin-claims-page .tabs {
     display: flex;
-    gap: 2px;
-    border-bottom: 1px solid var(--color-border);
+    gap: var(--spacing-xs);
     margin-bottom: var(--spacing-lg);
     overflow-x: auto;
+    padding-bottom: 2px;
+    border-bottom: 1px solid var(--color-border);
 }
 
 .admin-claims-page .tab {
     display: flex;
     align-items: center;
     gap: var(--spacing-xs);
-    padding: 10px 16px;
+    padding: 10px 20px;
     border: none;
     background: none;
     color: var(--color-text-muted);
     font-size: var(--font-size-sm);
-    font-weight: 500;
+    font-weight: 600;
     cursor: pointer;
     border-bottom: 2px solid transparent;
     transition: all var(--transition-fast);
     white-space: nowrap;
+    position: relative;
+    bottom: -1px;
 }
 
 .admin-claims-page .tab:hover {
     color: var(--color-text-primary);
+    background: rgba(99, 102, 241, 0.04);
+    border-radius: var(--radius-md) var(--radius-md) 0 0;
 }
 
 .admin-claims-page .tab.active {
@@ -83,16 +88,25 @@
     gap: var(--spacing-sm);
 }
 
+.item-cell .table-thumb {
+    width: 44px;
+    height: 34px;
+    object-fit: cover;
+    border-radius: var(--radius-sm);
+    background: var(--color-bg-secondary);
+    flex-shrink: 0;
+}
+
 .item-cell-info {
     display: flex;
     flex-direction: column;
-    gap: 2px;
+    gap: 3px;
 }
 
 .item-cell-title {
     font-weight: 500;
     font-size: var(--font-size-sm);
-    max-width: 180px;
+    max-width: 200px;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -100,11 +114,12 @@
 
 .type-badge-sm {
     display: inline-block;
-    padding: 1px 6px;
+    padding: 2px 8px;
     border-radius: var(--radius-full);
     font-size: 0.6rem;
-    font-weight: 600;
+    font-weight: 700;
     text-transform: uppercase;
+    letter-spacing: 0.3px;
     width: fit-content;
 }
 
@@ -122,20 +137,27 @@
 .person-cell {
     display: flex;
     flex-direction: column;
+    gap: 2px;
 }
 
 .person-name {
     font-weight: 500;
     font-size: var(--font-size-sm);
+    color: var(--color-text-primary);
 }
 
 .person-email {
     font-size: var(--font-size-xs);
     color: var(--color-text-muted);
+    max-width: 220px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .td-poster-name {
     font-size: var(--font-size-sm);
+    color: var(--color-text-primary);
 }
 
 /* Status badges — reuses from AdminItems */
@@ -237,15 +259,47 @@
     to { transform: rotate(360deg); }
 }
 
-/* Accepted badge */
+/* Status Badges */
+.admin-claims-page .status-badge {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: var(--radius-full);
+    font-size: 0.65rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    white-space: nowrap;
+}
+
 .admin-claims-page .status-badge.accepted {
     background: rgba(16, 185, 129, 0.1);
     color: #10b981;
 }
 
+.admin-claims-page .status-badge.completed,
+.admin-claims-page .status-badge.handed-over {
+    background: rgba(99, 102, 241, 0.1);
+    color: #6366f1;
+}
+
 .admin-claims-page .status-badge.cancelled {
     background: rgba(107, 114, 128, 0.1);
     color: #6b7280;
+}
+
+/* Fix action column alignment */
+.admin-claims-page .td-actions {
+    white-space: nowrap;
+}
+
+.admin-claims-page .td-actions .action-btn {
+    display: inline-flex;
+    vertical-align: middle;
+}
+
+/* Table row alignment fix */
+.admin-claims-page .admin-table td {
+    vertical-align: middle;
 }
 
 /* Responsive */

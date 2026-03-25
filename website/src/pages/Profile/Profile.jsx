@@ -105,7 +105,7 @@ function Profile() {
     };
 
     const roleBadge = () => {
-        const labels = { 'STUDENT': 'Student', 'FACULTY': 'Faculty', 'ADMIN': 'Admin' };
+        const labels = { 'STUDENT': 'Student', 'ADMIN': 'Admin' };
         return labels[user?.role] || 'Student';
     };
 

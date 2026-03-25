@@ -22,7 +22,8 @@
       "Bash(mvn compile:*)",
       "Bash(mvn dependency:tree -q)",
       "Bash(mvn dependency:tree)",
-      "Bash(mvn clean:*)"
+      "Bash(mvn clean:*)",
+      "Bash(npm run:*)"
     ]
   },
   "defaultMode": "acceptEdits"

@@ -53,7 +53,7 @@ public class RateLimitFilter extends OncePerRequestFilter {
         int maxRequests;
         String tierKey;
 
-        if (path.startsWith("/api/auth/")) {
+        if (path.startsWith("/api/auth/") && !path.equals("/api/auth/me")) {
             maxRequests = AUTH_MAX;
             tierKey = "auth";
         } else if ("GET".equals(method) || "OPTIONS".equals(method) || "HEAD".equals(method)) {

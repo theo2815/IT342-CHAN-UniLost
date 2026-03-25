@@ -49,8 +49,8 @@ public class SecurityConfig {
                         .requestMatchers("/api/auth/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/campuses", "/api/campuses/**").permitAll()
 
-                        // Admin endpoints (ADMIN + FACULTY can access)
-                        .requestMatchers("/api/admin/**").hasAnyRole("ADMIN", "FACULTY")
+                        // Admin endpoints
+                        .requestMatchers("/api/admin/**").hasRole("ADMIN")
 
                         // Item endpoints — read is public, write requires authentication
                         .requestMatchers(HttpMethod.GET, "/api/items", "/api/items/**").permitAll()
@@ -76,8 +76,8 @@ public class SecurityConfig {
                         // Public leaderboard
                         .requestMatchers(HttpMethod.GET, "/api/users/leaderboard").permitAll()
 
-                        // User list (GET all) requires ADMIN or FACULTY
-                        .requestMatchers(HttpMethod.GET, "/api/users").hasAnyRole("ADMIN", "FACULTY")
+                        // User list (GET all) requires ADMIN
+                        .requestMatchers(HttpMethod.GET, "/api/users").hasRole("ADMIN")
 
                         // All other requests require authentication
                         .anyRequest().authenticated())

@@ -1,6 +1,7 @@
 package edu.cit.chan.unilost.repository;
 
 import edu.cit.chan.unilost.entity.AccountStatus;
+import edu.cit.chan.unilost.entity.Role;
 import edu.cit.chan.unilost.entity.UserEntity;
 import org.springframework.data.mongodb.repository.MongoRepository;
 import org.springframework.stereotype.Repository;
@@ -38,4 +39,6 @@ public interface UserRepository extends MongoRepository<UserEntity, String> {
 
     List<UserEntity> findByUniversityTagAndAccountStatusAndKarmaScoreGreaterThanOrderByKarmaScoreDesc(
             String universityTag, AccountStatus accountStatus, int minScore, Pageable pageable);
+
+    List<UserEntity> findByRole(Role role);
 }

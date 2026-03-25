@@ -1,11 +1,12 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { Package, Search, Eye, Trash2, ChevronLeft, ChevronRight, X, AlertTriangle, Loader2, Flag, EyeOff, RotateCcw } from 'lucide-react';
+import { Package, Search, Eye, Trash2, ChevronLeft, ChevronRight, X, AlertTriangle, Loader2, Flag, EyeOff, RotateCcw, Download, CheckSquare } from 'lucide-react';
 import Header from '../../components/Header';
+import Dropdown from '../../components/ui/Dropdown';
 import adminService from '../../services/adminService';
 import './AdminItems.css';
 
-const statusOptions = ['All', 'ACTIVE', 'CLAIMED', 'HANDED_OVER', 'EXPIRED', 'TURNED_OVER_TO_OFFICE', 'RETURNED', 'HIDDEN'];
+const statusOptions = ['All', 'ACTIVE', 'CLAIMED', 'HANDED_OVER', 'EXPIRED', 'RETURNED', 'HIDDEN'];
 const typeOptions = ['All', 'LOST', 'FOUND'];
 
 const AdminItems = () => {
@@ -22,6 +23,9 @@ const AdminItems = () => {
     const [removeTarget, setRemoveTarget] = useState(null);
     const [removeReason, setRemoveReason] = useState('');
     const [actionLoading, setActionLoading] = useState(false);
+    const [exportLoading, setExportLoading] = useState(false);
+    const [selectedIds, setSelectedIds] = useState(new Set());
+    const [bulkLoading, setBulkLoading] = useState(false);
     const perPage = 10;
 
     const fetchItems = useCallback(async () => {
@@ -93,6 +97,54 @@ const AdminItems = () => {
         fetchItems();
     };
 
+    const handleExport = async () => {
+        setExportLoading(true);
+        await adminService.exportItems();
+        setExportLoading(false);
+    };
+
+    const toggleSelect = (id) => {
+        setSelectedIds(prev => {
+            const next = new Set(prev);
+            if (next.has(id)) next.delete(id);
+            else next.add(id);
+            return next;
+        });
+    };
+
+    const toggleSelectAll = () => {
+        if (selectedIds.size === items.length) {
+            setSelectedIds(new Set());
+        } else {
+            setSelectedIds(new Set(items.map(i => i.id)));
+        }
+    };
+
+    const handleBulkStatus = async (status) => {
+        setBulkLoading(true);
+        const result = await adminService.bulkUpdateItemStatus([...selectedIds], status);
+        if (result.success) {
+            setSelectedIds(new Set());
+            fetchItems();
+        } else {
+            setError(result.error);
+        }
+        setBulkLoading(false);
+    };
+
+    const handleBulkDelete = async () => {
+        if (!window.confirm(`Delete ${selectedIds.size} selected item(s)? This cannot be undone.`)) return;
+        setBulkLoading(true);
+        const result = await adminService.bulkDeleteItems([...selectedIds]);
+        if (result.success) {
+            setSelectedIds(new Set());
+            fetchItems();
+        } else {
+            setError(result.error);
+        }
+        setBulkLoading(false);
+    };
+
     return (
         <div className="admin-items-page">
             <Header />
@@ -124,13 +176,36 @@ const AdminItems = () => {
                                 onKeyDown={(e) => e.key === 'Enter' && handleSearchSubmit()}
                             />
                         </div>
-                        <select value={typeFilter} onChange={(e) => { setTypeFilter(e.target.value); setCurrentPage(0); }}>
-                            {typeOptions.map(o => <option key={o} value={o}>{o === 'All' ? 'All Types' : o}</option>)}
-                        </select>
-                        <select value={statusFilter} onChange={(e) => { setStatusFilter(e.target.value); setCurrentPage(0); }}>
-                            {statusOptions.map(o => <option key={o} value={o}>{o === 'All' ? 'All Statuses' : o.replace(/_/g, ' ')}</option>)}
-                        </select>
+                        <Dropdown label={typeFilter === 'All' ? 'All Types' : typeFilter} align="left" width={160}>
+                            {({ close }) => typeOptions.map(o => (
+                                <Dropdown.Item key={o} className={typeFilter === o ? 'active' : ''} onClick={() => { setTypeFilter(o); setCurrentPage(0); close(); }}>
+                                    {o === 'All' ? 'All Types' : o}
+                                </Dropdown.Item>
+                            ))}
+                        </Dropdown>
+                        <Dropdown label={statusFilter === 'All' ? 'All Statuses' : statusFilter.replace(/_/g, ' ')} align="left" width={200}>
+                            {({ close }) => statusOptions.map(o => (
+                                <Dropdown.Item key={o} className={statusFilter === o ? 'active' : ''} onClick={() => { setStatusFilter(o); setCurrentPage(0); close(); }}>
+                                    {o === 'All' ? 'All Statuses' : o.replace(/_/g, ' ')}
+                                </Dropdown.Item>
+                            ))}
+                        </Dropdown>
+                        <button className="btn-export" onClick={handleExport} disabled={exportLoading}>
+                            <Download size={16} /> {exportLoading ? 'Exporting...' : 'Export CSV'}
+                        </button>
                     </div>
+
+                    {/* Bulk Toolbar */}
+                    {selectedIds.size > 0 && (
+                        <div className="bulk-toolbar glass">
+                            <CheckSquare size={18} />
+                            <span>{selectedIds.size} item(s) selected</span>
+                            <button className="bulk-btn" onClick={() => handleBulkStatus('HIDDEN')} disabled={bulkLoading}>Hide</button>
+                            <button className="bulk-btn" onClick={() => handleBulkStatus('ACTIVE')} disabled={bulkLoading}>Unhide</button>
+                            <button className="bulk-btn danger" onClick={handleBulkDelete} disabled={bulkLoading}>Delete</button>
+                            <button className="bulk-btn secondary" onClick={() => setSelectedIds(new Set())}>Clear</button>
+                        </div>
+                    )}
 
                     {error && (
                         <div className="error-state">
@@ -150,9 +225,10 @@ const AdminItems = () => {
                             <table>
                                 <thead>
                                     <tr>
-                                        <th>Image</th>
-                                        <th>Title</th>
-                                        <th>Type</th>
+                                        <th className="checkbox-cell">
+                                            <input type="checkbox" checked={items.length > 0 && selectedIds.size === items.length} onChange={toggleSelectAll} />
+                                        </th>
+                                        <th>Item</th>
                                         <th>Status</th>
                                         <th>Posted By</th>
                                         <th>Flags</th>
@@ -162,16 +238,23 @@ const AdminItems = () => {
                                 </thead>
                                 <tbody>
                                     {items.map((item, i) => (
-                                        <tr key={item.id} style={{ animationDelay: `${i * 0.03}s` }}>
-                                            <td>
-                                                <img
-                                                    src={item.imageUrls?.[0] || '/placeholder.png'}
-                                                    alt=""
-                                                    className="table-thumb"
-                                                />
+                                        <tr key={item.id} style={{ animationDelay: `${i * 0.03}s` }} className="clickable-row" onClick={() => navigate(`/items/${item.id}`)}>
+                                            <td className="checkbox-cell" onClick={(e) => e.stopPropagation()}>
+                                                <input type="checkbox" checked={selectedIds.has(item.id)} onChange={() => toggleSelect(item.id)} />
                                             </td>
-                                            <td className="td-title">{item.title}</td>
-                                            <td><span className={`type-badge ${item.type?.toLowerCase()}`}>{item.type}</span></td>
+                                            <td>
+                                                <div className="item-cell">
+                                                    <img
+                                                        src={item.imageUrls?.[0] || '/placeholder.png'}
+                                                        alt=""
+                                                        className="table-thumb"
+                                                    />
+                                                    <div className="item-cell-info">
+                                                        <span className="item-cell-title">{item.title}</span>
+                                                        <span className={`type-badge-sm ${item.type?.toLowerCase()}`}>{item.type}</span>
+                                                    </div>
+                                                </div>
+                                            </td>
                                             <td><span className={`status-badge ${item.status?.toLowerCase().replace(/_/g, '-')}`}>{item.status?.replace(/_/g, ' ')}</span></td>
                                             <td className="td-poster">
                                                 <span>{item.reporter?.fullName || '-'}</span>
@@ -182,7 +265,7 @@ const AdminItems = () => {
                                                 ) : '-'}
                                             </td>
                                             <td className="td-date">{timeAgo(item.createdAt)}</td>
-                                            <td className="td-actions">
+                                            <td className="td-actions" onClick={(e) => e.stopPropagation()}>
                                                 <button className="action-btn" title="View" onClick={() => navigate(`/items/${item.id}`)}>
                                                     <Eye size={16} />
                                                 </button>
@@ -194,16 +277,6 @@ const AdminItems = () => {
                                                 {item.status === 'HIDDEN' && (
                                                     <button className="action-btn success" title="Unhide" onClick={() => handleStatusChange(item.id, 'ACTIVE')} disabled={actionLoading}>
                                                         <RotateCcw size={16} />
-                                                    </button>
-                                                )}
-                                                {item.status === 'ACTIVE' && (
-                                                    <button className="action-btn info" title="Turn Over to Office" onClick={() => handleStatusChange(item.id, 'TURNED_OVER_TO_OFFICE')} disabled={actionLoading}>
-                                                        <Package size={16} />
-                                                    </button>
-                                                )}
-                                                {item.status === 'TURNED_OVER_TO_OFFICE' && (
-                                                    <button className="action-btn success" title="Confirm Return" onClick={() => handleStatusChange(item.id, 'RETURNED')} disabled={actionLoading}>
-                                                        ✓
                                                     </button>
                                                 )}
                                                 <button className="action-btn danger" title="Remove" onClick={() => handleRemove(item)}>

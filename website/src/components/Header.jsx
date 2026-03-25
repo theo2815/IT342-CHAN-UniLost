@@ -28,7 +28,7 @@ function Header() {
   const [user, setUser] = useState(() => authService.getCurrentUser());
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
   const notificationRef = useRef(null);
-  const isAdmin = user?.role === 'ADMIN' || user?.role === 'FACULTY';
+  const isAdmin = user?.role === 'ADMIN';
 
   const {
     unreadNotifications,
@@ -211,10 +211,8 @@ function Header() {
                       {user?.fullName || "Guest User"}
                     </p>
                     <p className="dropdown-email">{user?.email || ""}</p>
-                    {user?.role && user.role !== "STUDENT" && (
-                      <span className="dropdown-role">
-                        {user.role.replace("_", " ")}
-                      </span>
+                    {user?.role === "ADMIN" && (
+                      <span className="dropdown-role">Admin</span>
                     )}
                   </Dropdown.Header>
                   <Dropdown.Divider />

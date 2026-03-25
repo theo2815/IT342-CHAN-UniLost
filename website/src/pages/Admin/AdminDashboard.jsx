@@ -1,14 +1,12 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Shield, Users, Package, Clock, CheckCircle, Ban, ChevronRight, Loader2, AlertCircle } from 'lucide-react';
+import { Shield, Users, Package, Clock, CheckCircle, Ban, ChevronRight, Loader2, AlertCircle, ScrollText, BarChart3, Activity } from 'lucide-react';
 import Header from '../../components/Header';
 import adminService from '../../services/adminService';
-import authService from '../../services/authService';
 import './AdminDashboard.css';
 
 const AdminDashboard = () => {
     const navigate = useNavigate();
-    const role = authService.getUserRole();
     const [stats, setStats] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
@@ -39,6 +37,10 @@ const AdminDashboard = () => {
         { label: 'Items Management', description: 'View, filter, and remove item listings', route: '/admin/items', icon: Package },
         { label: 'Users Management', description: 'Search, ban, and manage user accounts', route: '/admin/users', icon: Users },
         { label: 'Claims Management', description: 'Oversee claims and override handovers', route: '/admin/claims', icon: Shield },
+        { label: 'Campus Management', description: 'Cross-campus stats and school settings', route: '/admin/campuses', icon: Shield },
+        { label: 'Audit Logs', description: 'Track admin actions and changes', route: '/admin/audit-logs', icon: ScrollText },
+        { label: 'Analytics & Reports', description: 'Charts, trends, and campus comparisons', route: '/admin/analytics', icon: BarChart3 },
+        { label: 'System Health', description: 'Monitor database, memory, and uptime', route: '/admin/health', icon: Activity },
     ];
 
     return (
@@ -50,11 +52,9 @@ const AdminDashboard = () => {
                         <div className="page-header-top">
                             <Shield size={28} />
                             <h1>Admin Dashboard</h1>
-                            <span className={`role-badge ${role === 'FACULTY' ? 'super' : ''}`}>
-                                {role === 'FACULTY' ? 'Faculty' : 'Admin'}
-                            </span>
+                            <span className="role-badge">Admin</span>
                         </div>
-                        <p>{stats ? `${stats.campusName} — ` : ''}Manage items, users, and claims</p>
+                        <p>Manage items, users, and claims across all campuses</p>
                     </div>
 
                     {loading && (
@@ -109,22 +109,6 @@ const AdminDashboard = () => {
                                     </div>
                                 ))}
 
-                                {role === 'FACULTY' && (
-                                    <div
-                                        className="quick-link-card glass super-admin-link"
-                                        onClick={() => navigate('/superadmin')}
-                                        style={{ animationDelay: '0.45s' }}
-                                    >
-                                        <div className="ql-icon">
-                                            <Shield size={24} />
-                                        </div>
-                                        <div className="ql-info">
-                                            <h3>Faculty Panel</h3>
-                                            <p>Cross-campus stats, campus management</p>
-                                        </div>
-                                        <ChevronRight size={20} className="ql-arrow" />
-                                    </div>
-                                )}
                             </div>
                         </>
                     )}

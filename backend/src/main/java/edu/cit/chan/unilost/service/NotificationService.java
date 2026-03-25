@@ -108,6 +108,13 @@ public class NotificationService {
                 chatId);
     }
 
+    public void notifyAdminFlagThreshold(String adminUserId, String itemTitle, String itemId, int flagCount) {
+        createAndPush(adminUserId, "ITEM_FLAG_THRESHOLD",
+                "Item flagged " + flagCount + " times",
+                "The item '" + itemTitle + "' has been flagged " + flagCount + " times and may need review.",
+                itemId);
+    }
+
     public void notifyItemFlagged(String reporterUserId, String itemTitle, String itemId) {
         createAndPush(reporterUserId, "ITEM_FLAGGED",
                 "Your item was flagged",

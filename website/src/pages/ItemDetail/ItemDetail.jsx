@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, MapPin, Calendar, Clock, Tag, Share2, Flag, Hand, Search, X, CheckCircle2, User, MessageSquare, Edit3, Trash2, ExternalLink, ChevronLeft, ChevronRight } from 'lucide-react';
+import { ArrowLeft, MapPin, Calendar, Clock, Tag, Share2, Flag, Hand, Search, X, CheckCircle2, User, MessageSquare, Edit3, Trash2, ExternalLink, ChevronLeft, ChevronRight, Shield, EyeOff, RotateCcw, AlertTriangle } from 'lucide-react';
 import Header from '../../components/Header';
 import StatusBadge from '../../components/StatusBadge';
 import ItemCard from '../../components/ItemCard';
@@ -11,6 +11,7 @@ import authService from '../../services/authService';
 import itemService from '../../services/itemService';
 import claimService from '../../services/claimService';
 import adminService from '../../services/adminService';
+import { ROLES } from '../../constants/roles';
 import './ItemDetail.css';
 
 function ItemDetail() {
@@ -31,6 +32,12 @@ function ItemDetail() {
     const [activeImageIndex, setActiveImageIndex] = useState(0);
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [deleteLoading, setDeleteLoading] = useState(false);
+
+    // Admin state
+    const isAdmin = currentUser?.role === ROLES.ADMIN;
+    const [adminActionLoading, setAdminActionLoading] = useState(false);
+    const [showAdminDeleteModal, setShowAdminDeleteModal] = useState(false);
+    const [adminDeleteReason, setAdminDeleteReason] = useState('');
 
     useEffect(() => {
         const fetchItem = async () => {
@@ -173,6 +180,26 @@ function ItemDetail() {
         window.open(`/map?${params.toString()}`, '_blank');
     };
 
+    // Admin actions
+    const handleAdminStatusChange = async (newStatus) => {
+        setAdminActionLoading(true);
+        const result = await adminService.updateItemStatus(id, newStatus);
+        if (result.success) {
+            setItem(prev => ({ ...prev, status: newStatus }));
+        }
+        setAdminActionLoading(false);
+    };
+
+    const handleAdminDelete = async () => {
+        setAdminActionLoading(true);
+        const result = await adminService.forceDeleteItem(id);
+        if (result.success) {
+            navigate('/admin/items');
+        }
+        setAdminActionLoading(false);
+        setShowAdminDeleteModal(false);
+    };
+
     return (
         <div className="item-detail-page">
             <Header />
@@ -306,6 +333,41 @@ function ItemDetail() {
                                         </Button>
                                     )}
                                 </div>
+
+                                {/* Admin Panel (Resolved) */}
+                                {isAdmin && (
+                                    <div className="admin-panel glass">
+                                        <div className="admin-panel-header">
+                                            <Shield size={18} />
+                                            <h3>Admin Actions</h3>
+                                        </div>
+                                        {item.flagCount > 0 && (
+                                            <div className="admin-report-section">
+                                                <div className="report-header">
+                                                    <AlertTriangle size={16} />
+                                                    <span>{item.flagCount} Report{item.flagCount !== 1 ? 's' : ''}</span>
+                                                </div>
+                                                {item.flagReasons?.length > 0 && (
+                                                    <div className="report-reasons">
+                                                        {item.flagReasons.map((reason, i) => (
+                                                            <span key={i} className="reason-badge">{reason}</span>
+                                                        ))}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        )}
+                                        <div className="admin-actions-grid">
+                                            <Button
+                                                variant="danger"
+                                                icon={Trash2}
+                                                onClick={() => setShowAdminDeleteModal(true)}
+                                                disabled={adminActionLoading}
+                                            >
+                                                Delete Item
+                                            </Button>
+                                        </div>
+                                    </div>
+                                )}
                             </div>
                         </div>
                     ) : (
@@ -446,6 +508,72 @@ function ItemDetail() {
                                     </>
                                 )}
                             </div>
+
+                            {/* Admin Panel */}
+                            {isAdmin && (
+                                <div className="admin-panel glass">
+                                    <div className="admin-panel-header">
+                                        <Shield size={18} />
+                                        <h3>Admin Actions</h3>
+                                    </div>
+
+                                    {/* Flag Report Section */}
+                                    {item.flagCount > 0 && (
+                                        <div className="admin-report-section">
+                                            <div className="report-header">
+                                                <AlertTriangle size={16} />
+                                                <span>{item.flagCount} Report{item.flagCount !== 1 ? 's' : ''}</span>
+                                            </div>
+                                            {item.flagReasons?.length > 0 && (
+                                                <div className="report-reasons">
+                                                    {item.flagReasons.map((reason, i) => (
+                                                        <span key={i} className="reason-badge">{reason}</span>
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
+
+                                    {/* Status Actions */}
+                                    <div className="admin-actions-grid">
+                                        <Button
+                                            variant="primary"
+                                            icon={Edit3}
+                                            onClick={() => navigate(`/post-item?edit=${item.id}`)}
+                                        >
+                                            Edit Item
+                                        </Button>
+                                        {item.status === 'ACTIVE' && (
+                                            <Button
+                                                variant="secondary"
+                                                icon={EyeOff}
+                                                onClick={() => handleAdminStatusChange('HIDDEN')}
+                                                disabled={adminActionLoading}
+                                            >
+                                                Hide Item
+                                            </Button>
+                                        )}
+                                        {item.status === 'HIDDEN' && (
+                                            <Button
+                                                variant="secondary"
+                                                icon={RotateCcw}
+                                                onClick={() => handleAdminStatusChange('ACTIVE')}
+                                                disabled={adminActionLoading}
+                                            >
+                                                Unhide Item
+                                            </Button>
+                                        )}
+                                        <Button
+                                            variant="danger"
+                                            icon={Trash2}
+                                            onClick={() => setShowAdminDeleteModal(true)}
+                                            disabled={adminActionLoading}
+                                        >
+                                            Delete Item
+                                        </Button>
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     </div>
                     )}
@@ -544,6 +672,45 @@ function ItemDetail() {
                             </button>
                             <button className="btn-danger" onClick={confirmDelete} disabled={deleteLoading}>
                                 {deleteLoading ? <><span className="spin">⟳</span> Deleting...</> : 'Delete Item'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Admin Delete Confirmation Modal */}
+            {showAdminDeleteModal && (
+                <div className="modal-overlay" onClick={() => !adminActionLoading && setShowAdminDeleteModal(false)}>
+                    <div className="modal-card glass" onClick={(e) => e.stopPropagation()}>
+                        <div className="modal-header">
+                            <Shield size={20} color="#ef4444" />
+                            <h3>Admin: Remove Item</h3>
+                            <button className="modal-close" onClick={() => !adminActionLoading && setShowAdminDeleteModal(false)} disabled={adminActionLoading}>
+                                <X size={18} />
+                            </button>
+                        </div>
+                        <div className="modal-body">
+                            <div className="admin-delete-summary">
+                                <img src={item.imageUrls?.[0] || 'https://picsum.photos/seed/placeholder/600/400'} alt="" />
+                                <div>
+                                    <strong>{item.title}</strong>
+                                    <span>Posted by {item.reporter?.fullName || 'Unknown'}</span>
+                                </div>
+                            </div>
+                            <label>Reason for removal (optional)</label>
+                            <textarea
+                                value={adminDeleteReason}
+                                onChange={(e) => setAdminDeleteReason(e.target.value)}
+                                placeholder="Enter reason for removing this item..."
+                                rows={3}
+                            />
+                        </div>
+                        <div className="modal-footer">
+                            <button className="btn-secondary" onClick={() => setShowAdminDeleteModal(false)} disabled={adminActionLoading}>
+                                Cancel
+                            </button>
+                            <button className="btn-danger" onClick={handleAdminDelete} disabled={adminActionLoading}>
+                                {adminActionLoading ? 'Removing...' : 'Confirm Remove'}
                             </button>
                         </div>
                     </div>
