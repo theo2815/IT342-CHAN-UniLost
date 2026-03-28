@@ -18,7 +18,8 @@ data class MockItem(
     val schoolShortName: String,
     val locationDescription: String,
     val createdAt: String, // ISO date string
-    val claimCount: Int = 0
+    val claimCount: Int = 0,
+    val secretDetail: String? = null,
 )
 
 object MockItems {

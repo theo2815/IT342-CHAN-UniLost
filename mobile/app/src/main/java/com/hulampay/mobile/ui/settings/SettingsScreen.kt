@@ -411,6 +411,7 @@ fun SettingsScreen(navController: NavController) {
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun ThemeOptionCard(
     label: String,

@@ -407,22 +407,26 @@ fun ItemDetailScreen(navController: NavController, itemId: String) {
         }
     }
 
-    // Claim Bottom Sheet
+    // Claim Dialog
     if (showClaimSheet) {
-        ModalBottomSheet(
+        androidx.compose.ui.window.Dialog(
             onDismissRequest = {
                 showClaimSheet = false
                 claimSubmitted = false
                 secretAnswer = ""
                 claimMessage = ""
             },
-            sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
         ) {
+            Surface(
+                shape = RoundedCornerShape(24.dp),
+                color = Color.White,
+                modifier = Modifier.fillMaxWidth()
+            ) {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 20.dp)
-                    .padding(bottom = 32.dp)
+                    .verticalScroll(rememberScrollState())
+                    .padding(horizontal = 20.dp, vertical = 24.dp)
             ) {
                 if (claimSubmitted) {
                     // Success state
@@ -528,11 +532,11 @@ fun ItemDetailScreen(navController: NavController, itemId: String) {
                         OutlinedTextField(
                             value = secretAnswer,
                             onValueChange = { secretAnswer = it },
-                            modifier = Modifier.fillMaxWidth(),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .heightIn(min = 80.dp),
                             placeholder = { Text("e.g., There's a scratch on the back...") },
                             shape = RoundedCornerShape(10.dp),
-                            minLines = 2,
-                            maxLines = 3
                         )
                         Spacer(modifier = Modifier.height(14.dp))
                     }
@@ -551,13 +555,18 @@ fun ItemDetailScreen(navController: NavController, itemId: String) {
                     Spacer(modifier = Modifier.height(6.dp))
                     OutlinedTextField(
                         value = claimMessage,
-                        onValueChange = { if (it.length <= 500) claimMessage = it },
-                        modifier = Modifier.fillMaxWidth(),
+                        onValueChange = { newValue -> if (newValue.length <= 500) claimMessage = newValue },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .heightIn(min = 120.dp),
                         placeholder = { Text("Describe when and where you lost it...") },
                         shape = RoundedCornerShape(10.dp),
-                        minLines = 3,
-                        maxLines = 5,
-                        supportingText = { Text("${claimMessage.length}/500", fontSize = 11.sp, color = Slate400) }
+                    )
+                    Text(
+                        "${claimMessage.length}/500",
+                        fontSize = 11.sp,
+                        color = Slate400,
+                        modifier = Modifier.padding(start = 4.dp, top = 4.dp)
                     )
 
                     Spacer(modifier = Modifier.height(16.dp))
@@ -577,6 +586,7 @@ fun ItemDetailScreen(navController: NavController, itemId: String) {
                         Text("Submit Claim", fontWeight = FontWeight.SemiBold)
                     }
                 }
+            }
             }
         }
     }

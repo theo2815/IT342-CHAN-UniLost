@@ -1,9 +1,12 @@
 package com.hulampay.mobile.ui.auth
 
+import android.util.Patterns
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.hulampay.mobile.data.model.School
 import com.hulampay.mobile.data.repository.AuthRepository
 import com.hulampay.mobile.utils.UiState
+import com.hulampay.mobile.utils.isPasswordValid
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -18,70 +21,101 @@ class RegisterViewModel @Inject constructor(
     private val _registerState = MutableStateFlow<UiState<Any>>(UiState.Idle)
     val registerState: StateFlow<UiState<Any>> = _registerState
 
-    private val _schoolsState = MutableStateFlow<List<com.hulampay.mobile.data.model.School>>(emptyList())
-    val schoolsState: StateFlow<List<com.hulampay.mobile.data.model.School>> = _schoolsState
+    /** Full list loaded from /api/campuses */
+    private val _allCampuses = MutableStateFlow<List<School>>(emptyList())
+
+    /** Campuses whose domainWhitelist matches the current email domain */
+    private val _matchedCampuses = MutableStateFlow<List<School>>(emptyList())
+    val matchedCampuses: StateFlow<List<School>> = _matchedCampuses
 
     init {
-        getSchools()
+        loadCampuses()
     }
 
-    private fun getSchools() {
+    private fun loadCampuses() {
         viewModelScope.launch {
-            val result = authRepository.getSchools()
+            val result = authRepository.getCampuses()
             if (result.isSuccess) {
-                _schoolsState.value = result.getOrThrow()
+                _allCampuses.value = result.getOrThrow()
             }
         }
     }
 
+    /**
+     * Call whenever the email field changes.
+     * Updates [matchedCampuses] so the UI can show the auto-detect chip or dropdown.
+     */
+    fun onEmailChanged(email: String) {
+        if (!email.contains("@")) {
+            _matchedCampuses.value = emptyList()
+            return
+        }
+        val domain = email.substringAfter("@").lowercase().trim()
+        _matchedCampuses.value = _allCampuses.value.filter {
+            it.domainWhitelist.lowercase() == domain
+        }
+    }
+
     fun register(
-        firstName: String,
-        lastName: String,
+        fullName: String,
         email: String,
         password: String,
         confirmPassword: String,
-        address: String,
-        phoneNumber: String,
-        studentIdNumber: String
+        campusId: String?,
+        agreedToTerms: Boolean,
     ) {
-        if (firstName.isBlank() || lastName.isBlank() || email.isBlank() || password.isBlank()) {
-            _registerState.value = UiState.Error("First name, last name, email, and password are required")
+        // ── Client-side validation ────────────────────────────────────────────
+        if (fullName.isBlank()) {
+            _registerState.value = UiState.Error("Full name is required")
             return
         }
-
-        if (!android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
-            _registerState.value = UiState.Error("Invalid email address")
+        if (email.isBlank() || !Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
+            _registerState.value = UiState.Error("Enter a valid university email")
             return
         }
-
-        if (password.length < 6) {
-             _registerState.value = UiState.Error("Password must be at least 6 characters")
-             return
+        if (_matchedCampuses.value.isEmpty()) {
+            _registerState.value = UiState.Error("Email domain not recognized. Use your university email.")
+            return
         }
-
+        if (_matchedCampuses.value.size > 1 && campusId.isNullOrBlank()) {
+            _registerState.value = UiState.Error("Please select your campus")
+            return
+        }
+        if (!isPasswordValid(password)) {
+            _registerState.value =
+                UiState.Error("Password must be 8+ characters with uppercase, number, and special character")
+            return
+        }
         if (password != confirmPassword) {
             _registerState.value = UiState.Error("Passwords do not match")
             return
         }
+        if (!agreedToTerms) {
+            _registerState.value = UiState.Error("You must agree to the Terms of Service")
+            return
+        }
+
+        // ── Determine campusId to send ────────────────────────────────────────
+        val resolvedCampusId = when {
+            !campusId.isNullOrBlank() -> campusId
+            _matchedCampuses.value.size == 1 -> _matchedCampuses.value.first().id
+            else -> null
+        }
 
         _registerState.value = UiState.Loading
         viewModelScope.launch {
-            val data = mutableMapOf<String, Any>(
-                "firstName" to firstName,
-                "lastName" to lastName,
-                "email" to email,
-                "password" to password
+            val data = mutableMapOf(
+                "fullName" to fullName,
+                "email"    to email,
+                "password" to password,
             )
-            if (address.isNotBlank()) data["address"] = address
-            if (phoneNumber.isNotBlank()) data["phoneNumber"] = phoneNumber
-            if (studentIdNumber.isNotBlank()) data["studentIdNumber"] = studentIdNumber
+            resolvedCampusId?.let { data["campusId"] = it }
 
             val result = authRepository.register(data)
-            if (result.isSuccess) {
-                _registerState.value = UiState.Success(result.getOrThrow())
+            _registerState.value = if (result.isSuccess) {
+                UiState.Success(result.getOrThrow())
             } else {
-                val errorMsg = result.exceptionOrNull()?.message ?: "Registration failed"
-                _registerState.value = UiState.Error(errorMsg)
+                UiState.Error(result.exceptionOrNull()?.message ?: "Registration failed")
             }
         }
     }

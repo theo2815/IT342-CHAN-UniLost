@@ -24,7 +24,7 @@ import com.hulampay.mobile.data.mock.MockAdminData
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AdminScreen(navController: NavController) {
-    var selectedTab by remember { mutableIntStateOf(0) }
+    var selectedTab by remember { mutableStateOf(0) }
     val tabs = listOf("Items", "Users")
 
     // Remove/ban state
@@ -174,8 +174,9 @@ fun AdminScreen(navController: NavController) {
                             value = confirmReason,
                             onValueChange = { confirmReason = it },
                             label = { Text("Reason") },
-                            modifier = Modifier.fillMaxWidth(),
-                            minLines = 2
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .heightIn(min = 80.dp)
                         )
                     }
                 },

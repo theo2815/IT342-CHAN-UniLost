@@ -3,8 +3,12 @@ package com.hulampay.mobile.ui.auth
 import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Lock
@@ -14,18 +18,15 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.hulampay.mobile.navigation.Screen
-import com.hulampay.mobile.ui.components.AuthInput
-import com.hulampay.mobile.ui.components.PrimaryButton
-import com.hulampay.mobile.ui.theme.*
+import com.hulampay.mobile.ui.components.UniLostButton
+import com.hulampay.mobile.ui.components.UniLostTextField
 import com.hulampay.mobile.utils.UiState
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LoginScreen(
     navController: NavController,
@@ -33,18 +34,25 @@ fun LoginScreen(
 ) {
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
+    var rememberMe by remember { mutableStateOf(false) }
+
     val loginState by viewModel.loginState.collectAsState()
     val context = LocalContext.current
+    val scrollState = rememberScrollState()
 
     LaunchedEffect(loginState) {
         when (loginState) {
             is UiState.Success -> {
-                navController.navigate(Screen.ItemFeed.route) {
+                navController.navigate(Screen.Dashboard.route) {
                     popUpTo(Screen.Login.route) { inclusive = true }
                 }
             }
             is UiState.Error -> {
-                Toast.makeText(context, (loginState as UiState.Error).message, Toast.LENGTH_LONG).show()
+                Toast.makeText(
+                    context,
+                    (loginState as UiState.Error).message,
+                    Toast.LENGTH_LONG
+                ).show()
             }
             else -> {}
         }
@@ -53,94 +61,171 @@ fun LoginScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Slate100)
-            .padding(16.dp),
-        contentAlignment = Alignment.Center
+            .background(MaterialTheme.colorScheme.background)
+            .statusBarsPadding()
+            .navigationBarsPadding()
     ) {
         Column(
             modifier = Modifier
-                .fillMaxWidth()
-                .background(White, shape = RoundedCornerShape(24.dp))
-                .padding(32.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
+                .fillMaxSize()
+                .verticalScroll(scrollState)
+                .padding(horizontal = 24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center,
         ) {
-            // Logo & Header
+            Spacer(modifier = Modifier.height(48.dp))
+
+            // ── Brand header ─────────────────────────────────────────────────
+            Box(
+                modifier = Modifier
+                    .size(80.dp)
+                    .background(MaterialTheme.colorScheme.primary, shape = CircleShape),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(
+                    text = "UL",
+                    style = MaterialTheme.typography.headlineMedium,
+                    color = MaterialTheme.colorScheme.onPrimary,
+                    fontWeight = FontWeight.Bold,
+                )
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
             Text(
                 text = "UniLost",
-                fontSize = 28.sp,
+                style = MaterialTheme.typography.headlineLarge,
+                color = MaterialTheme.colorScheme.onBackground,
                 fontWeight = FontWeight.Bold,
-                color = Slate800
             )
             Text(
-                text = "Welcome Back",
-                fontSize = 24.sp,
-                fontWeight = FontWeight.Bold,
-                color = Slate800,
-                modifier = Modifier.padding(top = 8.dp)
-            )
-            Text(
-                text = "Your campus lost & found network.",
-                fontSize = 14.sp,
-                color = Slate400,
-                modifier = Modifier.padding(bottom = 32.dp)
+                text = "Campus Lost & Found Network",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(top = 4.dp),
             )
 
-            // Form
-            AuthInput(
-                value = email,
-                onValueChange = { email = it },
-                label = "Email Address",
-                icon = Icons.Default.Email,
-                modifier = Modifier.padding(bottom = 16.dp)
-            )
+            Spacer(modifier = Modifier.height(32.dp))
 
-            AuthInput(
-                value = password,
-                onValueChange = { password = it },
-                label = "Password",
-                icon = Icons.Default.Lock,
-                visualTransformation = PasswordVisualTransformation(),
-                modifier = Modifier.padding(bottom = 24.dp)
-            )
-
-            // Options Row (Simulated)
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(bottom = 24.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+            // ── Form card ─────────────────────────────────────────────────────
+            Surface(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(24.dp),
+                color = MaterialTheme.colorScheme.surface,
+                shadowElevation = 2.dp,
+                tonalElevation = 0.dp,
             ) {
-                Text(text = "Remember me", color = Slate600, fontSize = 14.sp)
-                Text(
-                    text = "Forgot Password?",
-                    color = Slate600,
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.Medium,
-                    modifier = Modifier.clickable { /* TODO */ }
-                )
+                Column(
+                    modifier = Modifier.padding(24.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                ) {
+                    Text(
+                        text = "Welcome Back",
+                        style = MaterialTheme.typography.headlineMedium,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        fontWeight = FontWeight.Bold,
+                    )
+                    Text(
+                        text = "Sign in to your account",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(top = 4.dp, bottom = 24.dp),
+                    )
+
+                    // Email field
+                    UniLostTextField(
+                        value = email,
+                        onValueChange = { email = it },
+                        label = "University Email",
+                        leadingIcon = Icons.Default.Email,
+                        keyboardType = KeyboardType.Email,
+                        modifier = Modifier.padding(bottom = 12.dp),
+                    )
+
+                    // Password field
+                    UniLostTextField(
+                        value = password,
+                        onValueChange = { password = it },
+                        label = "Password",
+                        leadingIcon = Icons.Default.Lock,
+                        isPassword = true,
+                        modifier = Modifier.padding(bottom = 16.dp),
+                    )
+
+                    // Remember me + Forgot password row
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = 24.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.clickable(
+                                interactionSource = remember { MutableInteractionSource() },
+                                indication = null,
+                            ) { rememberMe = !rememberMe },
+                        ) {
+                            Checkbox(
+                                checked = rememberMe,
+                                onCheckedChange = { rememberMe = it },
+                                colors = CheckboxDefaults.colors(
+                                    checkedColor = MaterialTheme.colorScheme.primary,
+                                    checkmarkColor = MaterialTheme.colorScheme.onPrimary,
+                                ),
+                                modifier = Modifier.size(20.dp),
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = "Remember me",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+
+                        Text(
+                            text = "Forgot Password?",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.primary,
+                            fontWeight = FontWeight.Medium,
+                            modifier = Modifier.clickable {
+                                navController.navigate(Screen.ForgotPassword.route)
+                            },
+                        )
+                    }
+
+                    // Sign in button
+                    UniLostButton(
+                        text = "Sign In",
+                        onClick = { viewModel.login(email, password) },
+                        isLoading = loginState is UiState.Loading,
+                    )
+
+                    // Register link
+                    Row(
+                        modifier = Modifier.padding(top = 20.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text(
+                            text = "New to UniLost? ",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        Text(
+                            text = "Create Account",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.secondary,
+                            fontWeight = FontWeight.SemiBold,
+                            modifier = Modifier.clickable {
+                                navController.navigate(Screen.Register.route)
+                            },
+                        )
+                    }
+                }
             }
 
-            PrimaryButton(
-                text = "Sign In",
-                onClick = { viewModel.login(email, password) },
-                isLoading = loginState is UiState.Loading
-            )
-
-            // Footer
-            Row(
-                modifier = Modifier.padding(top = 24.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(text = "New to UniLost? ", color = Slate600, fontSize = 14.sp)
-                Text(
-                    text = "Create Account",
-                    color = Sage,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 14.sp,
-                    modifier = Modifier.clickable { navController.navigate(Screen.Register.route) }
-                )
-            }
+            Spacer(modifier = Modifier.height(48.dp))
         }
     }
 }

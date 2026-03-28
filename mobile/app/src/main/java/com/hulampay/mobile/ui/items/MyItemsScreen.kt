@@ -24,7 +24,7 @@ import com.hulampay.mobile.ui.theme.*
 @Composable
 fun MyItemsScreen(navController: NavController) {
     val tabs = listOf("All", "Active", "Claimed", "Recovered", "Expired")
-    var selectedTab by remember { mutableIntStateOf(0) }
+    var selectedTab by remember { mutableStateOf(0) }
 
     // Mock: filter items by "Juan D." as the current user
     val myItems = remember {
@@ -168,6 +168,7 @@ fun StatMiniCard(label: String, value: Int, color: Color, modifier: Modifier) {
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MyItemRow(item: com.hulampay.mobile.data.mock.MockItem, onClick: () -> Unit) {
     Card(

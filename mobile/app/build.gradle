@@ -130,6 +130,9 @@ dependencies {
     implementation libs.androidx.navigation.compose
 
 
+    // Material Icons Extended (Visibility, LocationOn, Email, Badge, etc.)
+    implementation("androidx.compose.material:material-icons-extended")
+
     // Glide
     implementation(libs.glide)
     ksp(libs.ksp)

@@ -6,6 +6,9 @@ import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
+import com.hulampay.mobile.ui.auth.ForgotPasswordScreen
+import com.hulampay.mobile.ui.auth.VerifyOtpScreen
+import com.hulampay.mobile.ui.auth.ResetPasswordScreen
 import com.hulampay.mobile.ui.detail.DetailScreen
 import com.hulampay.mobile.ui.home.MainScreen
 import com.hulampay.mobile.ui.items.ItemFeedScreen
@@ -40,6 +43,31 @@ fun NavGraph(navController: NavHostController) {
         }
         composable(Screen.Register.route) {
             com.hulampay.mobile.ui.auth.RegisterScreen(navController = navController)
+        }
+        composable(Screen.ForgotPassword.route) {
+            ForgotPasswordScreen(navController = navController)
+        }
+        composable(
+            Screen.VerifyOtp.route,
+            arguments = listOf(navArgument("email") { type = NavType.StringType })
+        ) {
+            VerifyOtpScreen(
+                navController = navController,
+                email = it.arguments?.getString("email") ?: ""
+            )
+        }
+        composable(
+            Screen.ResetPassword.route,
+            arguments = listOf(
+                navArgument("email")      { type = NavType.StringType },
+                navArgument("resetToken") { type = NavType.StringType },
+            )
+        ) {
+            ResetPasswordScreen(
+                navController = navController,
+                email      = it.arguments?.getString("email")      ?: "",
+                resetToken = it.arguments?.getString("resetToken") ?: "",
+            )
         }
         composable(Screen.Dashboard.route) {
             com.hulampay.mobile.ui.dashboard.DashboardScreen(navController = navController)

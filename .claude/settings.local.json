@@ -23,7 +23,8 @@
       "Bash(mvn dependency:tree -q)",
       "Bash(mvn dependency:tree)",
       "Bash(mvn clean:*)",
-      "Bash(npm run:*)"
+      "Bash(npm run:*)",
+      "Bash(find /c/Users/L13Y09W33/documents/IT342-G1-CHAN-Lab1/mobile -type d -not -path */.* -not -path */.gradle* -not -path */build*)"
     ]
   },
   "defaultMode": "acceptEdits"
