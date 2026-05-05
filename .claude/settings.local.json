@@ -26,7 +26,8 @@
       "Bash(npm run:*)",
       "Bash(./gradlew compileDebugKotlin)",
       "Bash(java:*)",
-      "Bash(./gradlew assembleDebug)"
+      "Bash(./gradlew assembleDebug)",
+      "Bash(git checkout *)"
     ]
   },
   "defaultMode": "acceptEdits"

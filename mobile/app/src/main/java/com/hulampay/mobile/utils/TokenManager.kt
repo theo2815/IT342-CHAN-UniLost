@@ -18,34 +18,32 @@ private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(na
 class TokenManager @Inject constructor(@ApplicationContext private val context: Context) {
 
     companion object {
-        private val TOKEN_KEY = stringPreferencesKey("jwt_token")
-        private val ROLE_KEY = stringPreferencesKey("user_role")
+        private val TOKEN_KEY    = stringPreferencesKey("jwt_token")
+        private val ROLE_KEY     = stringPreferencesKey("user_role")
+        private val USER_JSON_KEY = stringPreferencesKey("user_json")
     }
 
-    val token: Flow<String?> = context.dataStore.data.map { preferences ->
-        preferences[TOKEN_KEY]
-    }
-
-    val role: Flow<String?> = context.dataStore.data.map { preferences ->
-        preferences[ROLE_KEY]
-    }
+    val token: Flow<String?> = context.dataStore.data.map { it[TOKEN_KEY] }
+    val role: Flow<String?>  = context.dataStore.data.map { it[ROLE_KEY] }
+    val userJson: Flow<String?> = context.dataStore.data.map { it[USER_JSON_KEY] }
 
     suspend fun saveToken(token: String) {
-        context.dataStore.edit { preferences ->
-            preferences[TOKEN_KEY] = token
-        }
+        context.dataStore.edit { it[TOKEN_KEY] = token }
     }
 
     suspend fun saveRole(role: String) {
-        context.dataStore.edit { preferences ->
-            preferences[ROLE_KEY] = role
-        }
+        context.dataStore.edit { it[ROLE_KEY] = role }
+    }
+
+    suspend fun saveUser(userJson: String) {
+        context.dataStore.edit { it[USER_JSON_KEY] = userJson }
     }
 
     suspend fun clearToken() {
         context.dataStore.edit { preferences ->
             preferences.remove(TOKEN_KEY)
             preferences.remove(ROLE_KEY)
+            preferences.remove(USER_JSON_KEY)
         }
     }
 }

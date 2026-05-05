@@ -1,5 +1,7 @@
 package com.hulampay.mobile.navigation
 
+import android.net.Uri
+
 sealed class Screen(val route: String) {
     object Main : Screen("main_screen")
     object Detail : Screen("detail_screen")
@@ -21,4 +23,15 @@ sealed class Screen(val route: String) {
     object ChatDetail : Screen("chat_detail_screen")
     object Map : Screen("map_screen")
     object Leaderboard : Screen("leaderboard_screen")
+
+    object ForgotPassword : Screen("forgot_password_screen")
+
+    object VerifyOtp : Screen("verify_otp_screen/{email}") {
+        fun createRoute(email: String) = "verify_otp_screen/${Uri.encode(email)}"
+    }
+
+    object ResetPassword : Screen("reset_password_screen/{email}/{resetToken}") {
+        fun createRoute(email: String, resetToken: String) =
+            "reset_password_screen/${Uri.encode(email)}/${Uri.encode(resetToken)}"
+    }
 }

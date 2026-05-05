@@ -1,10 +1,20 @@
 package com.hulampay.mobile.ui.components
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -27,6 +37,8 @@ fun UniLostTextField(
     leadingIcon: ImageVector? = null,
     trailingIcon: @Composable (() -> Unit)? = null,
     visualTransformation: VisualTransformation = VisualTransformation.None,
+    keyboardType: KeyboardType = KeyboardType.Text,
+    isPassword: Boolean = false,
     isError: Boolean = false,
     errorMessage: String? = null,
     enabled: Boolean = true,
@@ -37,6 +49,33 @@ fun UniLostTextField(
     supportingText: String? = null,
     height: Dp = 56.dp
 ) {
+    var passwordVisible by remember { mutableStateOf(false) }
+
+    val effectiveVisualTransformation = when {
+        isPassword && !passwordVisible -> PasswordVisualTransformation()
+        else -> visualTransformation
+    }
+
+    val effectiveKeyboardType = when {
+        isPassword -> KeyboardType.Password
+        else -> keyboardType
+    }
+
+    val effectiveTrailingIcon: @Composable (() -> Unit)? = when {
+        isPassword -> ({
+            IconButton(onClick = { passwordVisible = !passwordVisible }) {
+                Icon(
+                    imageVector = if (passwordVisible) Icons.Filled.Visibility else Icons.Filled.VisibilityOff,
+                    contentDescription = if (passwordVisible) "Hide password" else "Show password",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        })
+        else -> trailingIcon
+    }
+
+    val effectiveError = isError || errorMessage != null
+
     OutlinedTextField(
         value = value,
         onValueChange = onValueChange,
@@ -52,7 +91,7 @@ fun UniLostTextField(
                 Icon(
                     imageVector = it,
                     contentDescription = null,
-                    tint = if (isError) {
+                    tint = if (effectiveError) {
                         MaterialTheme.colorScheme.error
                     } else {
                         MaterialTheme.colorScheme.onSurfaceVariant
@@ -60,9 +99,10 @@ fun UniLostTextField(
                 )
             }
         },
-        trailingIcon = trailingIcon,
-        visualTransformation = visualTransformation,
-        isError = isError,
+        trailingIcon = effectiveTrailingIcon,
+        visualTransformation = effectiveVisualTransformation,
+        keyboardOptions = KeyboardOptions(keyboardType = effectiveKeyboardType),
+        isError = effectiveError,
         enabled = enabled,
         readOnly = readOnly,
         singleLine = singleLine,
@@ -70,30 +110,26 @@ fun UniLostTextField(
         maxLines = maxLines,
         shape = UniLostShapes.md,
         colors = OutlinedTextFieldDefaults.colors(
-            // Default state
             focusedBorderColor = MaterialTheme.colorScheme.primary,
             unfocusedBorderColor = MaterialTheme.colorScheme.outline,
             focusedContainerColor = MaterialTheme.colorScheme.surface,
             unfocusedContainerColor = MaterialTheme.colorScheme.surface,
             cursorColor = MaterialTheme.colorScheme.primary,
 
-            // Focus state
             focusedLabelColor = MaterialTheme.colorScheme.primary,
             unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
 
-            // Error state
             errorBorderColor = MaterialTheme.colorScheme.error,
             errorLabelColor = MaterialTheme.colorScheme.error,
             errorCursorColor = MaterialTheme.colorScheme.error,
 
-            // Disabled state
             disabledBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f),
             disabledTextColor = MaterialTheme.colorScheme.onSurfaceVariant,
             disabledLabelColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
             disabledContainerColor = MaterialTheme.colorScheme.background,
         ),
         supportingText = when {
-            isError && errorMessage != null -> {
+            errorMessage != null -> {
                 { Text(errorMessage, color = MaterialTheme.colorScheme.error) }
             }
             supportingText != null -> {
