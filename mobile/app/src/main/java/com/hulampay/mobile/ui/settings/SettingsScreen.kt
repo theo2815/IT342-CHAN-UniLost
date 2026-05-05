@@ -4,7 +4,6 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -13,12 +12,10 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
+import com.hulampay.mobile.ui.components.*
 import com.hulampay.mobile.ui.theme.*
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -34,7 +31,7 @@ fun SettingsScreen(navController: NavController) {
     val school = "Cebu Institute of Technology - University"
 
     var isEditing by remember { mutableStateOf(false) }
-    var selectedTheme by remember { mutableStateOf("light") }
+    val themePreference = LocalThemePreference.current
 
     // Store originals for cancel
     var origFirstName by remember { mutableStateOf(firstName) }
@@ -44,13 +41,9 @@ fun SettingsScreen(navController: NavController) {
 
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = { Text("Settings", fontWeight = FontWeight.Bold) },
-                navigationIcon = {
-                    IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
-                    }
-                }
+            UniLostDetailTopBar(
+                title = "Settings",
+                onBackClick = { navController.popBackStack() }
             )
         }
     ) { padding ->
@@ -64,42 +57,35 @@ fun SettingsScreen(navController: NavController) {
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(16.dp),
-                shape = RoundedCornerShape(16.dp),
+                    .padding(UniLostSpacing.md),
+                shape = UniLostShapes.lg,
                 elevation = CardDefaults.cardElevation(1.dp),
-                colors = CardDefaults.cardColors(containerColor = White)
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surface
+                )
             ) {
-                Column(modifier = Modifier.padding(20.dp)) {
+                Column(modifier = Modifier.padding(UniLostSpacing.lg)) {
                     Text(
                         "Edit Profile",
+                        style = MaterialTheme.typography.headlineSmall,
                         fontWeight = FontWeight.SemiBold,
-                        fontSize = 18.sp,
-                        color = Slate800
+                        color = MaterialTheme.colorScheme.onSurface
                     )
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Divider(color = Color.LightGray.copy(alpha = 0.5f))
-                    Spacer(modifier = Modifier.height(16.dp))
+                    Spacer(modifier = Modifier.height(UniLostSpacing.xs))
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f))
+                    Spacer(modifier = Modifier.height(UniLostSpacing.md))
 
                     // Avatar row
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        Surface(
-                            shape = CircleShape,
-                            color = Slate600,
-                            modifier = Modifier.size(64.dp)
-                        ) {
-                            Box(contentAlignment = Alignment.Center) {
-                                Text(
-                                    "${firstName.firstOrNull() ?: ""}${lastName.firstOrNull() ?: ""}",
-                                    color = White,
-                                    fontSize = 22.sp,
-                                    fontWeight = FontWeight.Bold
-                                )
-                            }
-                        }
-                        Spacer(modifier = Modifier.width(16.dp))
+                        AvatarView(
+                            firstName = firstName,
+                            lastName = lastName,
+                            size = 64.dp
+                        )
+                        Spacer(modifier = Modifier.width(UniLostSpacing.md))
                         if (isEditing) {
                             TextButton(onClick = { /* Mock: change photo */ }) {
                                 Icon(
@@ -107,114 +93,106 @@ fun SettingsScreen(navController: NavController) {
                                     contentDescription = null,
                                     modifier = Modifier.size(16.dp)
                                 )
-                                Spacer(modifier = Modifier.width(4.dp))
-                                Text("Change Photo")
+                                Spacer(modifier = Modifier.width(UniLostSpacing.xs))
+                                Text(
+                                    "Change Photo",
+                                    style = MaterialTheme.typography.labelLarge
+                                )
                             }
                         }
                     }
 
-                    Spacer(modifier = Modifier.height(20.dp))
+                    Spacer(modifier = Modifier.height(UniLostSpacing.lg))
 
                     // Editable fields
-                    Text("Account Details", fontWeight = FontWeight.Medium, fontSize = 14.sp, color = Slate400)
-                    Spacer(modifier = Modifier.height(12.dp))
+                    Text(
+                        "Account Details",
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.Medium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Spacer(modifier = Modifier.height(UniLostSpacing.sm))
 
                     Row(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                        horizontalArrangement = Arrangement.spacedBy(UniLostSpacing.sm)
                     ) {
-                        OutlinedTextField(
+                        UniLostTextField(
                             value = firstName,
                             onValueChange = { firstName = it },
-                            label = { Text("First Name") },
+                            label = "First Name",
                             enabled = isEditing,
-                            modifier = Modifier.weight(1f),
-                            shape = RoundedCornerShape(12.dp),
-                            singleLine = true,
-                            colors = settingsFieldColors()
+                            modifier = Modifier.weight(1f)
                         )
-                        OutlinedTextField(
+                        UniLostTextField(
                             value = lastName,
                             onValueChange = { lastName = it },
-                            label = { Text("Last Name") },
+                            label = "Last Name",
                             enabled = isEditing,
-                            modifier = Modifier.weight(1f),
-                            shape = RoundedCornerShape(12.dp),
-                            singleLine = true,
-                            colors = settingsFieldColors()
+                            modifier = Modifier.weight(1f)
                         )
                     }
 
-                    Spacer(modifier = Modifier.height(12.dp))
+                    Spacer(modifier = Modifier.height(UniLostSpacing.sm))
 
-                    OutlinedTextField(
+                    UniLostTextField(
                         value = phone,
                         onValueChange = { phone = it },
-                        label = { Text("Phone Number") },
+                        label = "Phone Number",
                         enabled = isEditing,
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(12.dp),
-                        singleLine = true,
-                        colors = settingsFieldColors()
+                        leadingIcon = Icons.Default.Phone
                     )
 
-                    Spacer(modifier = Modifier.height(12.dp))
+                    Spacer(modifier = Modifier.height(UniLostSpacing.sm))
 
-                    OutlinedTextField(
+                    UniLostTextField(
                         value = address,
                         onValueChange = { address = it },
-                        label = { Text("Address") },
+                        label = "Address",
                         enabled = isEditing,
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(12.dp),
-                        singleLine = true,
-                        colors = settingsFieldColors()
+                        leadingIcon = Icons.Default.LocationOn
                     )
 
-                    Spacer(modifier = Modifier.height(20.dp))
+                    Spacer(modifier = Modifier.height(UniLostSpacing.lg))
 
                     // Read-only fields
-                    Text("Private Details", fontWeight = FontWeight.Medium, fontSize = 14.sp, color = Slate400)
-                    Spacer(modifier = Modifier.height(12.dp))
+                    Text(
+                        "Private Details",
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.Medium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Spacer(modifier = Modifier.height(UniLostSpacing.sm))
 
-                    OutlinedTextField(
+                    UniLostTextField(
                         value = email,
                         onValueChange = {},
-                        label = { Text("Email (Read-only)") },
+                        label = "Email (Read-only)",
                         enabled = false,
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(12.dp),
-                        singleLine = true,
-                        colors = settingsFieldColors()
+                        leadingIcon = Icons.Default.Email
                     )
 
-                    Spacer(modifier = Modifier.height(12.dp))
+                    Spacer(modifier = Modifier.height(UniLostSpacing.sm))
 
-                    OutlinedTextField(
+                    UniLostTextField(
                         value = studentId,
                         onValueChange = {},
-                        label = { Text("Student ID (Read-only)") },
+                        label = "Student ID (Read-only)",
                         enabled = false,
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(12.dp),
-                        singleLine = true,
-                        colors = settingsFieldColors()
+                        leadingIcon = Icons.Default.Badge
                     )
 
-                    Spacer(modifier = Modifier.height(12.dp))
+                    Spacer(modifier = Modifier.height(UniLostSpacing.sm))
 
-                    OutlinedTextField(
+                    UniLostTextField(
                         value = school,
                         onValueChange = {},
-                        label = { Text("School (Read-only)") },
+                        label = "School (Read-only)",
                         enabled = false,
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(12.dp),
-                        singleLine = true,
-                        colors = settingsFieldColors()
+                        leadingIcon = Icons.Default.School
                     )
 
-                    Spacer(modifier = Modifier.height(20.dp))
+                    Spacer(modifier = Modifier.height(UniLostSpacing.lg))
 
                     // Action buttons
                     Row(
@@ -223,7 +201,8 @@ fun SettingsScreen(navController: NavController) {
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         if (!isEditing) {
-                            Button(
+                            UniLostButton(
+                                text = "Edit Profile",
                                 onClick = {
                                     origFirstName = firstName
                                     origLastName = lastName
@@ -231,19 +210,12 @@ fun SettingsScreen(navController: NavController) {
                                     origAddress = address
                                     isEditing = true
                                 },
-                                shape = RoundedCornerShape(12.dp),
-                                colors = ButtonDefaults.buttonColors(containerColor = Slate600)
-                            ) {
-                                Icon(
-                                    Icons.Default.Edit,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(16.dp)
-                                )
-                                Spacer(modifier = Modifier.width(6.dp))
-                                Text("Edit Profile")
-                            }
+                                icon = Icons.Default.Edit,
+                                fillWidth = false
+                            )
                         } else {
-                            OutlinedButton(
+                            UniLostButton(
+                                text = "Cancel",
                                 onClick = {
                                     firstName = origFirstName
                                     lastName = origLastName
@@ -251,19 +223,13 @@ fun SettingsScreen(navController: NavController) {
                                     address = origAddress
                                     isEditing = false
                                 },
-                                shape = RoundedCornerShape(12.dp),
-                                colors = ButtonDefaults.outlinedButtonColors(contentColor = ErrorRed)
-                            ) {
-                                Icon(
-                                    Icons.Default.Close,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(16.dp)
-                                )
-                                Spacer(modifier = Modifier.width(4.dp))
-                                Text("Cancel")
-                            }
-                            Spacer(modifier = Modifier.width(10.dp))
-                            Button(
+                                variant = ButtonVariant.DANGER,
+                                icon = Icons.Default.Close,
+                                fillWidth = false
+                            )
+                            Spacer(modifier = Modifier.width(UniLostSpacing.sm))
+                            UniLostButton(
+                                text = "Save Changes",
                                 onClick = {
                                     // Mock save
                                     origFirstName = firstName
@@ -272,17 +238,9 @@ fun SettingsScreen(navController: NavController) {
                                     origAddress = address
                                     isEditing = false
                                 },
-                                shape = RoundedCornerShape(12.dp),
-                                colors = ButtonDefaults.buttonColors(containerColor = Slate600)
-                            ) {
-                                Icon(
-                                    Icons.Default.Save,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(16.dp)
-                                )
-                                Spacer(modifier = Modifier.width(6.dp))
-                                Text("Save Changes")
-                            }
+                                icon = Icons.Default.Save,
+                                fillWidth = false
+                            )
                         }
                     }
                 }
@@ -292,121 +250,134 @@ fun SettingsScreen(navController: NavController) {
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp),
-                shape = RoundedCornerShape(16.dp),
+                    .padding(horizontal = UniLostSpacing.md),
+                shape = UniLostShapes.lg,
                 elevation = CardDefaults.cardElevation(1.dp),
-                colors = CardDefaults.cardColors(containerColor = White)
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surface
+                )
             ) {
-                Column(modifier = Modifier.padding(20.dp)) {
+                Column(modifier = Modifier.padding(UniLostSpacing.lg)) {
                     Text(
                         "Theme Preferences",
+                        style = MaterialTheme.typography.headlineSmall,
                         fontWeight = FontWeight.SemiBold,
-                        fontSize = 18.sp,
-                        color = Slate800
+                        color = MaterialTheme.colorScheme.onSurface
                     )
-                    Spacer(modifier = Modifier.height(4.dp))
+                    Spacer(modifier = Modifier.height(UniLostSpacing.xs))
                     Text(
                         "Choose how UniLost looks to you.",
-                        fontSize = 14.sp,
-                        color = Slate400
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
-                    Spacer(modifier = Modifier.height(16.dp))
+                    Spacer(modifier = Modifier.height(UniLostSpacing.md))
 
                     Row(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                        horizontalArrangement = Arrangement.spacedBy(UniLostSpacing.sm)
                     ) {
                         ThemeOptionCard(
-                            label = "Light Mode",
-                            isSelected = selectedTheme == "light",
-                            onClick = { selectedTheme = "light" },
-                            previewColors = listOf(Color(0xFFF1F5F9), Color(0xFFFFFFFF), Color(0xFF475569)),
+                            label = "System",
+                            isSelected = themePreference.value == ThemePreference.SYSTEM,
+                            onClick = { themePreference.value = ThemePreference.SYSTEM },
+                            previewColors = listOf(Slate200, Slate400, Slate600),
                             modifier = Modifier.weight(1f)
                         )
                         ThemeOptionCard(
-                            label = "Dark Mode",
-                            isSelected = selectedTheme == "dark",
-                            onClick = { selectedTheme = "dark" },
-                            previewColors = listOf(Color(0xFF0F172A), Color(0xFF1E293B), Color(0xFF94A3B8)),
+                            label = "Light",
+                            isSelected = themePreference.value == ThemePreference.LIGHT,
+                            onClick = { themePreference.value = ThemePreference.LIGHT },
+                            previewColors = listOf(Slate100, White, Slate600),
+                            modifier = Modifier.weight(1f)
+                        )
+                        ThemeOptionCard(
+                            label = "Dark",
+                            isSelected = themePreference.value == ThemePreference.DARK,
+                            onClick = { themePreference.value = ThemePreference.DARK },
+                            previewColors = listOf(Slate900, Slate800, Slate400),
                             modifier = Modifier.weight(1f)
                         )
                     }
                 }
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(UniLostSpacing.md))
 
             // Change Password Section (placeholder)
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp),
-                shape = RoundedCornerShape(16.dp),
+                    .padding(horizontal = UniLostSpacing.md),
+                shape = UniLostShapes.lg,
                 elevation = CardDefaults.cardElevation(1.dp),
-                colors = CardDefaults.cardColors(containerColor = White)
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surface
+                )
             ) {
-                Column(modifier = Modifier.padding(20.dp)) {
+                Column(modifier = Modifier.padding(UniLostSpacing.lg)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(
                             Icons.Outlined.Lock,
                             contentDescription = null,
-                            tint = Slate400,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.size(20.dp)
                         )
-                        Spacer(modifier = Modifier.width(8.dp))
+                        Spacer(modifier = Modifier.width(UniLostSpacing.sm))
                         Text(
                             "Change Password",
+                            style = MaterialTheme.typography.titleLarge,
                             fontWeight = FontWeight.SemiBold,
-                            fontSize = 16.sp,
-                            color = Slate800
+                            color = MaterialTheme.colorScheme.onSurface
                         )
                     }
-                    Spacer(modifier = Modifier.height(8.dp))
+                    Spacer(modifier = Modifier.height(UniLostSpacing.sm))
                     Text(
                         "Coming soon - Password change functionality will be available when backend APIs are connected.",
-                        fontSize = 13.sp,
-                        color = Slate400
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }
 
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(UniLostSpacing.sm))
 
             // Notification Preferences Section (placeholder)
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp),
-                shape = RoundedCornerShape(16.dp),
+                    .padding(horizontal = UniLostSpacing.md),
+                shape = UniLostShapes.lg,
                 elevation = CardDefaults.cardElevation(1.dp),
-                colors = CardDefaults.cardColors(containerColor = White)
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surface
+                )
             ) {
-                Column(modifier = Modifier.padding(20.dp)) {
+                Column(modifier = Modifier.padding(UniLostSpacing.lg)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(
                             Icons.Outlined.Notifications,
                             contentDescription = null,
-                            tint = Slate400,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.size(20.dp)
                         )
-                        Spacer(modifier = Modifier.width(8.dp))
+                        Spacer(modifier = Modifier.width(UniLostSpacing.sm))
                         Text(
                             "Notification Preferences",
+                            style = MaterialTheme.typography.titleLarge,
                             fontWeight = FontWeight.SemiBold,
-                            fontSize = 16.sp,
-                            color = Slate800
+                            color = MaterialTheme.colorScheme.onSurface
                         )
                     }
-                    Spacer(modifier = Modifier.height(8.dp))
+                    Spacer(modifier = Modifier.height(UniLostSpacing.sm))
                     Text(
                         "Coming soon - Customize which notifications you receive.",
-                        fontSize = 13.sp,
-                        color = Slate400
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }
 
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(UniLostSpacing.lg))
         }
     }
 }
@@ -416,25 +387,33 @@ private fun ThemeOptionCard(
     label: String,
     isSelected: Boolean,
     onClick: () -> Unit,
-    previewColors: List<Color>, // [background, header, text]
+    previewColors: List<androidx.compose.ui.graphics.Color>, // [background, header, text]
     modifier: Modifier
 ) {
     Card(
         onClick = onClick,
         modifier = modifier,
-        shape = RoundedCornerShape(12.dp),
-        border = if (isSelected) BorderStroke(2.dp, Slate600) else BorderStroke(1.dp, Color.LightGray),
+        shape = UniLostShapes.md,
+        border = if (isSelected) {
+            BorderStroke(2.dp, MaterialTheme.colorScheme.primary)
+        } else {
+            BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
+        },
         colors = CardDefaults.cardColors(
-            containerColor = if (isSelected) Slate600.copy(alpha = 0.05f) else White
+            containerColor = if (isSelected) {
+                MaterialTheme.colorScheme.primary.copy(alpha = 0.05f)
+            } else {
+                MaterialTheme.colorScheme.surface
+            }
         )
     ) {
         Column(
-            modifier = Modifier.padding(12.dp),
+            modifier = Modifier.padding(UniLostSpacing.sm),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             // Mini preview
             Card(
-                shape = RoundedCornerShape(8.dp),
+                shape = UniLostShapes.sm,
                 colors = CardDefaults.cardColors(containerColor = previewColors[0]),
                 modifier = Modifier
                     .fillMaxWidth()
@@ -447,47 +426,47 @@ private fun ThemeOptionCard(
                             .height(16.dp),
                         color = previewColors[1]
                     ) {}
-                    Column(modifier = Modifier.padding(8.dp)) {
+                    Column(modifier = Modifier.padding(UniLostSpacing.sm)) {
                         Surface(
                             modifier = Modifier
                                 .fillMaxWidth(0.8f)
                                 .height(6.dp),
-                            shape = RoundedCornerShape(3.dp),
+                            shape = UniLostShapes.xs,
                             color = previewColors[2].copy(alpha = 0.3f)
                         ) {}
-                        Spacer(modifier = Modifier.height(4.dp))
+                        Spacer(modifier = Modifier.height(UniLostSpacing.xs))
                         Surface(
                             modifier = Modifier
                                 .fillMaxWidth(0.5f)
                                 .height(6.dp),
-                            shape = RoundedCornerShape(3.dp),
+                            shape = UniLostShapes.xs,
                             color = previewColors[2].copy(alpha = 0.2f)
                         ) {}
                     }
                 }
             }
 
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(UniLostSpacing.sm))
 
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
                     label,
+                    style = MaterialTheme.typography.labelLarge,
                     fontWeight = FontWeight.SemiBold,
-                    fontSize = 13.sp,
-                    color = Slate800
+                    color = MaterialTheme.colorScheme.onSurface
                 )
                 if (isSelected) {
-                    Spacer(modifier = Modifier.width(6.dp))
+                    Spacer(modifier = Modifier.width(UniLostSpacing.xs))
                     Surface(
                         shape = CircleShape,
-                        color = Slate600,
+                        color = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.size(18.dp)
                     ) {
                         Box(contentAlignment = Alignment.Center) {
                             Icon(
                                 Icons.Default.Check,
                                 contentDescription = null,
-                                tint = White,
+                                tint = MaterialTheme.colorScheme.onPrimary,
                                 modifier = Modifier.size(12.dp)
                             )
                         }
@@ -497,15 +476,3 @@ private fun ThemeOptionCard(
         }
     }
 }
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun settingsFieldColors() = TextFieldDefaults.outlinedTextFieldColors(
-    focusedBorderColor = Slate600,
-    unfocusedBorderColor = Color.LightGray,
-    cursorColor = Slate600,
-    containerColor = White,
-    disabledBorderColor = Color.LightGray.copy(alpha = 0.5f),
-    disabledTextColor = Slate400,
-    disabledLabelColor = Slate400
-)

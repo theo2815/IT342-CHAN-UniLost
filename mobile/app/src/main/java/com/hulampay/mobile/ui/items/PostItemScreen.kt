@@ -1,12 +1,10 @@
 package com.hulampay.mobile.ui.items
 
 import android.widget.Toast
-import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -15,13 +13,17 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.hulampay.mobile.data.mock.MockItems
+import com.hulampay.mobile.ui.components.*
 import com.hulampay.mobile.ui.theme.*
+import java.text.SimpleDateFormat
+import java.util.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -33,19 +35,22 @@ fun PostItemScreen(navController: NavController) {
     var location by remember { mutableStateOf("") }
     var secretDetail by remember { mutableStateOf("") }
     var categoryExpanded by remember { mutableStateOf(false) }
+    var dateText by remember { mutableStateOf("") }
+    var showDatePicker by remember { mutableStateOf(false) }
 
     val context = LocalContext.current
     val isFormValid = title.isNotBlank() && description.isNotBlank() && category.isNotBlank() && location.isNotBlank()
 
+    // Date picker state
+    val datePickerState = rememberDatePickerState(
+        initialSelectedDateMillis = System.currentTimeMillis()
+    )
+
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = { Text("Report an Item") },
-                navigationIcon = {
-                    IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
-                    }
-                }
+            UniLostDetailTopBar(
+                title = "Report an Item",
+                onBackClick = { navController.popBackStack() }
             )
         }
     ) { padding ->
@@ -54,13 +59,13 @@ fun PostItemScreen(navController: NavController) {
                 .fillMaxSize()
                 .padding(padding)
                 .verticalScroll(rememberScrollState())
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+                .padding(UniLostSpacing.md),
+            verticalArrangement = Arrangement.spacedBy(UniLostSpacing.md)
         ) {
             // Type selector
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                horizontalArrangement = Arrangement.spacedBy(UniLostSpacing.sm)
             ) {
                 TypeOption(
                     label = "I Lost Something",
@@ -72,40 +77,30 @@ fun PostItemScreen(navController: NavController) {
                 TypeOption(
                     label = "I Found Something",
                     isSelected = type == "FOUND",
-                    color = Sage,
+                    color = Sage400,
                     modifier = Modifier.weight(1f),
                     onClick = { type = "FOUND" }
                 )
             }
 
             // Title
-            OutlinedTextField(
+            UniLostTextField(
                 value = title,
                 onValueChange = { title = it },
-                label = { Text("Title *") },
-                placeholder = { Text("e.g. Black Samsung Galaxy S24") },
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(12.dp),
-                colors = TextFieldDefaults.outlinedTextFieldColors(
-                    focusedBorderColor = Slate600,
-                    unfocusedBorderColor = Color.LightGray
-                ),
-                singleLine = true
+                label = "Title *",
+                placeholder = "e.g. Black Samsung Galaxy S24"
             )
 
             // Description
-            OutlinedTextField(
+            UniLostTextField(
                 value = description,
                 onValueChange = { if (it.length <= 1000) description = it },
-                label = { Text("Description *") },
-                placeholder = { Text("Describe the item in detail...") },
-                modifier = Modifier.fillMaxWidth().height(120.dp),
-                shape = RoundedCornerShape(12.dp),
-                colors = TextFieldDefaults.outlinedTextFieldColors(
-                    focusedBorderColor = Slate600,
-                    unfocusedBorderColor = Color.LightGray
-                ),
-                supportingText = { Text("${description.length}/1000", fontSize = 11.sp) }
+                label = "Description *",
+                placeholder = "Describe the item in detail...",
+                singleLine = false,
+                minLines = 3,
+                maxLines = 5,
+                supportingText = "${description.length}/1000"
             )
 
             // Category dropdown
@@ -113,18 +108,13 @@ fun PostItemScreen(navController: NavController) {
                 expanded = categoryExpanded,
                 onExpandedChange = { categoryExpanded = !categoryExpanded }
             ) {
-                OutlinedTextField(
+                UniLostTextField(
                     value = category,
                     onValueChange = {},
+                    label = "Category *",
                     readOnly = true,
-                    label = { Text("Category *") },
                     trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = categoryExpanded) },
-                    modifier = Modifier.fillMaxWidth().menuAnchor(),
-                    shape = RoundedCornerShape(12.dp),
-                    colors = TextFieldDefaults.outlinedTextFieldColors(
-                        focusedBorderColor = Slate600,
-                        unfocusedBorderColor = Color.LightGray
-                    )
+                    modifier = Modifier.menuAnchor()
                 )
                 ExposedDropdownMenu(
                     expanded = categoryExpanded,
@@ -140,19 +130,23 @@ fun PostItemScreen(navController: NavController) {
             }
 
             // Location
-            OutlinedTextField(
+            UniLostTextField(
                 value = location,
                 onValueChange = { location = it },
-                label = { Text("Location *") },
-                placeholder = { Text("e.g. CIT-U Main Library, 2nd Floor") },
-                leadingIcon = { Icon(Icons.Default.LocationOn, contentDescription = null, tint = Slate400) },
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(12.dp),
-                colors = TextFieldDefaults.outlinedTextFieldColors(
-                    focusedBorderColor = Slate600,
-                    unfocusedBorderColor = Color.LightGray
-                ),
-                singleLine = true
+                label = "Location *",
+                placeholder = "e.g. CIT-U Main Library, 2nd Floor",
+                leadingIcon = Icons.Default.LocationOn
+            )
+
+            // Date picker
+            UniLostTextField(
+                value = dateText,
+                onValueChange = {},
+                label = if (type == "LOST") "Date Lost" else "Date Found",
+                placeholder = "Select a date",
+                readOnly = true,
+                leadingIcon = Icons.Default.CalendarToday,
+                modifier = Modifier.clickable { showDatePicker = true }
             )
 
             // Image upload placeholder
@@ -160,14 +154,27 @@ fun PostItemScreen(navController: NavController) {
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(120.dp)
-                    .border(2.dp, Color.LightGray, RoundedCornerShape(12.dp))
+                    .border(
+                        2.dp,
+                        MaterialTheme.colorScheme.outline,
+                        UniLostShapes.md
+                    )
                     .clickable { /* image picker */ },
                 contentAlignment = Alignment.Center
             ) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Icon(Icons.Default.CameraAlt, contentDescription = null, modifier = Modifier.size(32.dp), tint = Slate400)
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text("Tap to add photos (max 3)", fontSize = 13.sp, color = Slate400)
+                    Icon(
+                        Icons.Default.CameraAlt,
+                        contentDescription = null,
+                        modifier = Modifier.size(32.dp),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Spacer(modifier = Modifier.height(UniLostSpacing.xs))
+                    Text(
+                        "Tap to add photos (max 3)",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                 }
             }
 
@@ -175,57 +182,91 @@ fun PostItemScreen(navController: NavController) {
             if (type == "FOUND") {
                 Card(
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(12.dp),
-                    colors = CardDefaults.cardColors(containerColor = Sage.copy(alpha = 0.05f)),
-                    border = CardDefaults.outlinedCardBorder().copy(brush = androidx.compose.ui.graphics.SolidColor(Sage.copy(alpha = 0.3f)))
+                    shape = UniLostShapes.md,
+                    colors = CardDefaults.cardColors(
+                        containerColor = Sage400_8pct
+                    ),
+                    border = CardDefaults.outlinedCardBorder().copy(
+                        brush = SolidColor(Sage400.copy(alpha = 0.3f))
+                    )
                 ) {
-                    Column(modifier = Modifier.padding(16.dp)) {
+                    Column(modifier = Modifier.padding(UniLostSpacing.md)) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(Icons.Default.Lock, contentDescription = null, modifier = Modifier.size(18.dp), tint = Sage)
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text("Secret Detail", fontWeight = FontWeight.SemiBold, fontSize = 14.sp, color = Slate800)
+                            Icon(
+                                Icons.Default.Lock,
+                                contentDescription = null,
+                                modifier = Modifier.size(18.dp),
+                                tint = Sage400
+                            )
+                            Spacer(modifier = Modifier.width(UniLostSpacing.sm))
+                            Text(
+                                "Secret Detail",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.SemiBold,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
                         }
-                        Spacer(modifier = Modifier.height(8.dp))
-                        OutlinedTextField(
+                        Spacer(modifier = Modifier.height(UniLostSpacing.sm))
+                        UniLostTextField(
                             value = secretDetail,
                             onValueChange = { secretDetail = it },
-                            placeholder = { Text("e.g. There is a sticker on the back") },
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(12.dp),
-                            colors = TextFieldDefaults.outlinedTextFieldColors(
-                                focusedBorderColor = Sage,
-                                unfocusedBorderColor = Color.LightGray
-                            ),
-                            singleLine = true
+                            placeholder = "e.g. There is a sticker on the back"
                         )
-                        Spacer(modifier = Modifier.height(4.dp))
+                        Spacer(modifier = Modifier.height(UniLostSpacing.xs))
                         Text(
                             "Enter a detail only the true owner would know. This helps verify claims.",
-                            fontSize = 11.sp,
-                            color = Slate400,
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                             lineHeight = 16.sp
                         )
                     }
                 }
             }
 
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(UniLostSpacing.sm))
 
             // Submit button
-            Button(
+            UniLostButton(
+                text = "Post Item",
                 onClick = {
                     Toast.makeText(context, "Item posted successfully!", Toast.LENGTH_SHORT).show()
                     navController.popBackStack()
                 },
-                modifier = Modifier.fillMaxWidth().height(50.dp),
-                shape = RoundedCornerShape(12.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = Slate600),
                 enabled = isFormValid
-            ) {
-                Text("Post Item", fontWeight = FontWeight.SemiBold)
-            }
+            )
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(UniLostSpacing.md))
+        }
+    }
+
+    // Date Picker Dialog
+    if (showDatePicker) {
+        DatePickerDialog(
+            onDismissRequest = { showDatePicker = false },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        datePickerState.selectedDateMillis?.let { millis ->
+                            val sdf = SimpleDateFormat("MMM dd, yyyy", Locale.getDefault())
+                            dateText = sdf.format(Date(millis))
+                        }
+                        showDatePicker = false
+                    }
+                ) {
+                    Text("OK", fontWeight = FontWeight.Bold)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDatePicker = false }) {
+                    Text("Cancel")
+                }
+            },
+            shape = UniLostShapes.lg
+        ) {
+            DatePicker(
+                state = datePickerState,
+                showModeToggle = false
+            )
         }
     }
 }
@@ -234,11 +275,11 @@ fun PostItemScreen(navController: NavController) {
 fun TypeOption(label: String, isSelected: Boolean, color: Color, modifier: Modifier, onClick: () -> Unit) {
     Surface(
         modifier = modifier.clickable(onClick = onClick),
-        shape = RoundedCornerShape(12.dp),
-        color = if (isSelected) color.copy(alpha = 0.08f) else White,
+        shape = UniLostShapes.md,
+        color = if (isSelected) color.copy(alpha = 0.08f) else MaterialTheme.colorScheme.surface,
         border = CardDefaults.outlinedCardBorder().copy(
             width = 2.dp,
-            brush = androidx.compose.ui.graphics.SolidColor(if (isSelected) color else Color.LightGray)
+            brush = SolidColor(if (isSelected) color else MaterialTheme.colorScheme.outline)
         )
     ) {
         Box(
@@ -247,9 +288,9 @@ fun TypeOption(label: String, isSelected: Boolean, color: Color, modifier: Modif
         ) {
             Text(
                 text = label,
+                style = MaterialTheme.typography.labelLarge,
                 fontWeight = FontWeight.SemiBold,
-                fontSize = 13.sp,
-                color = if (isSelected) color else Slate600
+                color = if (isSelected) color else MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
     }

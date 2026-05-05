@@ -1,8 +1,6 @@
 package com.hulampay.mobile.ui.components
 
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -12,6 +10,10 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import com.hulampay.mobile.ui.theme.*
 
+/**
+ * UniLost branded OutlinedTextField for auth forms.
+ * Uses semantic color tokens from the design system.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AuthInput(
@@ -20,26 +22,50 @@ fun AuthInput(
     label: String,
     icon: ImageVector,
     modifier: Modifier = Modifier,
-    visualTransformation: VisualTransformation = VisualTransformation.None
+    visualTransformation: VisualTransformation = VisualTransformation.None,
+    isError: Boolean = false,
+    errorMessage: String? = null,
+    trailingIcon: @Composable (() -> Unit)? = null,
+    singleLine: Boolean = true
 ) {
-    OutlinedTextField(
-        value = value,
-        onValueChange = onValueChange,
-        label = { Text(label) },
-        leadingIcon = { Icon(imageVector = icon, contentDescription = null, tint = Slate400) },
-        modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(12.dp),
-        colors = TextFieldDefaults.outlinedTextFieldColors(
-            focusedBorderColor = Slate600,
-            unfocusedBorderColor = Color.LightGray,
-            cursorColor = Slate600,
-            containerColor = White
-        ),
-        visualTransformation = visualTransformation,
-        singleLine = true
-    )
+    Column(modifier = modifier) {
+        OutlinedTextField(
+            value = value,
+            onValueChange = onValueChange,
+            label = { Text(label) },
+            leadingIcon = {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            },
+            trailingIcon = trailingIcon,
+            modifier = Modifier.fillMaxWidth(),
+            shape = UniLostShapes.md,
+            colors = TextFieldDefaults.outlinedTextFieldColors(
+                focusedBorderColor = MaterialTheme.colorScheme.primary,
+                unfocusedBorderColor = MaterialTheme.colorScheme.outline,
+                cursorColor = MaterialTheme.colorScheme.primary,
+                containerColor = MaterialTheme.colorScheme.surface,
+                errorBorderColor = MaterialTheme.colorScheme.error,
+                errorLabelColor = MaterialTheme.colorScheme.error,
+                errorCursorColor = MaterialTheme.colorScheme.error,
+            ),
+            visualTransformation = visualTransformation,
+            singleLine = singleLine,
+            isError = isError,
+            supportingText = if (isError && errorMessage != null) {
+                { Text(errorMessage, color = MaterialTheme.colorScheme.error) }
+            } else null
+        )
+    }
 }
 
+/**
+ * UniLost primary filled button.
+ * Uses design system colors and sizing.
+ */
 @Composable
 fun PrimaryButton(
     text: String,
@@ -52,19 +78,27 @@ fun PrimaryButton(
         onClick = onClick,
         modifier = modifier
             .fillMaxWidth()
-            .height(50.dp),
-        shape = RoundedCornerShape(12.dp),
+            .height(48.dp),
+        shape = UniLostShapes.md,
         colors = ButtonDefaults.buttonColors(
-            containerColor = Slate600,
-            contentColor = White,
-            disabledContainerColor = Slate400
+            containerColor = MaterialTheme.colorScheme.primary,
+            contentColor = MaterialTheme.colorScheme.onPrimary,
+            disabledContainerColor = MaterialTheme.colorScheme.outline,
+            disabledContentColor = MaterialTheme.colorScheme.onSurfaceVariant
         ),
         enabled = enabled && !isLoading
     ) {
         if (isLoading) {
-            CircularProgressIndicator(color = White, modifier = Modifier.height(24.dp))
+            CircularProgressIndicator(
+                color = MaterialTheme.colorScheme.onPrimary,
+                modifier = Modifier.size(24.dp),
+                strokeWidth = 2.dp
+            )
         } else {
-            Text(text = text, style = MaterialTheme.typography.titleMedium)
+            Text(
+                text = text,
+                style = MaterialTheme.typography.labelLarge
+            )
         }
     }
 }

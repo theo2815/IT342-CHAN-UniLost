@@ -16,4 +16,9 @@ sealed class Screen(val route: String) {
     object Admin : Screen("admin_screen")
     object Profile : Screen("profile_screen")
     object Settings : Screen("settings_screen")
+    object Landing : Screen("landing_screen")
+    object ChatList : Screen("chat_list_screen")
+    object ChatDetail : Screen("chat_detail_screen")
+    object Map : Screen("map_screen")
+    object Leaderboard : Screen("leaderboard_screen")
 }

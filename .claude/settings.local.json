@@ -23,7 +23,10 @@
       "Bash(mvn dependency:tree -q)",
       "Bash(mvn dependency:tree)",
       "Bash(mvn clean:*)",
-      "Bash(npm run:*)"
+      "Bash(npm run:*)",
+      "Bash(./gradlew compileDebugKotlin)",
+      "Bash(java:*)",
+      "Bash(./gradlew assembleDebug)"
     ]
   },
   "defaultMode": "acceptEdits"

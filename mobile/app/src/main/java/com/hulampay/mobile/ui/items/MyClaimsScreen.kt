@@ -5,7 +5,6 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -16,11 +15,11 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.hulampay.mobile.data.mock.MockClaim
 import com.hulampay.mobile.data.mock.MockClaims
 import com.hulampay.mobile.data.mock.MockItems
+import com.hulampay.mobile.ui.components.*
 import com.hulampay.mobile.ui.theme.*
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -43,13 +42,9 @@ fun MyClaimsScreen(navController: NavController) {
 
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = { Text("My Claims", fontWeight = FontWeight.Bold) },
-                navigationIcon = {
-                    IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
-                    }
-                }
+            UniLostDetailTopBar(
+                title = "My Claims",
+                onBackClick = { navController.popBackStack() }
             )
         }
     ) { padding ->
@@ -60,59 +55,44 @@ fun MyClaimsScreen(navController: NavController) {
         ) {
             // Filter chips
             LazyRow(
-                contentPadding = PaddingValues(horizontal = 16.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                modifier = Modifier.padding(vertical = 8.dp)
+                contentPadding = PaddingValues(horizontal = UniLostSpacing.md),
+                horizontalArrangement = Arrangement.spacedBy(UniLostSpacing.sm),
+                modifier = Modifier.padding(vertical = UniLostSpacing.sm)
             ) {
                 items(filters) { filter ->
                     FilterChip(
                         selected = selectedFilter == filter,
                         onClick = { selectedFilter = filter },
-                        label = { Text(filter, fontSize = 13.sp) },
+                        label = {
+                            Text(
+                                filter,
+                                style = MaterialTheme.typography.labelMedium
+                            )
+                        },
                         colors = FilterChipDefaults.filterChipColors(
-                            selectedContainerColor = Slate600,
-                            selectedLabelColor = White
-                        )
+                            selectedContainerColor = MaterialTheme.colorScheme.primary,
+                            selectedLabelColor = MaterialTheme.colorScheme.onPrimary,
+                            containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                            labelColor = MaterialTheme.colorScheme.onSurfaceVariant
+                        ),
+                        shape = UniLostShapes.full
                     )
                 }
             }
 
             if (filteredClaims.isEmpty()) {
-                // Empty state
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Icon(
-                            Icons.Default.Description,
-                            contentDescription = null,
-                            modifier = Modifier.size(48.dp),
-                            tint = Slate400
-                        )
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text("No claims here", fontWeight = FontWeight.Medium, color = Slate800)
-                        Text(
-                            "Claims you submit on items will appear here",
-                            fontSize = 14.sp,
-                            color = Slate400
-                        )
-                        Spacer(modifier = Modifier.height(16.dp))
-                        Button(
-                            onClick = { navController.navigate("item_feed_screen") },
-                            shape = RoundedCornerShape(12.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = Slate600)
-                        ) {
-                            Icon(Icons.Default.Search, contentDescription = null, modifier = Modifier.size(18.dp))
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text("Browse Items")
-                        }
-                    }
-                }
+                EmptyState(
+                    icon = Icons.Default.Description,
+                    title = "No claims here",
+                    message = "Claims you submit on items will appear here",
+                    actionLabel = "Browse Items",
+                    actionIcon = Icons.Default.Search,
+                    onAction = { navController.navigate("item_feed_screen") }
+                )
             } else {
                 LazyColumn(
-                    contentPadding = PaddingValues(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                    contentPadding = PaddingValues(UniLostSpacing.md),
+                    verticalArrangement = Arrangement.spacedBy(UniLostSpacing.sm)
                 ) {
                     items(filteredClaims) { claim ->
                         ClaimCard(
@@ -128,73 +108,65 @@ fun MyClaimsScreen(navController: NavController) {
 
 @Composable
 fun ClaimCard(claim: MockClaim, onClick: () -> Unit) {
-    val statusColor = when (claim.status) {
-        "PENDING" -> Color(0xFFf59e0b)
-        "APPROVED" -> Color(0xFF22c55e)
-        "REJECTED" -> ErrorRed
-        "HANDED_OVER" -> Sage
-        else -> Slate400
-    }
-
     Card(
         modifier = Modifier.fillMaxWidth().clickable(onClick = onClick),
-        shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(containerColor = White),
+        shape = UniLostShapes.md,
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(1.dp)
     ) {
         Row(
-            modifier = Modifier.padding(12.dp),
+            modifier = Modifier.padding(UniLostSpacing.sm),
             verticalAlignment = Alignment.CenterVertically
         ) {
             // Type indicator
             Surface(
-                shape = RoundedCornerShape(8.dp),
-                color = if (claim.itemType == "LOST") ErrorRed.copy(alpha = 0.1f) else Sage.copy(alpha = 0.1f),
+                shape = UniLostShapes.sm,
+                color = if (claim.itemType == "LOST") ErrorBg else SuccessBg,
                 modifier = Modifier.size(48.dp)
             ) {
                 Box(contentAlignment = Alignment.Center) {
                     Icon(
                         if (claim.itemType == "LOST") Icons.Default.SearchOff else Icons.Default.Inventory2,
                         contentDescription = null,
-                        tint = if (claim.itemType == "LOST") ErrorRed else Sage,
+                        tint = if (claim.itemType == "LOST") ErrorRed else Success,
                         modifier = Modifier.size(24.dp)
                     )
                 }
             }
 
-            Spacer(modifier = Modifier.width(12.dp))
+            Spacer(modifier = Modifier.width(UniLostSpacing.sm))
 
             Column(modifier = Modifier.weight(1f)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
                         claim.itemTitle,
+                        style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.SemiBold,
-                        fontSize = 14.sp,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                         modifier = Modifier.weight(1f),
-                        color = Slate800
+                        color = MaterialTheme.colorScheme.onSurface
                     )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    StatusChip(claim.status.replace("_", " "), statusColor)
+                    Spacer(modifier = Modifier.width(UniLostSpacing.sm))
+                    StatusChip(claim.status)
                 }
-                Spacer(modifier = Modifier.height(2.dp))
+                Spacer(modifier = Modifier.height(UniLostSpacing.xxs))
                 Text(
                     claim.message,
-                    fontSize = 12.sp,
-                    color = Slate400,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
                 Text(
                     "Submitted ${MockItems.timeAgo(claim.createdAt)}",
-                    fontSize = 11.sp,
-                    color = Slate400
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
 
                 // Handover progress for APPROVED claims
                 if (claim.status == "APPROVED") {
-                    Spacer(modifier = Modifier.height(4.dp))
+                    Spacer(modifier = Modifier.height(UniLostSpacing.xs))
                     val progressText = when {
                         claim.posterConfirmed && claim.claimantConfirmed -> "Both confirmed"
                         claim.posterConfirmed -> "Poster confirmed - Your turn"
@@ -202,21 +174,26 @@ fun ClaimCard(claim: MockClaim, onClick: () -> Unit) {
                         else -> "Awaiting confirmations"
                     }
                     Surface(
-                        shape = RoundedCornerShape(12.dp),
-                        color = Sage.copy(alpha = 0.1f)
+                        shape = UniLostShapes.md,
+                        color = SuccessBg
                     ) {
                         Row(
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                            modifier = Modifier.padding(horizontal = UniLostSpacing.sm, vertical = UniLostSpacing.xs),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Icon(
                                 Icons.Default.Handshake,
                                 contentDescription = null,
                                 modifier = Modifier.size(12.dp),
-                                tint = Sage
+                                tint = Success
                             )
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text(progressText, fontSize = 10.sp, color = Sage, fontWeight = FontWeight.Medium)
+                            Spacer(modifier = Modifier.width(UniLostSpacing.xs))
+                            Text(
+                                progressText,
+                                style = MaterialTheme.typography.labelSmall,
+                                color = Success,
+                                fontWeight = FontWeight.Medium
+                            )
                         }
                     }
                 }

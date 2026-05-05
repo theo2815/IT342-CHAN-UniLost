@@ -5,7 +5,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -16,17 +15,16 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.hulampay.mobile.navigation.Screen
-import com.hulampay.mobile.ui.components.AuthInput
-import com.hulampay.mobile.ui.components.PrimaryButton
+import com.hulampay.mobile.ui.components.UniLostButton
+import com.hulampay.mobile.ui.components.UniLostTextField
 import com.hulampay.mobile.ui.theme.*
 import com.hulampay.mobile.utils.UiState
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RegisterScreen(
     navController: NavController,
@@ -39,6 +37,8 @@ fun RegisterScreen(
     var confirmPassword by remember { mutableStateOf("") }
     var address by remember { mutableStateOf("") }
     var studentId by remember { mutableStateOf("") }
+    var passwordVisible by remember { mutableStateOf(false) }
+    var confirmPasswordVisible by remember { mutableStateOf(false) }
 
     val registerState by viewModel.registerState.collectAsState()
     val schools by viewModel.schoolsState.collectAsState()
@@ -71,128 +71,179 @@ fun RegisterScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Slate100)
+            .background(MaterialTheme.colorScheme.background)
     ) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .verticalScroll(scrollState)
-                .padding(16.dp),
+                .padding(UniLostSpacing.md),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             // Header
             Text(
                 text = "UniLost",
-                fontSize = 24.sp,
+                style = MaterialTheme.typography.headlineLarge,
                 fontWeight = FontWeight.Bold,
-                color = Slate800,
-                modifier = Modifier.padding(top = 16.dp)
+                color = MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier.padding(top = UniLostSpacing.md)
             )
             Text(
                 text = "Create Account",
-                fontSize = 20.sp,
+                style = MaterialTheme.typography.headlineMedium,
                 fontWeight = FontWeight.Bold,
-                color = Slate800,
-                modifier = Modifier.padding(top = 4.dp)
+                color = MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier.padding(top = UniLostSpacing.xs)
             )
             Text(
                 text = "Join the Cebu City campus lost & found network.",
-                fontSize = 14.sp,
-                color = Slate400,
-                modifier = Modifier.padding(bottom = 24.dp)
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(bottom = UniLostSpacing.lg)
             )
 
             // Form Container
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(White, shape = RoundedCornerShape(24.dp))
-                    .padding(24.dp)
+                    .background(MaterialTheme.colorScheme.surface, shape = UniLostShapes.xl)
+                    .padding(UniLostSpacing.lg)
             ) {
-                Row(modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp)) {
-                    AuthInput(
+                // Name row
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(UniLostSpacing.sm)
+                ) {
+                    UniLostTextField(
                         value = firstName,
                         onValueChange = { firstName = it },
                         label = "First Name",
-                        icon = Icons.Default.Person,
-                        modifier = Modifier.weight(1f).padding(end = 8.dp)
+                        leadingIcon = Icons.Default.Person,
+                        modifier = Modifier.weight(1f)
                     )
-                    AuthInput(
+                    UniLostTextField(
                         value = lastName,
                         onValueChange = { lastName = it },
                         label = "Last Name",
-                        icon = Icons.Default.Person,
-                        modifier = Modifier.weight(1f).padding(start = 8.dp)
+                        leadingIcon = Icons.Default.Person,
+                        modifier = Modifier.weight(1f)
                     )
                 }
 
-                AuthInput(
+                Spacer(modifier = Modifier.height(UniLostSpacing.md))
+
+                // Email
+                UniLostTextField(
                     value = email,
                     onValueChange = { email = it },
                     label = "University Email (e.g., name@cit.edu)",
-                    icon = Icons.Default.Email,
-                    modifier = Modifier.padding(bottom = 4.dp)
+                    leadingIcon = Icons.Default.Email
                 )
 
                 // School detection feedback
                 if (detectedSchool != null) {
                     Text(
                         text = "Detected: ${detectedSchool.name} (${detectedSchool.shortName})",
-                        fontSize = 12.sp,
-                        color = Sage,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.secondary,
                         fontWeight = FontWeight.Medium,
-                        modifier = Modifier.padding(bottom = 12.dp, start = 4.dp)
+                        modifier = Modifier.padding(
+                            top = UniLostSpacing.xs,
+                            bottom = UniLostSpacing.sm,
+                            start = UniLostSpacing.xs
+                        )
                     )
                 } else if (email.contains("@")) {
                     Text(
                         text = "Supported: cit.edu, usc.edu.ph, usjr.edu.ph, uc.edu.ph, up.edu.ph, swu.edu.ph, cnu.edu.ph, ctu.edu.ph",
-                        fontSize = 11.sp,
-                        color = Slate400,
-                        modifier = Modifier.padding(bottom = 12.dp, start = 4.dp)
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(
+                            top = UniLostSpacing.xs,
+                            bottom = UniLostSpacing.sm,
+                            start = UniLostSpacing.xs
+                        )
                     )
                 } else {
-                    Spacer(modifier = Modifier.height(12.dp))
+                    Spacer(modifier = Modifier.height(UniLostSpacing.md))
                 }
 
-                AuthInput(
+                // Address
+                UniLostTextField(
                     value = address,
                     onValueChange = { address = it },
                     label = "Address",
-                    icon = Icons.Default.LocationOn,
-                    modifier = Modifier.padding(bottom = 16.dp)
+                    leadingIcon = Icons.Default.LocationOn,
                 )
 
-                AuthInput(
+                Spacer(modifier = Modifier.height(UniLostSpacing.md))
+
+                // Password
+                UniLostTextField(
                     value = password,
                     onValueChange = { password = it },
                     label = "Password",
-                    icon = Icons.Default.Lock,
-                    visualTransformation = PasswordVisualTransformation(),
-                    modifier = Modifier.padding(bottom = 16.dp)
+                    leadingIcon = Icons.Default.Lock,
+                    visualTransformation = if (passwordVisible) {
+                        VisualTransformation.None
+                    } else {
+                        PasswordVisualTransformation()
+                    },
+                    trailingIcon = {
+                        IconButton(onClick = { passwordVisible = !passwordVisible }) {
+                            Icon(
+                                imageVector = if (passwordVisible) Icons.Default.Visibility else Icons.Default.VisibilityOff,
+                                contentDescription = if (passwordVisible) "Hide password" else "Show password",
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
                 )
 
-                AuthInput(
+                Spacer(modifier = Modifier.height(UniLostSpacing.md))
+
+                // Confirm Password
+                UniLostTextField(
                     value = confirmPassword,
                     onValueChange = { confirmPassword = it },
                     label = "Confirm Password",
-                    icon = Icons.Default.CheckCircle,
-                    visualTransformation = PasswordVisualTransformation(),
-                    modifier = Modifier.padding(bottom = 16.dp)
+                    leadingIcon = Icons.Default.CheckCircle,
+                    visualTransformation = if (confirmPasswordVisible) {
+                        VisualTransformation.None
+                    } else {
+                        PasswordVisualTransformation()
+                    },
+                    trailingIcon = {
+                        IconButton(onClick = { confirmPasswordVisible = !confirmPasswordVisible }) {
+                            Icon(
+                                imageVector = if (confirmPasswordVisible) Icons.Default.Visibility else Icons.Default.VisibilityOff,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
                 )
 
-                Text("Additional Info (Optional)", color = Slate400, fontSize = 12.sp, modifier = Modifier.padding(vertical = 8.dp))
+                Spacer(modifier = Modifier.height(UniLostSpacing.md))
 
-                Row(modifier = Modifier.fillMaxWidth().padding(bottom = 24.dp)) {
-                     AuthInput(
-                        value = studentId,
-                        onValueChange = { studentId = it },
-                        label = "Student ID",
-                        icon = Icons.Default.AccountBox,
-                        modifier = Modifier.weight(1f).padding(end = 8.dp)
-                    )
-                }
+                Text(
+                    "Additional Info (Optional)",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(vertical = UniLostSpacing.sm)
+                )
 
-                PrimaryButton(
+                UniLostTextField(
+                    value = studentId,
+                    onValueChange = { studentId = it },
+                    label = "Student ID",
+                    leadingIcon = Icons.Default.AccountBox,
+                )
+
+                Spacer(modifier = Modifier.height(UniLostSpacing.lg))
+
+                // Submit Button
+                UniLostButton(
                     text = "Join UniLost",
                     onClick = {
                         viewModel.register(
@@ -205,21 +256,29 @@ fun RegisterScreen(
 
                 // Footer
                 Row(
-                    modifier = Modifier.fillMaxWidth().padding(top = 24.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = UniLostSpacing.lg),
                     horizontalArrangement = Arrangement.Center,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text(text = "Already a member? ", color = Slate600, fontSize = 14.sp)
+                    Text(
+                        text = "Already a member? ",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                     Text(
                         text = "Sign In",
-                        color = Sage,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.secondary,
                         fontWeight = FontWeight.Bold,
-                        fontSize = 14.sp,
-                        modifier = Modifier.clickable { navController.navigate(Screen.Login.route) }
+                        modifier = Modifier.clickable {
+                            navController.navigate(Screen.Login.route)
+                        }
                     )
                 }
             }
-            Spacer(modifier = Modifier.height(32.dp))
+            Spacer(modifier = Modifier.height(UniLostSpacing.xl))
         }
     }
 }

@@ -1,28 +1,27 @@
 package com.hulampay.mobile.ui.profile
 
-import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
+import com.hulampay.mobile.data.mock.MockClaims
+import com.hulampay.mobile.data.mock.MockItems
 import com.hulampay.mobile.navigation.Screen
+import com.hulampay.mobile.ui.components.*
 import com.hulampay.mobile.ui.theme.*
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -31,7 +30,7 @@ fun ProfileScreen(
     navController: NavController,
     viewModel: ProfileViewModel = hiltViewModel()
 ) {
-    // Mock user data (to be replaced with real API data later)
+    // Mock user data
     val firstName = "Theo"
     val lastName = "Chan"
     val email = "theo.chan@cit.edu"
@@ -40,15 +39,31 @@ fun ProfileScreen(
     val schoolShort = "CIT-U"
     val role = "STUDENT"
     val karmaScore = 42
-    val isAdmin = true // Mock: set to true for testing admin button
+    val karmaRank = "Contributor"
+    val nextRankAt = 50
+    val nextRank = "Helper"
+    val isAdmin = true
+
+    var selectedTab by remember { mutableIntStateOf(0) }
+    val tabs = listOf("Lost Items", "Found Items", "My Claims")
+
+    // Mock data for tabs
+    val myLostItems = remember { MockItems.items.filter { it.type == "LOST" && it.postedByName == "Juan D." } }
+    val myFoundItems = remember { MockItems.items.filter { it.type == "FOUND" && it.postedByName == "Juan D." } }
+    val myClaims = remember { MockClaims.getMyOutgoingClaims("u1") }
 
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = { Text("Profile", fontWeight = FontWeight.Bold) },
+            UniLostDetailTopBar(
+                title = "Profile",
+                onBackClick = { navController.popBackStack() },
                 actions = {
                     IconButton(onClick = { navController.navigate(Screen.Settings.route) }) {
-                        Icon(Icons.Default.Settings, contentDescription = "Settings")
+                        Icon(
+                            Icons.Default.Settings,
+                            contentDescription = "Settings",
+                            tint = MaterialTheme.colorScheme.onSurface
+                        )
                     }
                 }
             )
@@ -64,41 +79,29 @@ fun ProfileScreen(
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(16.dp),
-                shape = RoundedCornerShape(16.dp),
+                    .padding(UniLostSpacing.md),
+                shape = UniLostShapes.lg,
                 elevation = CardDefaults.cardElevation(2.dp),
-                colors = CardDefaults.cardColors(containerColor = White)
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surface
+                )
             ) {
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(24.dp),
+                        .padding(UniLostSpacing.lg),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    // Avatar
+                    // Avatar with verified badge
                     Box(contentAlignment = Alignment.BottomEnd) {
-                        Box(
-                            modifier = Modifier
-                                .size(96.dp)
-                                .clip(CircleShape)
-                                .background(
-                                    Brush.linearGradient(
-                                        listOf(Slate600, Slate700)
-                                    )
-                                ),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(
-                                "${firstName.first()}${lastName.first()}",
-                                color = White,
-                                fontSize = 32.sp,
-                                fontWeight = FontWeight.Bold
-                            )
-                        }
-                        // Verified badge
+                        AvatarView(
+                            firstName = firstName,
+                            lastName = lastName,
+                            size = 96.dp
+                        )
                         Surface(
-                            shape = CircleShape,
-                            color = Color(0xFF22c55e),
+                            shape = UniLostShapes.full,
+                            color = Success,
                             modifier = Modifier
                                 .size(28.dp)
                                 .offset(x = 2.dp, y = 2.dp),
@@ -115,153 +118,309 @@ fun ProfileScreen(
                         }
                     }
 
-                    Spacer(modifier = Modifier.height(16.dp))
+                    Spacer(modifier = Modifier.height(UniLostSpacing.md))
 
                     Text(
                         "$firstName $lastName",
                         style = MaterialTheme.typography.headlineSmall,
                         fontWeight = FontWeight.Bold,
-                        color = Slate800
+                        color = MaterialTheme.colorScheme.onSurface
                     )
-                    Spacer(modifier = Modifier.height(4.dp))
+                    Spacer(modifier = Modifier.height(UniLostSpacing.xs))
                     Text(
                         school,
                         style = MaterialTheme.typography.bodyMedium,
-                        color = Slate400
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
-                    Spacer(modifier = Modifier.height(2.dp))
+                    Spacer(modifier = Modifier.height(UniLostSpacing.xxs))
                     Text(
                         "Member since 2025",
                         style = MaterialTheme.typography.bodySmall,
-                        color = Slate400
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
 
-                    Spacer(modifier = Modifier.height(12.dp))
+                    Spacer(modifier = Modifier.height(UniLostSpacing.sm))
 
                     // Role badge
-                    Surface(
-                        shape = RoundedCornerShape(20.dp),
-                        color = when (role) {
-                            "SUPER_ADMIN" -> Color(0xFFf59e0b).copy(alpha = 0.12f)
-                            "ADMIN" -> Color(0xFFa855f7).copy(alpha = 0.12f)
-                            else -> Color(0xFF3b82f6).copy(alpha = 0.12f)
+                    StatusChip(role)
+                }
+            }
+
+            // Karma Progress
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = UniLostSpacing.md),
+                shape = UniLostShapes.lg,
+                elevation = CardDefaults.cardElevation(1.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surface
+                )
+            ) {
+                Column(modifier = Modifier.padding(UniLostSpacing.md)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                Icons.Default.Star,
+                                contentDescription = null,
+                                tint = Warning,
+                                modifier = Modifier.size(20.dp)
+                            )
+                            Spacer(modifier = Modifier.width(UniLostSpacing.xs))
+                            Text(
+                                "Karma Score",
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.SemiBold,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
                         }
+                        Surface(
+                            shape = UniLostShapes.full,
+                            color = WarningBg
+                        ) {
+                            Text(
+                                karmaRank,
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = WarningHover,
+                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(UniLostSpacing.sm))
+
+                    // Progress bar
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
-                            text = when (role) {
-                                "SUPER_ADMIN" -> "Super Admin"
-                                "ADMIN" -> "Campus Admin"
-                                else -> "Student"
-                            },
-                            color = when (role) {
-                                "SUPER_ADMIN" -> Color(0xFFf59e0b)
-                                "ADMIN" -> Color(0xFFa855f7)
-                                else -> Color(0xFF3b82f6)
-                            },
-                            fontSize = 13.sp,
-                            fontWeight = FontWeight.SemiBold,
-                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp)
+                            "$karmaScore",
+                            style = MaterialTheme.typography.headlineSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.primary
                         )
+                        Spacer(modifier = Modifier.width(UniLostSpacing.sm))
+                        Column(modifier = Modifier.weight(1f)) {
+                            @Suppress("DEPRECATION")
+                            LinearProgressIndicator(
+                                progress = karmaScore.toFloat() / nextRankAt.toFloat(),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(8.dp),
+                                color = MaterialTheme.colorScheme.primary,
+                                trackColor = MaterialTheme.colorScheme.surfaceVariant,
+                            )
+                            Spacer(modifier = Modifier.height(UniLostSpacing.xxs))
+                            Text(
+                                "${nextRankAt - karmaScore} pts to $nextRank",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
                     }
                 }
             }
+
+            Spacer(modifier = Modifier.height(UniLostSpacing.md))
 
             // Quick Stats
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp),
-                horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    .padding(horizontal = UniLostSpacing.md),
+                horizontalArrangement = Arrangement.spacedBy(UniLostSpacing.sm)
             ) {
-                ProfileStatCard("Items\nPosted", 5, Color(0xFF3b82f6), Modifier.weight(1f))
-                ProfileStatCard("Claims\nMade", 3, Color(0xFFa855f7), Modifier.weight(1f))
-                ProfileStatCard("Items\nRecovered", 2, Sage, Modifier.weight(1f))
+                ProfileStatCard("Items\nPosted", 5, Info, Modifier.weight(1f))
+                ProfileStatCard("Claims\nMade", 3, Purple, Modifier.weight(1f))
+                ProfileStatCard("Items\nRecovered", 2, Success, Modifier.weight(1f))
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(UniLostSpacing.md))
+
+            // Tabs: Lost Items / Found Items / My Claims
+            TabRow(
+                selectedTabIndex = selectedTab,
+                containerColor = MaterialTheme.colorScheme.surface,
+                contentColor = MaterialTheme.colorScheme.primary,
+                divider = {
+                    HorizontalDivider(
+                        color = MaterialTheme.colorScheme.outline,
+                        thickness = 0.5.dp
+                    )
+                }
+            ) {
+                tabs.forEachIndexed { index, title ->
+                    Tab(
+                        selected = selectedTab == index,
+                        onClick = { selectedTab = index },
+                        text = {
+                            Text(
+                                title,
+                                style = MaterialTheme.typography.labelLarge
+                            )
+                        }
+                    )
+                }
+            }
+
+            // Tab content
+            when (selectedTab) {
+                0 -> {
+                    // Lost Items
+                    if (myLostItems.isEmpty()) {
+                        EmptyState(
+                            icon = Icons.Default.SearchOff,
+                            title = "No lost items",
+                            message = "You haven't posted any lost items yet.",
+                            modifier = Modifier.padding(UniLostSpacing.lg)
+                        )
+                    } else {
+                        Column(
+                            modifier = Modifier.padding(UniLostSpacing.md),
+                            verticalArrangement = Arrangement.spacedBy(UniLostSpacing.sm)
+                        ) {
+                            myLostItems.forEach { item ->
+                                ProfileItemCard(
+                                    title = item.title,
+                                    subtitle = "${item.category} • ${item.locationDescription}",
+                                    type = item.type,
+                                    status = item.status,
+                                    timeAgo = MockItems.timeAgo(item.createdAt),
+                                    onClick = { navController.navigate("item_detail_screen/${item.id}") }
+                                )
+                            }
+                        }
+                    }
+                }
+                1 -> {
+                    // Found Items
+                    if (myFoundItems.isEmpty()) {
+                        EmptyState(
+                            icon = Icons.Default.Inventory2,
+                            title = "No found items",
+                            message = "You haven't posted any found items yet.",
+                            modifier = Modifier.padding(UniLostSpacing.lg)
+                        )
+                    } else {
+                        Column(
+                            modifier = Modifier.padding(UniLostSpacing.md),
+                            verticalArrangement = Arrangement.spacedBy(UniLostSpacing.sm)
+                        ) {
+                            myFoundItems.forEach { item ->
+                                ProfileItemCard(
+                                    title = item.title,
+                                    subtitle = "${item.category} • ${item.locationDescription}",
+                                    type = item.type,
+                                    status = item.status,
+                                    timeAgo = MockItems.timeAgo(item.createdAt),
+                                    onClick = { navController.navigate("item_detail_screen/${item.id}") }
+                                )
+                            }
+                        }
+                    }
+                }
+                2 -> {
+                    // My Claims
+                    if (myClaims.isEmpty()) {
+                        EmptyState(
+                            icon = Icons.Default.Assignment,
+                            title = "No claims",
+                            message = "You haven't made any claims yet.",
+                            modifier = Modifier.padding(UniLostSpacing.lg)
+                        )
+                    } else {
+                        Column(
+                            modifier = Modifier.padding(UniLostSpacing.md),
+                            verticalArrangement = Arrangement.spacedBy(UniLostSpacing.sm)
+                        ) {
+                            myClaims.forEach { claim ->
+                                ProfileClaimCard(
+                                    itemTitle = claim.itemTitle,
+                                    itemType = claim.itemType,
+                                    status = claim.status,
+                                    posterName = claim.posterName,
+                                    timeAgo = MockItems.timeAgo(claim.createdAt),
+                                    onClick = { navController.navigate("claim_detail_screen/${claim.id}") }
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(UniLostSpacing.md))
 
             // Student Info Card
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp),
-                shape = RoundedCornerShape(16.dp),
+                    .padding(horizontal = UniLostSpacing.md),
+                shape = UniLostShapes.lg,
                 elevation = CardDefaults.cardElevation(1.dp),
-                colors = CardDefaults.cardColors(containerColor = White)
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surface
+                )
             ) {
-                Column(modifier = Modifier.padding(20.dp)) {
+                Column(modifier = Modifier.padding(UniLostSpacing.lg)) {
                     Text(
                         "Student Info",
+                        style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.SemiBold,
-                        fontSize = 16.sp,
-                        color = Slate800
+                        color = MaterialTheme.colorScheme.onSurface
                     )
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Divider(color = Color.LightGray.copy(alpha = 0.5f))
-                    Spacer(modifier = Modifier.height(16.dp))
+                    Spacer(modifier = Modifier.height(UniLostSpacing.xs))
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f))
+                    Spacer(modifier = Modifier.height(UniLostSpacing.md))
 
                     InfoRow(Icons.Outlined.Email, "Email", email)
                     InfoRow(Icons.Outlined.Badge, "Student ID", studentId)
                     InfoRow(Icons.Outlined.School, "School", "$schoolShort — $school")
-                    InfoRow(Icons.Outlined.Star, "Karma Score", "$karmaScore pts")
                 }
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(UniLostSpacing.md))
 
             // Action Buttons
             Column(
-                modifier = Modifier.padding(horizontal = 16.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp)
+                modifier = Modifier.padding(horizontal = UniLostSpacing.md),
+                verticalArrangement = Arrangement.spacedBy(UniLostSpacing.sm)
             ) {
-                OutlinedButton(
+                UniLostButton(
+                    text = "Edit Profile",
                     onClick = { navController.navigate(Screen.Settings.route) },
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(12.dp),
-                    colors = ButtonDefaults.outlinedButtonColors(contentColor = Slate600)
-                ) {
-                    Icon(Icons.Default.Edit, contentDescription = null, modifier = Modifier.size(18.dp))
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text("Edit Profile")
-                }
+                    variant = ButtonVariant.SECONDARY,
+                    icon = Icons.Default.Edit
+                )
 
                 if (isAdmin) {
-                    OutlinedButton(
+                    UniLostButton(
+                        text = "Admin Panel",
                         onClick = { navController.navigate(Screen.Admin.route) },
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(12.dp),
-                        colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFFa855f7))
-                    ) {
-                        Icon(Icons.Default.Shield, contentDescription = null, modifier = Modifier.size(18.dp))
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text("Admin Panel")
-                    }
+                        variant = ButtonVariant.SECONDARY,
+                        icon = Icons.Default.Shield
+                    )
                 }
 
-                OutlinedButton(
+                UniLostButton(
+                    text = "Logout",
                     onClick = {
                         viewModel.logout()
                         navController.navigate(Screen.Login.route) {
                             popUpTo(0) { inclusive = true }
                         }
                     },
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(12.dp),
-                    colors = ButtonDefaults.outlinedButtonColors(
-                        contentColor = ErrorRed,
-                        containerColor = ErrorRed.copy(alpha = 0.04f)
-                    ),
-                    border = ButtonDefaults.outlinedButtonBorder.copy(
-                        brush = Brush.linearGradient(listOf(ErrorRed.copy(alpha = 0.5f), ErrorRed.copy(alpha = 0.5f)))
-                    )
-                ) {
-                    Icon(Icons.Default.Logout, contentDescription = null, modifier = Modifier.size(18.dp))
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text("Logout")
-                }
+                    variant = ButtonVariant.DANGER,
+                    icon = Icons.Default.Logout
+                )
             }
 
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(UniLostSpacing.lg))
         }
     }
 }
@@ -270,29 +429,156 @@ fun ProfileScreen(
 private fun ProfileStatCard(label: String, value: Int, color: Color, modifier: Modifier) {
     Card(
         modifier = modifier,
-        shape = RoundedCornerShape(12.dp),
+        shape = UniLostShapes.md,
         colors = CardDefaults.cardColors(containerColor = color.copy(alpha = 0.08f))
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(vertical = 16.dp, horizontal = 12.dp),
+                .padding(vertical = UniLostSpacing.md, horizontal = UniLostSpacing.sm),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text(
                 "$value",
-                fontSize = 24.sp,
+                style = MaterialTheme.typography.headlineMedium,
                 fontWeight = FontWeight.Bold,
                 color = color
             )
-            Spacer(modifier = Modifier.height(4.dp))
+            Spacer(modifier = Modifier.height(UniLostSpacing.xs))
             Text(
                 label,
-                fontSize = 11.sp,
+                style = MaterialTheme.typography.labelSmall,
                 color = color.copy(alpha = 0.8f),
-                lineHeight = 14.sp,
                 fontWeight = FontWeight.Medium
             )
+        }
+    }
+}
+
+@Composable
+private fun ProfileItemCard(
+    title: String,
+    subtitle: String,
+    type: String,
+    status: String,
+    timeAgo: String,
+    onClick: () -> Unit
+) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick),
+        shape = UniLostShapes.md,
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface
+        ),
+        elevation = CardDefaults.cardElevation(1.dp)
+    ) {
+        Row(
+            modifier = Modifier.padding(UniLostSpacing.sm),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Surface(
+                shape = UniLostShapes.sm,
+                color = if (type == "LOST") ErrorBg else SuccessBg,
+                modifier = Modifier.size(44.dp)
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(
+                        if (type == "LOST") Icons.Default.SearchOff else Icons.Default.Inventory2,
+                        contentDescription = null,
+                        tint = if (type == "LOST") ErrorRed else Success,
+                        modifier = Modifier.size(22.dp)
+                    )
+                }
+            }
+            Spacer(modifier = Modifier.width(UniLostSpacing.sm))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    title,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Text(
+                    subtitle,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Text(
+                    timeAgo,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            StatusChip(status)
+        }
+    }
+}
+
+@Composable
+private fun ProfileClaimCard(
+    itemTitle: String,
+    itemType: String,
+    status: String,
+    posterName: String,
+    timeAgo: String,
+    onClick: () -> Unit
+) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick),
+        shape = UniLostShapes.md,
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface
+        ),
+        elevation = CardDefaults.cardElevation(1.dp)
+    ) {
+        Row(
+            modifier = Modifier.padding(UniLostSpacing.sm),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Surface(
+                shape = UniLostShapes.sm,
+                color = PurpleBg,
+                modifier = Modifier.size(44.dp)
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(
+                        Icons.Default.Assignment,
+                        contentDescription = null,
+                        tint = Purple,
+                        modifier = Modifier.size(22.dp)
+                    )
+                }
+            }
+            Spacer(modifier = Modifier.width(UniLostSpacing.sm))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    itemTitle,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Text(
+                    "Posted by $posterName • $itemType",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Text(
+                    timeAgo,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            StatusChip(status)
         }
     }
 }
@@ -302,28 +588,28 @@ private fun InfoRow(icon: ImageVector, label: String, value: String) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 8.dp),
+            .padding(vertical = UniLostSpacing.sm),
         verticalAlignment = Alignment.Top
     ) {
         Icon(
             icon,
             contentDescription = null,
-            tint = Slate400,
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.size(20.dp)
         )
-        Spacer(modifier = Modifier.width(12.dp))
+        Spacer(modifier = Modifier.width(UniLostSpacing.sm))
         Column {
             Text(
                 label,
-                fontSize = 12.sp,
-                color = Slate400,
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 fontWeight = FontWeight.Medium
             )
-            Spacer(modifier = Modifier.height(2.dp))
+            Spacer(modifier = Modifier.height(UniLostSpacing.xxs))
             Text(
                 value,
-                fontSize = 14.sp,
-                color = Slate800,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurface,
                 fontWeight = FontWeight.Medium
             )
         }

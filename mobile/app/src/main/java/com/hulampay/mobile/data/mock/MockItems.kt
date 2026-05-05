@@ -18,7 +18,8 @@ data class MockItem(
     val schoolShortName: String,
     val locationDescription: String,
     val createdAt: String, // ISO date string
-    val claimCount: Int = 0
+    val claimCount: Int = 0,
+    val secretDetail: String? = null
 )
 
 object MockItems {
@@ -53,7 +54,8 @@ object MockItems {
             postedByName = "Maria S.", postedBySchool = "USC",
             schoolName = "University of San Carlos", schoolShortName = "USC",
             locationDescription = "USC Bunzel Building, Room 301",
-            createdAt = "2025-02-21T14:15:00"
+            createdAt = "2025-02-21T14:15:00",
+            secretDetail = "Has a small tear near the handle tip"
         ),
         MockItem(
             id = "3", type = "LOST",
@@ -75,7 +77,8 @@ object MockItems {
             postedByName = "Ana G.", postedBySchool = "USJ-R",
             schoolName = "University of San Jose-Recoletos", schoolShortName = "USJ-R",
             locationDescription = "USJ-R Basak Campus Main Gate",
-            createdAt = "2025-02-18T16:45:00", claimCount = 3
+            createdAt = "2025-02-18T16:45:00", claimCount = 3,
+            secretDetail = "The photo shows a student wearing a white polo"
         ),
         MockItem(
             id = "5", type = "LOST",
@@ -97,7 +100,8 @@ object MockItems {
             postedByName = "Patricia L.", postedBySchool = "SWU",
             schoolName = "Southwestern University PHINMA", schoolShortName = "SWU",
             locationDescription = "SWU Parking Area B",
-            createdAt = "2025-02-23T08:30:00", claimCount = 1
+            createdAt = "2025-02-23T08:30:00", claimCount = 1,
+            secretDetail = "One key has a blue rubber grip"
         ),
         MockItem(
             id = "7", type = "LOST",
@@ -119,7 +123,8 @@ object MockItems {
             postedByName = "Lea V.", postedBySchool = "CNU",
             schoolName = "Cebu Normal University", schoolShortName = "CNU",
             locationDescription = "CNU Room 105",
-            createdAt = "2025-02-22T17:00:00"
+            createdAt = "2025-02-22T17:00:00",
+            secretDetail = "Has a partially faded name 'LEA' on the back"
         ),
         MockItem(
             id = "9", type = "LOST",
@@ -141,7 +146,8 @@ object MockItems {
             postedByName = "Patricia L.", postedBySchool = "SWU",
             schoolName = "Southwestern University PHINMA", schoolShortName = "SWU",
             locationDescription = "SWU Chapel Area Bench",
-            createdAt = "2025-02-21T09:45:00"
+            createdAt = "2025-02-21T09:45:00",
+            secretDetail = "Has highlighted pages in Chapter 5 about infection control"
         ),
         MockItem(
             id = "11", type = "FOUND",
@@ -152,7 +158,8 @@ object MockItems {
             postedByName = "Carlo R.", postedBySchool = "UP Cebu",
             schoolName = "University of the Philippines Cebu", schoolShortName = "UP Cebu",
             locationDescription = "UP Cebu Library, Station 8",
-            createdAt = "2025-02-24T10:00:00"
+            createdAt = "2025-02-24T10:00:00",
+            secretDetail = "Has a small 'UP' sticker on the cap"
         ),
         MockItem(
             id = "12", type = "LOST",

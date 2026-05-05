@@ -18,6 +18,11 @@ import com.hulampay.mobile.ui.items.NotificationsScreen
 import com.hulampay.mobile.ui.items.AdminScreen
 import com.hulampay.mobile.ui.profile.ProfileScreen
 import com.hulampay.mobile.ui.settings.SettingsScreen
+import com.hulampay.mobile.ui.screens.LandingScreen
+import com.hulampay.mobile.ui.screens.ChatListScreen
+import com.hulampay.mobile.ui.screens.ChatDetailScreen
+import com.hulampay.mobile.ui.screens.MapScreen
+import com.hulampay.mobile.ui.screens.LeaderboardScreen
 
 @Composable
 fun NavGraph(navController: NavHostController) {
@@ -95,6 +100,29 @@ fun NavGraph(navController: NavHostController) {
         }
         composable(Screen.Settings.route) {
             SettingsScreen(navController = navController)
+        }
+
+        // Phase F: Guest & Social Screens
+        composable(Screen.Landing.route) {
+            LandingScreen(navController = navController)
+        }
+        composable(Screen.ChatList.route) {
+            ChatListScreen(navController = navController)
+        }
+        composable(
+            "${Screen.ChatDetail.route}/{chatId}",
+            arguments = listOf(navArgument("chatId") { type = NavType.StringType })
+        ) {
+            ChatDetailScreen(
+                navController = navController,
+                chatId = it.arguments?.getString("chatId") ?: ""
+            )
+        }
+        composable(Screen.Map.route) {
+            MapScreen(navController = navController)
+        }
+        composable(Screen.Leaderboard.route) {
+            LeaderboardScreen(navController = navController)
         }
     }
 }

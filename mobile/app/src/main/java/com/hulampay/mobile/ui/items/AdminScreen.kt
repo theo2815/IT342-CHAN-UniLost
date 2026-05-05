@@ -1,25 +1,22 @@
 package com.hulampay.mobile.ui.items
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.hulampay.mobile.data.mock.MockAdminData
+import com.hulampay.mobile.ui.components.*
+import com.hulampay.mobile.ui.theme.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -39,13 +36,9 @@ fun AdminScreen(navController: NavController) {
 
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = { Text("Admin Panel") },
-                navigationIcon = {
-                    IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
-                    }
-                }
+            UniLostDetailTopBar(
+                title = "Admin Panel",
+                onBackClick = { navController.popBackStack() }
             )
         }
     ) { padding ->
@@ -56,26 +49,26 @@ fun AdminScreen(navController: NavController) {
         ) {
             // Stats Row
             LazyRow(
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                contentPadding = PaddingValues(horizontal = 16.dp),
-                modifier = Modifier.padding(vertical = 12.dp)
+                horizontalArrangement = Arrangement.spacedBy(UniLostSpacing.sm),
+                contentPadding = PaddingValues(horizontal = UniLostSpacing.md),
+                modifier = Modifier.padding(vertical = UniLostSpacing.sm)
             ) {
                 item {
-                    StatMiniCard(
+                    AdminStatCard(
                         label = "Active Items",
                         value = "${MockAdminData.stats.activeItems}",
                         color = MaterialTheme.colorScheme.primary
                     )
                 }
                 item {
-                    StatMiniCard(
+                    AdminStatCard(
                         label = "Pending Claims",
                         value = "${MockAdminData.stats.pendingClaims}",
                         color = MaterialTheme.colorScheme.tertiary
                     )
                 }
                 item {
-                    StatMiniCard(
+                    AdminStatCard(
                         label = "Banned Users",
                         value = "${MockAdminData.stats.bannedUsers}",
                         color = MaterialTheme.colorScheme.error
@@ -84,12 +77,27 @@ fun AdminScreen(navController: NavController) {
             }
 
             // Tabs
-            TabRow(selectedTabIndex = selectedTab) {
+            TabRow(
+                selectedTabIndex = selectedTab,
+                containerColor = MaterialTheme.colorScheme.surface,
+                contentColor = MaterialTheme.colorScheme.primary,
+                divider = {
+                    HorizontalDivider(
+                        color = MaterialTheme.colorScheme.outline,
+                        thickness = 0.5.dp
+                    )
+                }
+            ) {
                 tabs.forEachIndexed { index, title ->
                     Tab(
                         selected = selectedTab == index,
                         onClick = { selectedTab = index },
-                        text = { Text(title) }
+                        text = {
+                            Text(
+                                title,
+                                style = MaterialTheme.typography.labelLarge
+                            )
+                        }
                     )
                 }
             }
@@ -100,8 +108,8 @@ fun AdminScreen(navController: NavController) {
                     // Items Tab
                     LazyColumn(
                         modifier = Modifier.fillMaxSize(),
-                        contentPadding = PaddingValues(16.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                        contentPadding = PaddingValues(UniLostSpacing.md),
+                        verticalArrangement = Arrangement.spacedBy(UniLostSpacing.sm)
                     ) {
                         items(items) { item ->
                             AdminItemRow(
@@ -123,8 +131,8 @@ fun AdminScreen(navController: NavController) {
                     // Users Tab
                     LazyColumn(
                         modifier = Modifier.fillMaxSize(),
-                        contentPadding = PaddingValues(16.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                        contentPadding = PaddingValues(UniLostSpacing.md),
+                        verticalArrangement = Arrangement.spacedBy(UniLostSpacing.sm)
                     ) {
                         items(users) { user ->
                             AdminUserRow(
@@ -156,11 +164,13 @@ fun AdminScreen(navController: NavController) {
                             "ban" -> "Ban User"
                             "unban" -> "Unban User"
                             else -> "Confirm"
-                        }
+                        },
+                        style = MaterialTheme.typography.headlineSmall,
+                        fontWeight = FontWeight.Bold
                     )
                 },
                 text = {
-                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Column(verticalArrangement = Arrangement.spacedBy(UniLostSpacing.sm)) {
                         Text(
                             when (confirmAction) {
                                 "remove" -> "Remove \"$confirmTargetName\"?"
@@ -168,13 +178,14 @@ fun AdminScreen(navController: NavController) {
                                 "unban" -> "Unban $confirmTargetName?"
                                 else -> "Are you sure?"
                             },
-                            style = MaterialTheme.typography.bodyMedium
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
-                        OutlinedTextField(
+                        UniLostTextField(
                             value = confirmReason,
                             onValueChange = { confirmReason = it },
-                            label = { Text("Reason") },
-                            modifier = Modifier.fillMaxWidth(),
+                            label = "Reason",
+                            singleLine = false,
                             minLines = 2
                         )
                     }
@@ -186,33 +197,49 @@ fun AdminScreen(navController: NavController) {
                             // Mock action — in real app, call API
                         },
                         colors = ButtonDefaults.textButtonColors(
-                            contentColor = if (confirmAction == "unban") MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error
+                            contentColor = if (confirmAction == "unban") {
+                                MaterialTheme.colorScheme.primary
+                            } else {
+                                MaterialTheme.colorScheme.error
+                            }
                         )
                     ) {
-                        Text("Confirm")
+                        Text(
+                            "Confirm",
+                            style = MaterialTheme.typography.labelLarge,
+                            fontWeight = FontWeight.Bold
+                        )
                     }
                 },
                 dismissButton = {
                     TextButton(onClick = { showConfirmDialog = false }) {
-                        Text("Cancel")
+                        Text(
+                            "Cancel",
+                            style = MaterialTheme.typography.labelLarge
+                        )
                     }
-                }
+                },
+                shape = UniLostShapes.lg
             )
         }
     }
 }
 
 @Composable
-private fun StatMiniCard(label: String, value: String, color: androidx.compose.ui.graphics.Color) {
+private fun AdminStatCard(
+    label: String,
+    value: String,
+    color: androidx.compose.ui.graphics.Color
+) {
     Card(
-        shape = RoundedCornerShape(12.dp),
+        shape = UniLostShapes.md,
         colors = CardDefaults.cardColors(
             containerColor = color.copy(alpha = 0.1f)
         ),
         modifier = Modifier.width(130.dp)
     ) {
         Column(
-            modifier = Modifier.padding(14.dp),
+            modifier = Modifier.padding(UniLostSpacing.sm),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text(
@@ -221,7 +248,7 @@ private fun StatMiniCard(label: String, value: String, color: androidx.compose.u
                 fontWeight = FontWeight.Bold,
                 color = color
             )
-            Spacer(modifier = Modifier.height(4.dp))
+            Spacer(modifier = Modifier.height(UniLostSpacing.xs))
             Text(
                 text = label,
                 style = MaterialTheme.typography.labelSmall,
@@ -240,45 +267,38 @@ private fun AdminItemRow(
     onRemove: () -> Unit
 ) {
     Card(
-        shape = RoundedCornerShape(12.dp),
-        modifier = Modifier.fillMaxWidth()
+        shape = UniLostShapes.md,
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface
+        ),
+        elevation = CardDefaults.cardElevation(1.dp)
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(12.dp),
+                .padding(UniLostSpacing.sm),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = title,
-                    style = MaterialTheme.typography.bodyMedium,
+                    style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold,
                     maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
+                    overflow = TextOverflow.Ellipsis,
+                    color = MaterialTheme.colorScheme.onSurface
                 )
-                Spacer(modifier = Modifier.height(4.dp))
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    SuggestionChip(
-                        onClick = {},
-                        label = { Text(type, fontSize = 10.sp) },
-                        colors = SuggestionChipDefaults.suggestionChipColors(
-                            containerColor = if (type == "LOST")
-                                MaterialTheme.colorScheme.error.copy(alpha = 0.1f)
-                            else
-                                MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
-                            labelColor = if (type == "LOST")
-                                MaterialTheme.colorScheme.error
-                            else
-                                MaterialTheme.colorScheme.primary
-                        ),
-                        modifier = Modifier.height(24.dp)
-                    )
+                Spacer(modifier = Modifier.height(UniLostSpacing.xs))
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(UniLostSpacing.sm),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    StatusChip(type)
                     Text(
                         text = "$school  |  $status",
                         style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.align(Alignment.CenterVertically)
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }
@@ -302,50 +322,37 @@ private fun AdminUserRow(
     onToggleBan: () -> Unit
 ) {
     Card(
-        shape = RoundedCornerShape(12.dp),
-        modifier = Modifier.fillMaxWidth()
+        shape = UniLostShapes.md,
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface
+        ),
+        elevation = CardDefaults.cardElevation(1.dp)
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(12.dp),
+                .padding(UniLostSpacing.sm),
             verticalAlignment = Alignment.CenterVertically
         ) {
             // Avatar
-            Box(
-                modifier = Modifier
-                    .size(40.dp)
-                    .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.primary),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = name.split(" ").take(2).mapNotNull { it.firstOrNull()?.uppercase() }.joinToString(""),
-                    color = MaterialTheme.colorScheme.onPrimary,
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.Bold
-                )
-            }
+            AvatarView(name = name, size = 40.dp)
 
-            Spacer(modifier = Modifier.width(12.dp))
+            Spacer(modifier = Modifier.width(UniLostSpacing.sm))
 
             Column(modifier = Modifier.weight(1f)) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    horizontalArrangement = Arrangement.spacedBy(UniLostSpacing.sm)
                 ) {
                     Text(
                         text = name,
-                        style = MaterialTheme.typography.bodyMedium,
-                        fontWeight = FontWeight.SemiBold
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.onSurface
                     )
                     if (isBanned) {
-                        Text(
-                            text = "BANNED",
-                            fontSize = 9.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.error
-                        )
+                        StatusChip("BANNED", ErrorRed)
                     }
                 }
                 Text(
@@ -355,19 +362,7 @@ private fun AdminUserRow(
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
-                Text(
-                    text = when (role) {
-                        "ADMIN" -> "Campus Admin"
-                        "SUPER_ADMIN" -> "Super Admin"
-                        else -> "Student"
-                    },
-                    style = MaterialTheme.typography.labelSmall,
-                    color = when (role) {
-                        "ADMIN" -> MaterialTheme.colorScheme.tertiary
-                        "SUPER_ADMIN" -> MaterialTheme.colorScheme.primary
-                        else -> MaterialTheme.colorScheme.onSurfaceVariant
-                    }
-                )
+                StatusChip(role)
             }
 
             // Only allow ban/unban for students
@@ -376,7 +371,11 @@ private fun AdminUserRow(
                     Icon(
                         if (isBanned) Icons.Default.CheckCircle else Icons.Default.Block,
                         contentDescription = if (isBanned) "Unban" else "Ban",
-                        tint = if (isBanned) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error
+                        tint = if (isBanned) {
+                            MaterialTheme.colorScheme.primary
+                        } else {
+                            MaterialTheme.colorScheme.error
+                        }
                     )
                 }
             }

@@ -6,7 +6,6 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -17,13 +16,16 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.hulampay.mobile.data.mock.MockClaims
 import com.hulampay.mobile.data.mock.MockItems
+import com.hulampay.mobile.ui.components.*
 import com.hulampay.mobile.ui.theme.*
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -34,88 +36,127 @@ fun ItemDetailScreen(navController: NavController, itemId: String) {
     if (item == null) {
         Scaffold(
             topBar = {
-                TopAppBar(
-                    title = { Text("Not Found") },
-                    navigationIcon = {
-                        IconButton(onClick = { navController.popBackStack() }) {
-                            Icon(Icons.Default.ArrowBack, contentDescription = "Back")
-                        }
-                    }
+                UniLostDetailTopBar(
+                    title = "Not Found",
+                    onBackClick = { navController.popBackStack() }
                 )
             }
         ) { padding ->
-            Box(
-                modifier = Modifier.fillMaxSize().padding(padding),
-                contentAlignment = Alignment.Center
-            ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Icon(Icons.Default.SearchOff, contentDescription = null, modifier = Modifier.size(48.dp), tint = Slate400)
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text("Item not found", fontWeight = FontWeight.Medium)
-                }
-            }
+            EmptyState(
+                icon = Icons.Default.SearchOff,
+                title = "Item not found",
+                message = "This item may have been removed or doesn't exist.",
+                modifier = Modifier.padding(padding)
+            )
         }
         return
     }
 
     val context = LocalContext.current
     val isFound = item.type == "FOUND"
+    val isLost = item.type == "LOST"
     val isPoster = item.postedByName == "Juan D."
+    val isAdmin = true // Mock admin status
     var showClaimSheet by remember { mutableStateOf(false) }
     var claimSubmitted by remember { mutableStateOf(false) }
     var secretAnswer by remember { mutableStateOf("") }
     var claimMessage by remember { mutableStateOf("") }
+    var showEmailToPoster by remember { mutableStateOf(false) }
+    var descriptionExpanded by remember { mutableStateOf(false) }
+    var showReportDialog by remember { mutableStateOf(false) }
+    var showDeleteDialog by remember { mutableStateOf(false) }
 
     val incomingClaims = remember { MockClaims.getClaimsForItem(itemId) }
     val relatedItems = remember {
-        MockItems.items.filter { it.id != item.id && it.status == "ACTIVE" && (it.category == item.category || it.schoolShortName == item.schoolShortName) }.take(3)
+        MockItems.items.filter {
+            it.id != item.id && it.status == "ACTIVE" &&
+                    (it.category == item.category || it.schoolShortName == item.schoolShortName)
+        }.take(3)
     }
+
+    // For LOST items, claims are auto-accepted
+    val isAutoAccept = isLost
 
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = { Text("Item Details") },
-                navigationIcon = {
-                    IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
-                    }
-                },
+            UniLostDetailTopBar(
+                title = "Item Details",
+                onBackClick = { navController.popBackStack() },
                 actions = {
                     IconButton(onClick = { /* share */ }) {
-                        Icon(Icons.Default.Share, contentDescription = "Share")
+                        Icon(
+                            Icons.Default.Share,
+                            contentDescription = "Share",
+                            tint = MaterialTheme.colorScheme.onSurface
+                        )
+                    }
+                    // Admin edit button
+                    if (isAdmin && isPoster) {
+                        IconButton(onClick = {
+                            Toast.makeText(context, "Edit item (Mock action)", Toast.LENGTH_SHORT).show()
+                        }) {
+                            Icon(
+                                Icons.Default.Edit,
+                                contentDescription = "Edit",
+                                tint = MaterialTheme.colorScheme.onSurface
+                            )
+                        }
                     }
                 }
             )
         },
         bottomBar = {
-            Surface(
-                modifier = Modifier.fillMaxWidth(),
-                shadowElevation = 8.dp,
-                color = White
-            ) {
-                Row(
-                    modifier = Modifier.padding(16.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+            if (!isPoster) {
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    shadowElevation = 8.dp,
+                    color = MaterialTheme.colorScheme.surface
                 ) {
-                    Button(
-                        onClick = { showClaimSheet = true },
-                        modifier = Modifier.weight(1f),
-                        shape = RoundedCornerShape(12.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = Slate600)
+                    Row(
+                        modifier = Modifier.padding(UniLostSpacing.md),
+                        horizontalArrangement = Arrangement.spacedBy(UniLostSpacing.sm)
                     ) {
-                        Icon(
-                            if (isFound) Icons.Default.PanTool else Icons.Default.Search,
-                            contentDescription = null,
-                            modifier = Modifier.size(18.dp)
+                        UniLostButton(
+                            text = if (isFound) "This Is Mine" else "I Found This",
+                            onClick = { showClaimSheet = true },
+                            icon = if (isFound) Icons.Default.PanTool else Icons.Default.Search,
+                            modifier = Modifier.weight(1f)
                         )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(if (isFound) "This Is Mine" else "I Found This")
+                        OutlinedButton(
+                            onClick = { showReportDialog = true },
+                            shape = UniLostShapes.md
+                        ) {
+                            Icon(Icons.Default.Flag, contentDescription = "Report", modifier = Modifier.size(18.dp))
+                        }
                     }
-                    OutlinedButton(
-                        onClick = { /* report */ },
-                        shape = RoundedCornerShape(12.dp)
+                }
+            } else {
+                // Poster view: admin controls
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    shadowElevation = 8.dp,
+                    color = MaterialTheme.colorScheme.surface
+                ) {
+                    Row(
+                        modifier = Modifier.padding(UniLostSpacing.md),
+                        horizontalArrangement = Arrangement.spacedBy(UniLostSpacing.sm)
                     ) {
-                        Icon(Icons.Default.Flag, contentDescription = null, modifier = Modifier.size(18.dp))
+                        UniLostButton(
+                            text = "Edit Item",
+                            onClick = {
+                                Toast.makeText(context, "Edit item (Mock action)", Toast.LENGTH_SHORT).show()
+                            },
+                            variant = ButtonVariant.SECONDARY,
+                            icon = Icons.Default.Edit,
+                            modifier = Modifier.weight(1f)
+                        )
+                        UniLostButton(
+                            text = "Delete",
+                            onClick = { showDeleteDialog = true },
+                            variant = ButtonVariant.DANGER,
+                            icon = Icons.Default.Delete,
+                            modifier = Modifier.weight(1f)
+                        )
                     }
                 }
             }
@@ -132,27 +173,37 @@ fun ItemDetailScreen(navController: NavController, itemId: String) {
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(250.dp)
-                    .background(Slate100),
+                    .background(MaterialTheme.colorScheme.surfaceVariant),
                 contentAlignment = Alignment.Center
             ) {
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
                         .then(if (isFound) Modifier.blur(20.dp) else Modifier)
-                        .background(Slate100),
+                        .background(MaterialTheme.colorScheme.surfaceVariant),
                     contentAlignment = Alignment.Center
                 ) {
-                    Icon(Icons.Default.Image, contentDescription = null, modifier = Modifier.size(64.dp), tint = Slate400)
+                    Icon(
+                        Icons.Default.Image,
+                        contentDescription = null,
+                        modifier = Modifier.size(64.dp),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                 }
 
                 // Type badge
                 Surface(
-                    modifier = Modifier.padding(12.dp).align(Alignment.TopStart),
-                    shape = RoundedCornerShape(20.dp),
-                    color = if (item.type == "LOST") ErrorRed else Sage
+                    modifier = Modifier
+                        .padding(UniLostSpacing.md)
+                        .align(Alignment.TopStart),
+                    shape = UniLostShapes.full,
+                    color = if (item.type == "LOST") ErrorRed else Sage400
                 ) {
                     Text(
-                        item.type, color = White, fontSize = 12.sp, fontWeight = FontWeight.Bold,
+                        item.type,
+                        color = White,
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.Bold,
                         modifier = Modifier.padding(horizontal = 14.dp, vertical = 6.dp)
                     )
                 }
@@ -160,49 +211,114 @@ fun ItemDetailScreen(navController: NavController, itemId: String) {
                 if (isFound) {
                     Surface(
                         modifier = Modifier.align(Alignment.Center),
-                        shape = RoundedCornerShape(12.dp),
+                        shape = UniLostShapes.md,
                         color = Color.Black.copy(alpha = 0.65f)
                     ) {
                         Text(
                             "Image blurred to protect the owner",
-                            color = White, fontSize = 13.sp,
-                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                            color = White,
+                            style = MaterialTheme.typography.bodySmall,
+                            modifier = Modifier.padding(horizontal = UniLostSpacing.md, vertical = UniLostSpacing.sm)
+                        )
+                    }
+                }
+
+                // Image page indicator (placeholder for multi-image gallery)
+                Row(
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .padding(bottom = UniLostSpacing.sm),
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    repeat(3) { index ->
+                        Box(
+                            modifier = Modifier
+                                .size(if (index == 0) 8.dp else 6.dp)
+                                .clip(CircleShape)
+                                .background(
+                                    if (index == 0) White
+                                    else White.copy(alpha = 0.5f)
+                                )
                         )
                     }
                 }
             }
 
-            Column(modifier = Modifier.padding(16.dp)) {
+            Column(modifier = Modifier.padding(UniLostSpacing.md)) {
                 // Status chips
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    StatusChip(item.type, if (item.type == "LOST") ErrorRed else Sage)
-                    StatusChip(item.status, when (item.status) {
-                        "ACTIVE" -> Color(0xFF3b82f6)
-                        "CLAIMED" -> Color(0xFFa855f7)
-                        "HANDED_OVER" -> Sage
-                        else -> Slate400
-                    })
+                Row(horizontalArrangement = Arrangement.spacedBy(UniLostSpacing.sm)) {
+                    StatusChip(item.type)
+                    StatusChip(item.status)
                 }
 
-                Spacer(modifier = Modifier.height(12.dp))
+                Spacer(modifier = Modifier.height(UniLostSpacing.sm))
 
                 // Title
-                Text(item.title, fontSize = 22.sp, fontWeight = FontWeight.Bold, color = Slate800)
+                Text(
+                    item.title,
+                    style = MaterialTheme.typography.headlineLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
 
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(UniLostSpacing.sm))
 
-                // Description
-                Text(item.description, fontSize = 15.sp, color = Slate600, lineHeight = 22.sp)
+                // Description (expandable if long)
+                val descriptionIsLong = item.description.length > 120
+                if (descriptionIsLong && !descriptionExpanded) {
+                    Text(
+                        item.description,
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        lineHeight = 22.sp,
+                        maxLines = 3,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    TextButton(
+                        onClick = { descriptionExpanded = true },
+                        contentPadding = PaddingValues(0.dp)
+                    ) {
+                        Text(
+                            "Read more",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                } else {
+                    Text(
+                        item.description,
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        lineHeight = 22.sp
+                    )
+                    if (descriptionIsLong) {
+                        TextButton(
+                            onClick = { descriptionExpanded = false },
+                            contentPadding = PaddingValues(0.dp)
+                        ) {
+                            Text(
+                                "Show less",
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                        }
+                    }
+                }
 
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(UniLostSpacing.md))
 
                 // Meta info card
                 Card(
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(12.dp),
-                    colors = CardDefaults.cardColors(containerColor = Slate100)
+                    shape = UniLostShapes.md,
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceVariant
+                    )
                 ) {
-                    Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Column(
+                        modifier = Modifier.padding(UniLostSpacing.md),
+                        verticalArrangement = Arrangement.spacedBy(UniLostSpacing.sm)
+                    ) {
                         MetaRow(Icons.Default.Category, "Category", item.category)
                         MetaRow(Icons.Default.LocationOn, "Location", item.locationDescription)
                         MetaRow(Icons.Default.CalendarToday, "Posted", MockItems.timeAgo(item.createdAt))
@@ -210,201 +326,336 @@ fun ItemDetailScreen(navController: NavController, itemId: String) {
                     }
                 }
 
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(UniLostSpacing.md))
 
                 // Poster info
                 Card(
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(12.dp),
-                    colors = CardDefaults.cardColors(containerColor = White),
+                    shape = UniLostShapes.md,
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surface
+                    ),
                     elevation = CardDefaults.cardElevation(1.dp)
                 ) {
                     Row(
-                        modifier = Modifier.padding(16.dp),
+                        modifier = Modifier.padding(UniLostSpacing.md),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Box(
-                            modifier = Modifier
-                                .size(40.dp)
-                                .clip(CircleShape)
-                                .background(Slate600),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(
-                                item.postedByName.take(1).uppercase(),
-                                color = White,
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 16.sp
-                            )
-                        }
-                        Spacer(modifier = Modifier.width(12.dp))
+                        AvatarView(name = item.postedByName, size = 40.dp)
+                        Spacer(modifier = Modifier.width(UniLostSpacing.sm))
                         Column {
-                            Text(item.postedByName, fontWeight = FontWeight.SemiBold, fontSize = 14.sp, color = Slate800)
-                            Text(item.schoolName, fontSize = 12.sp, color = Slate400)
+                            Text(
+                                item.postedByName,
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.SemiBold,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                            Text(
+                                item.schoolName,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
                         }
                     }
                 }
 
                 // Related items
                 if (relatedItems.isNotEmpty()) {
-                    Spacer(modifier = Modifier.height(24.dp))
-                    Text("Related Items", fontWeight = FontWeight.Bold, fontSize = 18.sp, color = Slate800)
-                    Spacer(modifier = Modifier.height(8.dp))
+                    Spacer(modifier = Modifier.height(UniLostSpacing.lg))
+                    Text(
+                        "Related Items",
+                        style = MaterialTheme.typography.headlineSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Spacer(modifier = Modifier.height(UniLostSpacing.sm))
                     relatedItems.forEach { relItem ->
-                        ItemCard(
+                        RelatedItemCard(
                             item = relItem,
                             onClick = { navController.navigate("item_detail_screen/${relItem.id}") }
                         )
-                        Spacer(modifier = Modifier.height(8.dp))
+                        Spacer(modifier = Modifier.height(UniLostSpacing.sm))
                     }
                 }
 
                 // Incoming Claims section (visible only for poster)
                 if (isPoster && incomingClaims.isNotEmpty()) {
-                    Spacer(modifier = Modifier.height(24.dp))
+                    Spacer(modifier = Modifier.height(UniLostSpacing.lg))
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.SpaceBetween,
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        Text("Incoming Claims", fontWeight = FontWeight.Bold, fontSize = 18.sp, color = Slate800)
+                        Text(
+                            "Incoming Claims",
+                            style = MaterialTheme.typography.headlineSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
                         Surface(
-                            shape = RoundedCornerShape(12.dp),
-                            color = Color(0xFFa855f7).copy(alpha = 0.12f)
+                            shape = UniLostShapes.md,
+                            color = PurpleBg
                         ) {
                             Text(
                                 "${incomingClaims.size}",
-                                color = Color(0xFFa855f7),
-                                fontSize = 12.sp,
+                                color = Purple,
+                                style = MaterialTheme.typography.labelMedium,
                                 fontWeight = FontWeight.Bold,
                                 modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
                             )
                         }
                     }
-                    Spacer(modifier = Modifier.height(4.dp))
+                    Spacer(modifier = Modifier.height(UniLostSpacing.xs))
                     Text(
                         "Only one claim can be approved per item",
-                        fontSize = 12.sp,
-                        color = Color(0xFFd97706)
+                        style = MaterialTheme.typography.bodySmall,
+                        color = WarningHover
                     )
-                    Spacer(modifier = Modifier.height(8.dp))
+                    Spacer(modifier = Modifier.height(UniLostSpacing.sm))
 
                     incomingClaims.forEach { claim ->
                         Card(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .clickable { navController.navigate("claim_detail_screen/${claim.id}") },
-                            shape = RoundedCornerShape(12.dp),
-                            colors = CardDefaults.cardColors(containerColor = White),
+                            shape = UniLostShapes.md,
+                            colors = CardDefaults.cardColors(
+                                containerColor = MaterialTheme.colorScheme.surface
+                            ),
                             elevation = CardDefaults.cardElevation(1.dp)
                         ) {
                             Column(modifier = Modifier.padding(14.dp)) {
                                 // Claimant info
                                 Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Box(
-                                        modifier = Modifier
-                                            .size(32.dp)
-                                            .clip(CircleShape)
-                                            .background(Color(0xFFa855f7)),
-                                        contentAlignment = Alignment.Center
-                                    ) {
+                                    AvatarView(name = claim.claimantName, size = 32.dp)
+                                    Spacer(modifier = Modifier.width(UniLostSpacing.sm))
+                                    Column(modifier = Modifier.weight(1f)) {
                                         Text(
-                                            claim.claimantName.take(1).uppercase(),
-                                            color = White, fontWeight = FontWeight.Bold, fontSize = 13.sp
+                                            claim.claimantName,
+                                            style = MaterialTheme.typography.titleMedium,
+                                            fontWeight = FontWeight.SemiBold,
+                                            color = MaterialTheme.colorScheme.onSurface
+                                        )
+                                        Text(
+                                            claim.claimantSchool,
+                                            style = MaterialTheme.typography.labelSmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
                                         )
                                     }
-                                    Spacer(modifier = Modifier.width(8.dp))
-                                    Column(modifier = Modifier.weight(1f)) {
-                                        Text(claim.claimantName, fontWeight = FontWeight.SemiBold, fontSize = 14.sp, color = Slate800)
-                                        Text(claim.claimantSchool, fontSize = 11.sp, color = Slate400)
-                                    }
-                                    StatusChip(claim.status.replace("_", " "), when (claim.status) {
-                                        "PENDING" -> Color(0xFFf59e0b)
-                                        "APPROVED" -> Color(0xFF22c55e)
-                                        "REJECTED" -> ErrorRed
-                                        "HANDED_OVER" -> Sage
-                                        else -> Slate400
-                                    })
+                                    StatusChip(claim.status)
                                 }
 
                                 // Secret detail comparison (for FOUND items)
                                 if (isFound && claim.secretDetailAnswer.isNotBlank()) {
-                                    Spacer(modifier = Modifier.height(10.dp))
+                                    Spacer(modifier = Modifier.height(UniLostSpacing.sm))
                                     Row(
                                         modifier = Modifier.fillMaxWidth(),
-                                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                        horizontalArrangement = Arrangement.spacedBy(UniLostSpacing.sm)
                                     ) {
                                         Surface(
                                             modifier = Modifier.weight(1f),
-                                            shape = RoundedCornerShape(8.dp),
-                                            color = Sage.copy(alpha = 0.08f)
+                                            shape = UniLostShapes.sm,
+                                            color = Sage400_8pct
                                         ) {
-                                            Column(modifier = Modifier.padding(8.dp)) {
-                                                Text("YOUR DETAIL", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = Sage, letterSpacing = 0.5.sp)
-                                                Spacer(modifier = Modifier.height(2.dp))
-                                                Text(item.secretDetail ?: "N/A", fontSize = 12.sp, color = Slate600, lineHeight = 16.sp)
+                                            Column(modifier = Modifier.padding(UniLostSpacing.sm)) {
+                                                Text(
+                                                    "YOUR DETAIL",
+                                                    style = MaterialTheme.typography.labelSmall,
+                                                    fontWeight = FontWeight.Bold,
+                                                    color = Sage400
+                                                )
+                                                Spacer(modifier = Modifier.height(UniLostSpacing.xxs))
+                                                Text(
+                                                    item.secretDetail ?: "N/A",
+                                                    style = MaterialTheme.typography.bodySmall,
+                                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                                )
                                             }
                                         }
                                         Surface(
                                             modifier = Modifier.weight(1f),
-                                            shape = RoundedCornerShape(8.dp),
-                                            color = Color(0xFFa855f7).copy(alpha = 0.08f)
+                                            shape = UniLostShapes.sm,
+                                            color = PurpleBg
                                         ) {
-                                            Column(modifier = Modifier.padding(8.dp)) {
-                                                Text("THEIR ANSWER", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = Color(0xFFa855f7), letterSpacing = 0.5.sp)
-                                                Spacer(modifier = Modifier.height(2.dp))
-                                                Text(claim.secretDetailAnswer, fontSize = 12.sp, color = Slate600, lineHeight = 16.sp)
+                                            Column(modifier = Modifier.padding(UniLostSpacing.sm)) {
+                                                Text(
+                                                    "THEIR ANSWER",
+                                                    style = MaterialTheme.typography.labelSmall,
+                                                    fontWeight = FontWeight.Bold,
+                                                    color = Purple
+                                                )
+                                                Spacer(modifier = Modifier.height(UniLostSpacing.xxs))
+                                                Text(
+                                                    claim.secretDetailAnswer,
+                                                    style = MaterialTheme.typography.bodySmall,
+                                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                                )
                                             }
                                         }
                                     }
                                 }
 
                                 // Message
-                                Spacer(modifier = Modifier.height(8.dp))
-                                Text(claim.message, fontSize = 13.sp, color = Slate600, maxLines = 2)
+                                Spacer(modifier = Modifier.height(UniLostSpacing.sm))
+                                Text(
+                                    claim.message,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    maxLines = 2
+                                )
 
                                 // Approve / Reject buttons (only for PENDING)
                                 if (claim.status == "PENDING") {
-                                    Spacer(modifier = Modifier.height(10.dp))
+                                    Spacer(modifier = Modifier.height(UniLostSpacing.sm))
                                     Row(
                                         modifier = Modifier.fillMaxWidth(),
-                                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                        horizontalArrangement = Arrangement.spacedBy(UniLostSpacing.sm)
                                     ) {
-                                        OutlinedButton(
+                                        UniLostButton(
+                                            text = "Reject",
                                             onClick = {
                                                 Toast.makeText(context, "Claim rejected (Mock action)", Toast.LENGTH_SHORT).show()
                                             },
+                                            variant = ButtonVariant.DANGER,
+                                            icon = Icons.Default.Close,
                                             modifier = Modifier.weight(1f),
-                                            shape = RoundedCornerShape(8.dp),
-                                            colors = ButtonDefaults.outlinedButtonColors(contentColor = ErrorRed)
-                                        ) {
-                                            Icon(Icons.Default.Close, contentDescription = null, modifier = Modifier.size(16.dp))
-                                            Spacer(modifier = Modifier.width(4.dp))
-                                            Text("Reject", fontSize = 13.sp)
-                                        }
-                                        Button(
+                                            isCompact = true
+                                        )
+                                        UniLostButton(
+                                            text = "Approve",
                                             onClick = {
                                                 Toast.makeText(context, "Claim approved (Mock action)", Toast.LENGTH_SHORT).show()
                                             },
+                                            variant = ButtonVariant.PRIMARY,
+                                            icon = Icons.Default.Check,
                                             modifier = Modifier.weight(1f),
-                                            shape = RoundedCornerShape(8.dp),
-                                            colors = ButtonDefaults.buttonColors(containerColor = Sage)
-                                        ) {
-                                            Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(16.dp))
-                                            Spacer(modifier = Modifier.width(4.dp))
-                                            Text("Approve", fontSize = 13.sp)
-                                        }
+                                            isCompact = true
+                                        )
                                     }
                                 }
                             }
                         }
-                        Spacer(modifier = Modifier.height(8.dp))
+                        Spacer(modifier = Modifier.height(UniLostSpacing.sm))
                     }
                 }
 
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(UniLostSpacing.md))
             }
         }
+    }
+
+    // Report Dialog
+    if (showReportDialog) {
+        var selectedReason by remember { mutableStateOf("") }
+        val reportReasons = listOf(
+            "Spam or misleading",
+            "Inappropriate content",
+            "Duplicate item",
+            "Suspected scam",
+            "Other"
+        )
+
+        AlertDialog(
+            onDismissRequest = { showReportDialog = false },
+            title = {
+                Text(
+                    "Report This Item",
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.Bold
+                )
+            },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(UniLostSpacing.xs)) {
+                    Text(
+                        "Why are you reporting this item?",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Spacer(modifier = Modifier.height(UniLostSpacing.sm))
+                    reportReasons.forEach { reason ->
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { selectedReason = reason }
+                                .padding(vertical = UniLostSpacing.xs),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            RadioButton(
+                                selected = selectedReason == reason,
+                                onClick = { selectedReason = reason }
+                            )
+                            Spacer(modifier = Modifier.width(UniLostSpacing.sm))
+                            Text(
+                                reason,
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showReportDialog = false
+                        Toast.makeText(context, "Report submitted. Thank you!", Toast.LENGTH_SHORT).show()
+                    },
+                    enabled = selectedReason.isNotBlank(),
+                    colors = ButtonDefaults.textButtonColors(
+                        contentColor = MaterialTheme.colorScheme.error
+                    )
+                ) {
+                    Text("Submit Report", fontWeight = FontWeight.Bold)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showReportDialog = false }) {
+                    Text("Cancel")
+                }
+            },
+            shape = UniLostShapes.lg
+        )
+    }
+
+    // Delete Confirmation Dialog (admin/poster only)
+    if (showDeleteDialog) {
+        AlertDialog(
+            onDismissRequest = { showDeleteDialog = false },
+            title = {
+                Text(
+                    "Delete Item",
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.Bold
+                )
+            },
+            text = {
+                Text(
+                    "Are you sure you want to delete \"${item.title}\"? This action cannot be undone.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showDeleteDialog = false
+                        Toast.makeText(context, "Item deleted (Mock action)", Toast.LENGTH_SHORT).show()
+                        navController.popBackStack()
+                    },
+                    colors = ButtonDefaults.textButtonColors(
+                        contentColor = MaterialTheme.colorScheme.error
+                    )
+                ) {
+                    Text("Delete", fontWeight = FontWeight.Bold)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteDialog = false }) {
+                    Text("Cancel")
+                }
+            },
+            shape = UniLostShapes.lg
+        )
     }
 
     // Claim Bottom Sheet
@@ -415,195 +666,380 @@ fun ItemDetailScreen(navController: NavController, itemId: String) {
                 claimSubmitted = false
                 secretAnswer = ""
                 claimMessage = ""
+                showEmailToPoster = false
             },
-            sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+            sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+            containerColor = MaterialTheme.colorScheme.surface,
+            shape = UniLostShapes.bottomSheet
         ) {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 20.dp)
-                    .padding(bottom = 32.dp)
+                    .padding(bottom = UniLostSpacing.xl)
             ) {
                 if (claimSubmitted) {
-                    // Success state
+                    // Success state - different messages for LOST (auto-accept) vs FOUND
                     Column(
-                        modifier = Modifier.fillMaxWidth().padding(vertical = 24.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = UniLostSpacing.lg),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         Surface(
                             shape = CircleShape,
-                            color = Sage.copy(alpha = 0.12f),
+                            color = SuccessBg,
                             modifier = Modifier.size(64.dp)
                         ) {
                             Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
-                                Icon(Icons.Default.CheckCircle, contentDescription = null, tint = Sage, modifier = Modifier.size(36.dp))
+                                Icon(
+                                    Icons.Default.CheckCircle,
+                                    contentDescription = null,
+                                    tint = Success,
+                                    modifier = Modifier.size(36.dp)
+                                )
                             }
                         }
-                        Spacer(modifier = Modifier.height(16.dp))
-                        Text("Claim Submitted!", fontWeight = FontWeight.Bold, fontSize = 20.sp, color = Slate800)
-                        Spacer(modifier = Modifier.height(4.dp))
+                        Spacer(modifier = Modifier.height(UniLostSpacing.md))
                         Text(
-                            "The poster will review your claim and get back to you.",
-                            fontSize = 14.sp, color = Slate400,
-                            modifier = Modifier.padding(horizontal = 16.dp),
-                            lineHeight = 20.sp
+                            "Claim Submitted!",
+                            style = MaterialTheme.typography.headlineMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurface
                         )
-                        Spacer(modifier = Modifier.height(20.dp))
-                        Button(
+                        Spacer(modifier = Modifier.height(UniLostSpacing.xs))
+
+                        // Different message for LOST (auto-accept) vs FOUND
+                        if (isAutoAccept) {
+                            Surface(
+                                shape = UniLostShapes.sm,
+                                color = SuccessBg,
+                                modifier = Modifier.padding(horizontal = UniLostSpacing.sm)
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(UniLostSpacing.sm),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Icon(
+                                        Icons.Default.AutoAwesome,
+                                        contentDescription = null,
+                                        tint = Success,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(UniLostSpacing.xs))
+                                    Text(
+                                        "Your claim was automatically accepted! A chat has been opened.",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = Success,
+                                        fontWeight = FontWeight.Medium
+                                    )
+                                }
+                            }
+                        } else {
+                            Text(
+                                "The poster will review your claim and get back to you.",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.padding(horizontal = UniLostSpacing.md)
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.height(UniLostSpacing.lg))
+
+                        // "Open Chat" button (shown when auto-accepted or chatId exists)
+                        if (isAutoAccept) {
+                            UniLostButton(
+                                text = "Open Chat",
+                                onClick = {
+                                    showClaimSheet = false
+                                    claimSubmitted = false
+                                    navController.navigate("chat_detail_screen/c1")
+                                },
+                                icon = Icons.Default.Chat,
+                                fillWidth = false
+                            )
+                            Spacer(modifier = Modifier.height(UniLostSpacing.sm))
+                        }
+
+                        UniLostButton(
+                            text = "View My Claims",
                             onClick = {
                                 showClaimSheet = false
                                 claimSubmitted = false
                                 navController.navigate("my_claims_screen")
                             },
-                            shape = RoundedCornerShape(12.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = Slate600)
-                        ) {
-                            Text("View My Claims")
-                        }
-                        Spacer(modifier = Modifier.height(8.dp))
-                        TextButton(onClick = {
-                            showClaimSheet = false
-                            claimSubmitted = false
-                            secretAnswer = ""
-                            claimMessage = ""
-                        }) {
-                            Text("Close", color = Slate400)
-                        }
+                            variant = if (isAutoAccept) ButtonVariant.SECONDARY else ButtonVariant.PRIMARY,
+                            fillWidth = false
+                        )
+                        Spacer(modifier = Modifier.height(UniLostSpacing.sm))
+                        UniLostButton(
+                            text = "Back to Item",
+                            onClick = {
+                                showClaimSheet = false
+                                claimSubmitted = false
+                                secretAnswer = ""
+                                claimMessage = ""
+                                showEmailToPoster = false
+                            },
+                            variant = ButtonVariant.GHOST,
+                            fillWidth = false
+                        )
                     }
                 } else {
                     // Claim form
-                    Text("Submit a Claim", fontWeight = FontWeight.Bold, fontSize = 20.sp, color = Slate800)
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text("Provide details to prove this item is yours.", fontSize = 14.sp, color = Slate400)
+                    Text(
+                        "Submit a Claim",
+                        style = MaterialTheme.typography.headlineMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Spacer(modifier = Modifier.height(UniLostSpacing.xs))
+                    Text(
+                        "Provide details to prove this item is yours.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
 
-                    Spacer(modifier = Modifier.height(16.dp))
+                    Spacer(modifier = Modifier.height(UniLostSpacing.md))
 
                     // Item summary
                     Card(
                         modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(10.dp),
-                        colors = CardDefaults.cardColors(containerColor = Slate100)
+                        shape = UniLostShapes.sm,
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.surfaceVariant
+                        )
                     ) {
                         Row(
-                            modifier = Modifier.padding(12.dp),
+                            modifier = Modifier.padding(UniLostSpacing.sm),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Surface(
-                                shape = RoundedCornerShape(8.dp),
-                                color = if (isFound) Sage.copy(alpha = 0.12f) else ErrorRed.copy(alpha = 0.12f),
+                                shape = UniLostShapes.sm,
+                                color = if (isFound) SuccessBg else ErrorBg,
                                 modifier = Modifier.size(40.dp)
                             ) {
                                 Box(contentAlignment = Alignment.Center) {
                                     Icon(
                                         if (isFound) Icons.Default.Inventory2 else Icons.Default.SearchOff,
                                         contentDescription = null,
-                                        tint = if (isFound) Sage else ErrorRed,
+                                        tint = if (isFound) Success else ErrorRed,
                                         modifier = Modifier.size(20.dp)
                                     )
                                 }
                             }
-                            Spacer(modifier = Modifier.width(10.dp))
+                            Spacer(modifier = Modifier.width(UniLostSpacing.sm))
                             Column {
-                                Text(item.title, fontWeight = FontWeight.SemiBold, fontSize = 14.sp, color = Slate800, maxLines = 1)
-                                Text(item.type, fontSize = 11.sp, color = if (isFound) Sage else ErrorRed, fontWeight = FontWeight.Medium)
+                                Text(
+                                    item.title,
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                    maxLines = 1
+                                )
+                                Text(
+                                    item.type,
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = if (isFound) Success else ErrorRed,
+                                    fontWeight = FontWeight.Medium
+                                )
                             }
                         }
                     }
 
-                    Spacer(modifier = Modifier.height(16.dp))
+                    Spacer(modifier = Modifier.height(UniLostSpacing.md))
 
                     // Secret detail answer (FOUND items only)
                     if (isFound) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(Icons.Default.Lock, contentDescription = null, modifier = Modifier.size(14.dp), tint = Slate400)
+                            Icon(
+                                Icons.Default.Lock,
+                                contentDescription = null,
+                                modifier = Modifier.size(14.dp),
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
                             Spacer(modifier = Modifier.width(6.dp))
-                            Text("Secret Detail Answer", fontWeight = FontWeight.SemiBold, fontSize = 13.sp, color = Slate800)
+                            Text(
+                                "Secret Detail Answer",
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.SemiBold,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
                         }
-                        Spacer(modifier = Modifier.height(4.dp))
+                        Spacer(modifier = Modifier.height(UniLostSpacing.xs))
                         Text(
                             "Describe a unique feature only the owner would know.",
-                            fontSize = 12.sp, color = Slate400
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
-                        Spacer(modifier = Modifier.height(6.dp))
-                        OutlinedTextField(
+                        Spacer(modifier = Modifier.height(UniLostSpacing.sm))
+                        UniLostTextField(
                             value = secretAnswer,
                             onValueChange = { secretAnswer = it },
-                            modifier = Modifier.fillMaxWidth(),
-                            placeholder = { Text("e.g., There's a scratch on the back...") },
-                            shape = RoundedCornerShape(10.dp),
+                            placeholder = "e.g., There's a scratch on the back...",
+                            singleLine = false,
                             minLines = 2,
                             maxLines = 3
                         )
-                        Spacer(modifier = Modifier.height(14.dp))
+                        Spacer(modifier = Modifier.height(UniLostSpacing.md))
                     }
 
                     // Message
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Default.ChatBubbleOutline, contentDescription = null, modifier = Modifier.size(14.dp), tint = Slate400)
+                        Icon(
+                            Icons.Default.ChatBubbleOutline,
+                            contentDescription = null,
+                            modifier = Modifier.size(14.dp),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
                         Spacer(modifier = Modifier.width(6.dp))
-                        Text("Message", fontWeight = FontWeight.SemiBold, fontSize = 13.sp, color = Slate800)
+                        Text(
+                            "Message",
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
                     }
-                    Spacer(modifier = Modifier.height(4.dp))
+                    Spacer(modifier = Modifier.height(UniLostSpacing.xs))
                     Text(
                         "Why do you think this item is yours?",
-                        fontSize = 12.sp, color = Slate400
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
-                    Spacer(modifier = Modifier.height(6.dp))
-                    OutlinedTextField(
+                    Spacer(modifier = Modifier.height(UniLostSpacing.sm))
+                    UniLostTextField(
                         value = claimMessage,
                         onValueChange = { if (it.length <= 500) claimMessage = it },
-                        modifier = Modifier.fillMaxWidth(),
-                        placeholder = { Text("Describe when and where you lost it...") },
-                        shape = RoundedCornerShape(10.dp),
+                        placeholder = "Describe when and where you lost it...",
+                        singleLine = false,
                         minLines = 3,
                         maxLines = 5,
-                        supportingText = { Text("${claimMessage.length}/500", fontSize = 11.sp, color = Slate400) }
+                        supportingText = "${claimMessage.length}/500"
                     )
 
-                    Spacer(modifier = Modifier.height(16.dp))
+                    Spacer(modifier = Modifier.height(UniLostSpacing.md))
+
+                    // "Show email to poster" checkbox
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { showEmailToPoster = !showEmailToPoster },
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Checkbox(
+                            checked = showEmailToPoster,
+                            onCheckedChange = { showEmailToPoster = it },
+                            colors = CheckboxDefaults.colors(
+                                checkedColor = MaterialTheme.colorScheme.primary,
+                                uncheckedColor = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        )
+                        Spacer(modifier = Modifier.width(UniLostSpacing.xs))
+                        Column {
+                            Text(
+                                "Show my email to the poster",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                            Text(
+                                "Allow the poster to contact you via email",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(UniLostSpacing.md))
 
                     // Submit
-                    Button(
-                        onClick = {
-                            claimSubmitted = true
-                        },
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(12.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = Slate600),
+                    UniLostButton(
+                        text = "Submit Claim",
+                        onClick = { claimSubmitted = true },
+                        icon = Icons.Default.Send,
                         enabled = claimMessage.isNotBlank()
-                    ) {
-                        Icon(Icons.Default.Send, contentDescription = null, modifier = Modifier.size(18.dp))
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text("Submit Claim", fontWeight = FontWeight.SemiBold)
-                    }
+                    )
                 }
             }
         }
     }
 }
 
+/**
+ * Compact related item card used in item detail.
+ */
 @Composable
-fun StatusChip(label: String, color: Color) {
-    Surface(
-        shape = RoundedCornerShape(20.dp),
-        color = color.copy(alpha = 0.12f)
+private fun RelatedItemCard(
+    item: com.hulampay.mobile.data.mock.MockItem,
+    onClick: () -> Unit
+) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick),
+        shape = UniLostShapes.md,
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        elevation = CardDefaults.cardElevation(1.dp)
     ) {
-        Text(
-            text = label.replace("_", " "),
-            color = color,
-            fontSize = 12.sp,
-            fontWeight = FontWeight.SemiBold,
-            modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp)
-        )
+        Row(
+            modifier = Modifier.padding(UniLostSpacing.sm),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Surface(
+                shape = UniLostShapes.sm,
+                color = if (item.type == "LOST") ErrorBg else SuccessBg,
+                modifier = Modifier.size(48.dp)
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(
+                        if (item.type == "LOST") Icons.Default.SearchOff else Icons.Default.Inventory2,
+                        contentDescription = null,
+                        tint = if (item.type == "LOST") ErrorRed else Success,
+                        modifier = Modifier.size(24.dp)
+                    )
+                }
+            }
+            Spacer(modifier = Modifier.width(UniLostSpacing.sm))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    item.title,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    maxLines = 1,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Text(
+                    "${item.category} • ${item.locationDescription}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1
+                )
+            }
+            StatusChip(item.type)
+        }
     }
 }
 
 @Composable
-fun MetaRow(icon: androidx.compose.ui.graphics.vector.ImageVector, label: String, value: String) {
+fun MetaRow(icon: ImageVector, label: String, value: String) {
     Row(verticalAlignment = Alignment.CenterVertically) {
-        Icon(icon, contentDescription = null, modifier = Modifier.size(18.dp), tint = Slate400)
-        Spacer(modifier = Modifier.width(8.dp))
-        Text(label, fontSize = 13.sp, color = Slate400, modifier = Modifier.width(80.dp))
-        Text(value, fontSize = 13.sp, color = Slate800, fontWeight = FontWeight.Medium)
+        Icon(
+            icon,
+            contentDescription = null,
+            modifier = Modifier.size(18.dp),
+            tint = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        Spacer(modifier = Modifier.width(UniLostSpacing.sm))
+        Text(
+            label,
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.width(80.dp)
+        )
+        Text(
+            value,
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurface,
+            fontWeight = FontWeight.Medium
+        )
     }
 }
