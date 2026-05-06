@@ -5,7 +5,7 @@ import edu.cit.chan.unilost.entity.ChatEntity;
 import edu.cit.chan.unilost.entity.UserEntity;
 import edu.cit.chan.unilost.repository.ChatRepository;
 import edu.cit.chan.unilost.repository.UserRepository;
-import edu.cit.chan.unilost.util.JwtUtils;
+import edu.cit.chan.unilost.features.auth.JwtUtils;
 import lombok.RequiredArgsConstructor;
 import org.springframework.messaging.Message;
 import org.springframework.messaging.MessageChannel;

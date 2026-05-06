@@ -1,6 +1,6 @@
 package edu.cit.chan.unilost.controller;
 
-import edu.cit.chan.unilost.dto.ChangePasswordRequest;
+import edu.cit.chan.unilost.features.auth.ChangePasswordRequest;
 import edu.cit.chan.unilost.dto.UpdateUserRequest;
 import edu.cit.chan.unilost.dto.UserDTO;
 import edu.cit.chan.unilost.service.UserService;

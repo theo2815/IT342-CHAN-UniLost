@@ -1,4 +1,4 @@
-package edu.cit.chan.unilost.dto;
+package edu.cit.chan.unilost.features.auth;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;

@@ -3,7 +3,7 @@ package edu.cit.chan.unilost.filter;
 import edu.cit.chan.unilost.entity.AccountStatus;
 import edu.cit.chan.unilost.entity.UserEntity;
 import edu.cit.chan.unilost.repository.UserRepository;
-import edu.cit.chan.unilost.util.JwtUtils;
+import edu.cit.chan.unilost.features.auth.JwtUtils;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;

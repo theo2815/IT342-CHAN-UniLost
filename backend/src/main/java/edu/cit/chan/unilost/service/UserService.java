@@ -1,6 +1,6 @@
 package edu.cit.chan.unilost.service;
 
-import edu.cit.chan.unilost.dto.RegisterRequest;
+import edu.cit.chan.unilost.features.auth.RegisterRequest;
 import edu.cit.chan.unilost.dto.UpdateUserRequest;
 import edu.cit.chan.unilost.dto.UserDTO;
 import edu.cit.chan.unilost.entity.AccountStatus;

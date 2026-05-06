@@ -1,5 +1,6 @@
-package edu.cit.chan.unilost.dto;
+package edu.cit.chan.unilost.features.auth;
 
+import edu.cit.chan.unilost.dto.UserDTO;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;

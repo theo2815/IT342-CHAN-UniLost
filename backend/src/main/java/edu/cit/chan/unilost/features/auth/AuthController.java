@@ -1,11 +1,7 @@
-package edu.cit.chan.unilost.controller;
+package edu.cit.chan.unilost.features.auth;
 
-import edu.cit.chan.unilost.dto.AuthResponse;
-import edu.cit.chan.unilost.dto.LoginRequest;
-import edu.cit.chan.unilost.dto.RegisterRequest;
 import edu.cit.chan.unilost.dto.UserDTO;
 import edu.cit.chan.unilost.service.UserService;
-import edu.cit.chan.unilost.util.JwtUtils;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;

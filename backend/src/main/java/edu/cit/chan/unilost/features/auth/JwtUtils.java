@@ -1,4 +1,4 @@
-package edu.cit.chan.unilost.util;
+package edu.cit.chan.unilost.features.auth;
 
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.security.Keys;
