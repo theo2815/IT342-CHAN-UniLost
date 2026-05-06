@@ -1,11 +1,11 @@
 package edu.cit.chan.unilost.config;
 
-import edu.cit.chan.unilost.entity.CampusEntity;
+import edu.cit.chan.unilost.features.campus.CampusEntity;
+import edu.cit.chan.unilost.features.campus.CampusRepository;
 import edu.cit.chan.unilost.features.user.AccountStatus;
 import edu.cit.chan.unilost.features.user.Role;
 import edu.cit.chan.unilost.features.user.UserEntity;
 import edu.cit.chan.unilost.features.user.UserRepository;
-import edu.cit.chan.unilost.repository.CampusRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;

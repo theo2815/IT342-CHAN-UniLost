@@ -1,6 +1,6 @@
 package edu.cit.chan.unilost.features.user;
 
-import edu.cit.chan.unilost.dto.CampusDTO;
+import edu.cit.chan.unilost.features.campus.CampusDTO;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;

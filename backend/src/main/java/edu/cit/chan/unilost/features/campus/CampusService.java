@@ -1,9 +1,6 @@
-package edu.cit.chan.unilost.service;
+package edu.cit.chan.unilost.features.campus;
 
-import edu.cit.chan.unilost.dto.CampusDTO;
-import edu.cit.chan.unilost.entity.CampusEntity;
 import edu.cit.chan.unilost.entity.ItemStatus;
-import edu.cit.chan.unilost.repository.CampusRepository;
 import edu.cit.chan.unilost.repository.ItemRepository;
 import edu.cit.chan.unilost.util.DtoMapper;
 import lombok.RequiredArgsConstructor;

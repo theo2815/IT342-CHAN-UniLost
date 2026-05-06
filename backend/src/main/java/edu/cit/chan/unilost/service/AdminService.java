@@ -4,6 +4,8 @@ import edu.cit.chan.unilost.dto.*;
 import edu.cit.chan.unilost.entity.*;
 import edu.cit.chan.unilost.exception.ForbiddenException;
 import edu.cit.chan.unilost.exception.ResourceNotFoundException;
+import edu.cit.chan.unilost.features.campus.CampusEntity;
+import edu.cit.chan.unilost.features.campus.CampusRepository;
 import edu.cit.chan.unilost.features.user.AccountStatus;
 import edu.cit.chan.unilost.features.user.Role;
 import edu.cit.chan.unilost.features.user.UserDTO;

@@ -1,11 +1,11 @@
 package edu.cit.chan.unilost.features.user;
 
 import edu.cit.chan.unilost.features.auth.RegisterRequest;
-import edu.cit.chan.unilost.entity.CampusEntity;
+import edu.cit.chan.unilost.features.campus.CampusEntity;
+import edu.cit.chan.unilost.features.campus.CampusRepository;
 import edu.cit.chan.unilost.exception.AuthenticationException;
 import edu.cit.chan.unilost.exception.ForbiddenException;
 import edu.cit.chan.unilost.exception.ResourceNotFoundException;
-import edu.cit.chan.unilost.repository.CampusRepository;
 import edu.cit.chan.unilost.service.CloudinaryService;
 import edu.cit.chan.unilost.service.EmailService;
 import edu.cit.chan.unilost.util.DtoMapper;

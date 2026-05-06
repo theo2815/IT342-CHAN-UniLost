@@ -1,7 +1,5 @@
-package edu.cit.chan.unilost.controller;
+package edu.cit.chan.unilost.features.campus;
 
-import edu.cit.chan.unilost.dto.CampusDTO;
-import edu.cit.chan.unilost.service.CampusService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;

@@ -1,6 +1,5 @@
-package edu.cit.chan.unilost.repository;
+package edu.cit.chan.unilost.features.campus;
 
-import edu.cit.chan.unilost.entity.CampusEntity;
 import org.springframework.data.mongodb.repository.MongoRepository;
 import org.springframework.stereotype.Repository;
 
