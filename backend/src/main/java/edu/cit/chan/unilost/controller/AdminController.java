@@ -4,7 +4,7 @@ import edu.cit.chan.unilost.dto.AuditLogDTO;
 import edu.cit.chan.unilost.dto.BulkActionRequest;
 import edu.cit.chan.unilost.dto.ClaimDTO;
 import edu.cit.chan.unilost.dto.ItemDTO;
-import edu.cit.chan.unilost.dto.UserDTO;
+import edu.cit.chan.unilost.features.user.UserDTO;
 import edu.cit.chan.unilost.service.AdminService;
 import edu.cit.chan.unilost.service.AuditLogService;
 import edu.cit.chan.unilost.service.ClaimService;

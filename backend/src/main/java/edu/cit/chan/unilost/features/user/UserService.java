@@ -1,17 +1,13 @@
-package edu.cit.chan.unilost.service;
+package edu.cit.chan.unilost.features.user;
 
 import edu.cit.chan.unilost.features.auth.RegisterRequest;
-import edu.cit.chan.unilost.dto.UpdateUserRequest;
-import edu.cit.chan.unilost.dto.UserDTO;
-import edu.cit.chan.unilost.entity.AccountStatus;
 import edu.cit.chan.unilost.entity.CampusEntity;
-import edu.cit.chan.unilost.entity.Role;
-import edu.cit.chan.unilost.entity.UserEntity;
 import edu.cit.chan.unilost.exception.AuthenticationException;
 import edu.cit.chan.unilost.exception.ForbiddenException;
 import edu.cit.chan.unilost.exception.ResourceNotFoundException;
 import edu.cit.chan.unilost.repository.CampusRepository;
-import edu.cit.chan.unilost.repository.UserRepository;
+import edu.cit.chan.unilost.service.CloudinaryService;
+import edu.cit.chan.unilost.service.EmailService;
 import edu.cit.chan.unilost.util.DtoMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;

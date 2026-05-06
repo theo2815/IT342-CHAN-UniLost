@@ -5,6 +5,8 @@ import edu.cit.chan.unilost.dto.MessageDTO;
 import edu.cit.chan.unilost.entity.*;
 import edu.cit.chan.unilost.exception.ForbiddenException;
 import edu.cit.chan.unilost.exception.ResourceNotFoundException;
+import edu.cit.chan.unilost.features.user.UserEntity;
+import edu.cit.chan.unilost.features.user.UserRepository;
 import edu.cit.chan.unilost.repository.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;

@@ -2,10 +2,10 @@ package edu.cit.chan.unilost.service;
 
 import edu.cit.chan.unilost.entity.CampusEntity;
 import edu.cit.chan.unilost.entity.ItemEntity;
-import edu.cit.chan.unilost.entity.UserEntity;
+import edu.cit.chan.unilost.features.user.UserEntity;
+import edu.cit.chan.unilost.features.user.UserRepository;
 import edu.cit.chan.unilost.repository.CampusRepository;
 import edu.cit.chan.unilost.repository.ItemRepository;
-import edu.cit.chan.unilost.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;

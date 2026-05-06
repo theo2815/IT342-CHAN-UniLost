@@ -1,7 +1,7 @@
 package edu.cit.chan.unilost.features.auth;
 
-import edu.cit.chan.unilost.dto.UserDTO;
-import edu.cit.chan.unilost.service.UserService;
+import edu.cit.chan.unilost.features.user.UserDTO;
+import edu.cit.chan.unilost.features.user.UserService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;

@@ -1,9 +1,6 @@
-package edu.cit.chan.unilost.controller;
+package edu.cit.chan.unilost.features.user;
 
 import edu.cit.chan.unilost.features.auth.ChangePasswordRequest;
-import edu.cit.chan.unilost.dto.UpdateUserRequest;
-import edu.cit.chan.unilost.dto.UserDTO;
-import edu.cit.chan.unilost.service.UserService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;

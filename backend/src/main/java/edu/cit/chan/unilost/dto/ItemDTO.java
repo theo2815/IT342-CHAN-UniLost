@@ -1,5 +1,6 @@
 package edu.cit.chan.unilost.dto;
 
+import edu.cit.chan.unilost.features.user.UserDTO;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;

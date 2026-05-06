@@ -1,9 +1,9 @@
 package edu.cit.chan.unilost.util;
 
 import edu.cit.chan.unilost.dto.CampusDTO;
-import edu.cit.chan.unilost.dto.UserDTO;
 import edu.cit.chan.unilost.entity.CampusEntity;
-import edu.cit.chan.unilost.entity.UserEntity;
+import edu.cit.chan.unilost.features.user.UserDTO;
+import edu.cit.chan.unilost.features.user.UserEntity;
 
 public final class DtoMapper {
 

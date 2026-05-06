@@ -1,4 +1,4 @@
-package edu.cit.chan.unilost.dto;
+package edu.cit.chan.unilost.features.user;
 
 import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;

@@ -1,4 +1,4 @@
-package edu.cit.chan.unilost.entity;
+package edu.cit.chan.unilost.features.user;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.AllArgsConstructor;

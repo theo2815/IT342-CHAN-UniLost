@@ -1,8 +1,5 @@
-package edu.cit.chan.unilost.repository;
+package edu.cit.chan.unilost.features.user;
 
-import edu.cit.chan.unilost.entity.AccountStatus;
-import edu.cit.chan.unilost.entity.Role;
-import edu.cit.chan.unilost.entity.UserEntity;
 import org.springframework.data.mongodb.repository.MongoRepository;
 import org.springframework.stereotype.Repository;
 
