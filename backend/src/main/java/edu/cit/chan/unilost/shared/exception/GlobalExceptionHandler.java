@@ -1,8 +1,5 @@
-package edu.cit.chan.unilost.config;
+package edu.cit.chan.unilost.shared.exception;
 
-import edu.cit.chan.unilost.exception.AuthenticationException;
-import edu.cit.chan.unilost.exception.ForbiddenException;
-import edu.cit.chan.unilost.exception.ResourceNotFoundException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.dao.OptimisticLockingFailureException;

@@ -1,4 +1,4 @@
-package edu.cit.chan.unilost.util;
+package edu.cit.chan.unilost.shared.util;
 
 import edu.cit.chan.unilost.features.campus.CampusDTO;
 import edu.cit.chan.unilost.features.campus.CampusEntity;

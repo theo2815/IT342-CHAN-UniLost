@@ -1,4 +1,4 @@
-package edu.cit.chan.unilost.config;
+package edu.cit.chan.unilost.shared.config;
 
 import com.mongodb.client.model.IndexOptions;
 import com.mongodb.client.model.Indexes;

@@ -1,4 +1,4 @@
-package edu.cit.chan.unilost.config;
+package edu.cit.chan.unilost.shared.config;
 
 import edu.cit.chan.unilost.features.campus.CampusEntity;
 import edu.cit.chan.unilost.features.campus.CampusRepository;

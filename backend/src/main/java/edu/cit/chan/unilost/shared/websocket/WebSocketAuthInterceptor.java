@@ -1,4 +1,4 @@
-package edu.cit.chan.unilost.config;
+package edu.cit.chan.unilost.shared.websocket;
 
 import edu.cit.chan.unilost.features.chat.ChatEntity;
 import edu.cit.chan.unilost.features.chat.ChatRepository;

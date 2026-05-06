@@ -1,4 +1,4 @@
-package edu.cit.chan.unilost.config;
+package edu.cit.chan.unilost.shared.config;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
@@ -31,8 +31,8 @@ public class SecurityConfig {
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http,
-            edu.cit.chan.unilost.filter.JwtAuthenticationFilter jwtAuthenticationFilter,
-            edu.cit.chan.unilost.filter.RateLimitFilter rateLimitFilter) throws Exception {
+            edu.cit.chan.unilost.shared.filter.JwtAuthenticationFilter jwtAuthenticationFilter,
+            edu.cit.chan.unilost.shared.filter.RateLimitFilter rateLimitFilter) throws Exception {
         http
                 // CSRF is disabled because this is a stateless JWT-based API with no cookie-based sessions.
                 // If cookie-based auth is ever added, CSRF must be re-enabled (especially for SockJS fallback).
@@ -84,7 +84,7 @@ public class SecurityConfig {
                 .addFilterBefore(jwtAuthenticationFilter,
                         org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter.class)
                 .addFilterBefore(rateLimitFilter,
-                        edu.cit.chan.unilost.filter.JwtAuthenticationFilter.class);
+                        edu.cit.chan.unilost.shared.filter.JwtAuthenticationFilter.class);
 
         return http.build();
     }

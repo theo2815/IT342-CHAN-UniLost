@@ -1,4 +1,4 @@
-package edu.cit.chan.unilost.filter;
+package edu.cit.chan.unilost.shared.filter;
 
 import edu.cit.chan.unilost.features.user.AccountStatus;
 import edu.cit.chan.unilost.features.user.UserEntity;

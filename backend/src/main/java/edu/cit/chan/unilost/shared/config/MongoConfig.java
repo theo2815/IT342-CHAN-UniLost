@@ -1,4 +1,4 @@
-package edu.cit.chan.unilost.config;
+package edu.cit.chan.unilost.shared.config;
 
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.mongodb.config.AbstractMongoClientConfiguration;

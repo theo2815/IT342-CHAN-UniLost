@@ -1,4 +1,4 @@
-package edu.cit.chan.unilost.filter;
+package edu.cit.chan.unilost.shared.filter;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.FilterChain;

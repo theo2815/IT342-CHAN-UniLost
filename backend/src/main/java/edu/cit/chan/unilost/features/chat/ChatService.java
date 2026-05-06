@@ -1,7 +1,7 @@
 package edu.cit.chan.unilost.features.chat;
 
-import edu.cit.chan.unilost.exception.ForbiddenException;
-import edu.cit.chan.unilost.exception.ResourceNotFoundException;
+import edu.cit.chan.unilost.shared.exception.ForbiddenException;
+import edu.cit.chan.unilost.shared.exception.ResourceNotFoundException;
 import edu.cit.chan.unilost.features.claim.ClaimEntity;
 import edu.cit.chan.unilost.features.claim.ClaimRepository;
 import edu.cit.chan.unilost.features.item.ItemEntity;

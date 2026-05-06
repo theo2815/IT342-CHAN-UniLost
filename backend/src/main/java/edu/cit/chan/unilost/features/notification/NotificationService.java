@@ -1,6 +1,6 @@
 package edu.cit.chan.unilost.features.notification;
 
-import edu.cit.chan.unilost.exception.ResourceNotFoundException;
+import edu.cit.chan.unilost.shared.exception.ResourceNotFoundException;
 import edu.cit.chan.unilost.features.user.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

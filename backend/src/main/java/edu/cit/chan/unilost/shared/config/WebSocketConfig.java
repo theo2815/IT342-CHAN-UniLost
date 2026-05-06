@@ -1,5 +1,6 @@
-package edu.cit.chan.unilost.config;
+package edu.cit.chan.unilost.shared.config;
 
+import edu.cit.chan.unilost.shared.websocket.WebSocketAuthInterceptor;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
