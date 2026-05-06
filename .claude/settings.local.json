@@ -27,7 +27,14 @@
       "Bash(./gradlew compileDebugKotlin)",
       "Bash(java:*)",
       "Bash(./gradlew assembleDebug)",
-      "Bash(git checkout *)"
+      "Bash(git checkout *)",
+      "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\Theo Cedric Chan\\\\documents\\\\Start up project\\\\IT342-CHAN-UniLost\\\\backend\" -Recurse -Directory)",
+      "Bash(Select-Object -ExpandProperty FullName)",
+      "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\Theo Cedric Chan\\\\documents\\\\Start up project\\\\IT342-CHAN-UniLost\\\\website\\\\src\" -Recurse -Directory)",
+      "Bash(Select-Object FullName)",
+      "Bash(Get-ChildItem *)",
+      "Bash(git add *)",
+      "Bash(git commit *)"
     ]
   },
   "defaultMode": "acceptEdits"
