@@ -1,10 +1,7 @@
-package edu.cit.chan.unilost.service;
+package edu.cit.chan.unilost.features.notification;
 
-import edu.cit.chan.unilost.dto.NotificationDTO;
-import edu.cit.chan.unilost.entity.NotificationEntity;
 import edu.cit.chan.unilost.exception.ResourceNotFoundException;
 import edu.cit.chan.unilost.features.user.UserRepository;
-import edu.cit.chan.unilost.repository.NotificationRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;

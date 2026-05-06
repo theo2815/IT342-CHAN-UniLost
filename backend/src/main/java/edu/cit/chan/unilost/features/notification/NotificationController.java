@@ -1,7 +1,5 @@
-package edu.cit.chan.unilost.controller;
+package edu.cit.chan.unilost.features.notification;
 
-import edu.cit.chan.unilost.dto.NotificationDTO;
-import edu.cit.chan.unilost.service.NotificationService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;

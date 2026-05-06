@@ -8,7 +8,7 @@ import edu.cit.chan.unilost.features.item.ItemEntity;
 import edu.cit.chan.unilost.features.item.ItemRepository;
 import edu.cit.chan.unilost.features.user.UserEntity;
 import edu.cit.chan.unilost.features.user.UserRepository;
-import edu.cit.chan.unilost.service.NotificationService;
+import edu.cit.chan.unilost.features.notification.NotificationService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;

@@ -15,6 +15,7 @@ import edu.cit.chan.unilost.features.item.ItemEntity;
 import edu.cit.chan.unilost.features.item.ItemRepository;
 import edu.cit.chan.unilost.features.item.ItemStatus;
 import edu.cit.chan.unilost.features.item.ItemType;
+import edu.cit.chan.unilost.features.notification.NotificationService;
 import edu.cit.chan.unilost.features.user.AccountStatus;
 import edu.cit.chan.unilost.features.user.Role;
 import edu.cit.chan.unilost.features.user.UserDTO;

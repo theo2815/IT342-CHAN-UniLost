@@ -17,7 +17,7 @@ import edu.cit.chan.unilost.features.chat.ChatEntity;
 import edu.cit.chan.unilost.features.chat.ChatRepository;
 import edu.cit.chan.unilost.features.chat.ChatService;
 import edu.cit.chan.unilost.features.chat.MessageType;
-import edu.cit.chan.unilost.service.NotificationService;
+import edu.cit.chan.unilost.features.notification.NotificationService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
