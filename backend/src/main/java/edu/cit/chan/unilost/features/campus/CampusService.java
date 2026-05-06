@@ -1,7 +1,7 @@
 package edu.cit.chan.unilost.features.campus;
 
-import edu.cit.chan.unilost.entity.ItemStatus;
-import edu.cit.chan.unilost.repository.ItemRepository;
+import edu.cit.chan.unilost.features.item.ItemRepository;
+import edu.cit.chan.unilost.features.item.ItemStatus;
 import edu.cit.chan.unilost.util.DtoMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.mongodb.core.geo.GeoJsonPoint;

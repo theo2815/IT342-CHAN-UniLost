@@ -1,4 +1,4 @@
-package edu.cit.chan.unilost.dto;
+package edu.cit.chan.unilost.features.item;
 
 import edu.cit.chan.unilost.features.campus.CampusDTO;
 import edu.cit.chan.unilost.features.user.UserDTO;

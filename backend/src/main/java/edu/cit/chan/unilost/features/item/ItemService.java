@@ -1,9 +1,5 @@
-package edu.cit.chan.unilost.service;
+package edu.cit.chan.unilost.features.item;
 
-import edu.cit.chan.unilost.dto.ItemDTO;
-import edu.cit.chan.unilost.dto.ItemRequest;
-import edu.cit.chan.unilost.entity.ItemEntity;
-import edu.cit.chan.unilost.entity.ItemStatus;
 import edu.cit.chan.unilost.exception.ForbiddenException;
 import edu.cit.chan.unilost.exception.ResourceNotFoundException;
 import edu.cit.chan.unilost.features.campus.CampusEntity;
@@ -11,7 +7,7 @@ import edu.cit.chan.unilost.features.campus.CampusRepository;
 import edu.cit.chan.unilost.features.user.Role;
 import edu.cit.chan.unilost.features.user.UserEntity;
 import edu.cit.chan.unilost.features.user.UserRepository;
-import edu.cit.chan.unilost.repository.ItemRepository;
+import edu.cit.chan.unilost.service.CloudinaryService;
 import edu.cit.chan.unilost.util.DtoMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
