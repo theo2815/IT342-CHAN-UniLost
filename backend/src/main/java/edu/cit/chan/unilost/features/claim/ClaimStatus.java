@@ -1,4 +1,4 @@
-package edu.cit.chan.unilost.entity;
+package edu.cit.chan.unilost.features.claim;
 
 public enum ClaimStatus {
     PENDING,

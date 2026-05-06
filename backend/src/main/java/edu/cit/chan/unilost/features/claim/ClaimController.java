@@ -1,8 +1,5 @@
-package edu.cit.chan.unilost.controller;
+package edu.cit.chan.unilost.features.claim;
 
-import edu.cit.chan.unilost.dto.ClaimDTO;
-import edu.cit.chan.unilost.dto.ClaimRequest;
-import edu.cit.chan.unilost.service.ClaimService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;

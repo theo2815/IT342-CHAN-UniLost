@@ -1,4 +1,4 @@
-package edu.cit.chan.unilost.dto;
+package edu.cit.chan.unilost.features.claim;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
