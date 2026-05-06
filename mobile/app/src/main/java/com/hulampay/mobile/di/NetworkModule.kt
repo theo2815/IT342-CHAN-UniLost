@@ -2,6 +2,7 @@ package com.hulampay.mobile.di
 
 import com.hulampay.mobile.data.api.AuthApiService
 import com.hulampay.mobile.data.api.AuthInterceptor
+import com.hulampay.mobile.data.api.ItemApiService
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -52,6 +53,12 @@ object NetworkModule {
     @Singleton
     fun provideAuthApiService(retrofit: Retrofit): AuthApiService {
         return retrofit.create(AuthApiService::class.java)
+    }
+
+    @Provides
+    @Singleton
+    fun provideItemApiService(retrofit: Retrofit): ItemApiService {
+        return retrofit.create(ItemApiService::class.java)
     }
 
     @Provides

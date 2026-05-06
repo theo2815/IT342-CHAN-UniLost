@@ -22,41 +22,98 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.hulampay.mobile.data.mock.MockClaims
-import com.hulampay.mobile.data.mock.MockItems
+import com.hulampay.mobile.data.model.ItemDto
 import com.hulampay.mobile.ui.components.*
 import com.hulampay.mobile.ui.theme.*
+import com.hulampay.mobile.utils.UiState
+import com.hulampay.mobile.utils.timeAgo
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ItemDetailScreen(navController: NavController, itemId: String) {
-    val item = remember { MockItems.items.find { it.id == itemId } }
+fun ItemDetailScreen(
+    navController: NavController,
+    itemId: String,
+    viewModel: ItemDetailViewModel = hiltViewModel(),
+) {
+    val state by viewModel.state.collectAsState()
 
-    if (item == null) {
-        Scaffold(
-            topBar = {
-                UniLostDetailTopBar(
-                    title = "Not Found",
-                    onBackClick = { navController.popBackStack() }
-                )
-            }
-        ) { padding ->
-            EmptyState(
-                icon = Icons.Default.SearchOff,
-                title = "Item not found",
-                message = "This item may have been removed or doesn't exist.",
-                modifier = Modifier.padding(padding)
-            )
-        }
-        return
+    LaunchedEffect(itemId) {
+        viewModel.load(itemId)
     }
 
+    when (val current = state) {
+        UiState.Idle, UiState.Loading -> DetailLoadingScaffold(navController)
+        is UiState.Error -> DetailErrorScaffold(navController, current.message)
+        is UiState.Success -> ItemDetailContent(
+            navController = navController,
+            data = current.data,
+        )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun DetailLoadingScaffold(navController: NavController) {
+    Scaffold(
+        topBar = {
+            UniLostDetailTopBar(
+                title = "Item Details",
+                onBackClick = { navController.popBackStack() }
+            )
+        }
+    ) { padding ->
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding),
+            contentAlignment = Alignment.Center
+        ) {
+            CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun DetailErrorScaffold(navController: NavController, message: String) {
+    Scaffold(
+        topBar = {
+            UniLostDetailTopBar(
+                title = "Not Found",
+                onBackClick = { navController.popBackStack() }
+            )
+        }
+    ) { padding ->
+        EmptyState(
+            icon = Icons.Default.SearchOff,
+            title = "Item not found",
+            message = message.ifBlank { "This item may have been removed or doesn't exist." },
+            modifier = Modifier.padding(padding)
+        )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun ItemDetailContent(
+    navController: NavController,
+    data: ItemDetailData,
+) {
+    val item = data.item
     val context = LocalContext.current
     val isFound = item.type == "FOUND"
     val isLost = item.type == "LOST"
-    val isPoster = item.postedByName == "Juan D."
-    val isAdmin = true // Mock admin status
+    val isPoster = data.isPoster
+    val isAdmin = data.isAdmin
+
+    val posterName = item.reporter?.fullName.takeUnless { it.isNullOrBlank() } ?: "Unknown"
+    val campusName = item.campus?.name.takeUnless { it.isNullOrBlank() }
+        ?: item.campus?.shortLabel.orEmpty()
+    val locationText = item.location.orEmpty()
+
     var showClaimSheet by remember { mutableStateOf(false) }
     var claimSubmitted by remember { mutableStateOf(false) }
     var secretAnswer by remember { mutableStateOf("") }
@@ -66,13 +123,8 @@ fun ItemDetailScreen(navController: NavController, itemId: String) {
     var showReportDialog by remember { mutableStateOf(false) }
     var showDeleteDialog by remember { mutableStateOf(false) }
 
-    val incomingClaims = remember { MockClaims.getClaimsForItem(itemId) }
-    val relatedItems = remember {
-        MockItems.items.filter {
-            it.id != item.id && it.status == "ACTIVE" &&
-                    (it.category == item.category || it.schoolShortName == item.schoolShortName)
-        }.take(3)
-    }
+    // Incoming claims still come from MockClaims — claims wiring is Phase 4.
+    val incomingClaims = remember(item.id) { MockClaims.getClaimsForItem(item.id) }
 
     // For LOST items, claims are auto-accepted
     val isAutoAccept = isLost
@@ -320,9 +372,9 @@ fun ItemDetailScreen(navController: NavController, itemId: String) {
                         verticalArrangement = Arrangement.spacedBy(UniLostSpacing.sm)
                     ) {
                         MetaRow(Icons.Default.Category, "Category", item.category)
-                        MetaRow(Icons.Default.LocationOn, "Location", item.locationDescription)
-                        MetaRow(Icons.Default.CalendarToday, "Posted", MockItems.timeAgo(item.createdAt))
-                        MetaRow(Icons.Default.School, "School", item.schoolName)
+                        MetaRow(Icons.Default.LocationOn, "Location", locationText)
+                        MetaRow(Icons.Default.CalendarToday, "Posted", timeAgo(item.createdAt))
+                        MetaRow(Icons.Default.School, "School", campusName)
                     }
                 }
 
@@ -341,17 +393,17 @@ fun ItemDetailScreen(navController: NavController, itemId: String) {
                         modifier = Modifier.padding(UniLostSpacing.md),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        AvatarView(name = item.postedByName, size = 40.dp)
+                        AvatarView(name = posterName, size = 40.dp)
                         Spacer(modifier = Modifier.width(UniLostSpacing.sm))
                         Column {
                             Text(
-                                item.postedByName,
+                                posterName,
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.SemiBold,
                                 color = MaterialTheme.colorScheme.onSurface
                             )
                             Text(
-                                item.schoolName,
+                                campusName,
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -360,7 +412,7 @@ fun ItemDetailScreen(navController: NavController, itemId: String) {
                 }
 
                 // Related items
-                if (relatedItems.isNotEmpty()) {
+                if (data.relatedItems.isNotEmpty()) {
                     Spacer(modifier = Modifier.height(UniLostSpacing.lg))
                     Text(
                         "Related Items",
@@ -369,7 +421,7 @@ fun ItemDetailScreen(navController: NavController, itemId: String) {
                         color = MaterialTheme.colorScheme.onSurface
                     )
                     Spacer(modifier = Modifier.height(UniLostSpacing.sm))
-                    relatedItems.forEach { relItem ->
+                    data.relatedItems.forEach { relItem ->
                         RelatedItemCard(
                             item = relItem,
                             onClick = { navController.navigate("item_detail_screen/${relItem.id}") }
@@ -378,7 +430,7 @@ fun ItemDetailScreen(navController: NavController, itemId: String) {
                     }
                 }
 
-                // Incoming Claims section (visible only for poster)
+                // Incoming Claims section (visible only for poster) — still backed by MockClaims (Phase 4).
                 if (isPoster && incomingClaims.isNotEmpty()) {
                     Spacer(modifier = Modifier.height(UniLostSpacing.lg))
                     Row(
@@ -466,7 +518,7 @@ fun ItemDetailScreen(navController: NavController, itemId: String) {
                                                 )
                                                 Spacer(modifier = Modifier.height(UniLostSpacing.xxs))
                                                 Text(
-                                                    item.secretDetail ?: "N/A",
+                                                    item.secretDetailQuestion ?: "N/A",
                                                     style = MaterialTheme.typography.bodySmall,
                                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                                 )
@@ -969,7 +1021,7 @@ fun ItemDetailScreen(navController: NavController, itemId: String) {
  */
 @Composable
 private fun RelatedItemCard(
-    item: com.hulampay.mobile.data.mock.MockItem,
+    item: ItemDto,
     onClick: () -> Unit
 ) {
     Card(
@@ -1008,7 +1060,7 @@ private fun RelatedItemCard(
                     color = MaterialTheme.colorScheme.onSurface
                 )
                 Text(
-                    "${item.category} • ${item.locationDescription}",
+                    "${item.category} • ${item.location.orEmpty()}",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1

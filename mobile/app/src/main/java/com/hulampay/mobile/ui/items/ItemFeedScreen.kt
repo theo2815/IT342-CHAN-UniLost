@@ -13,20 +13,24 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.blur
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
-import com.hulampay.mobile.data.mock.MockItem
-import com.hulampay.mobile.data.mock.MockItems
+import com.hulampay.mobile.data.model.ItemDto
 import com.hulampay.mobile.ui.components.*
 import com.hulampay.mobile.ui.theme.*
+import com.hulampay.mobile.utils.UiState
+import com.hulampay.mobile.utils.timeAgo
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ItemFeedScreen(navController: NavController) {
+fun ItemFeedScreen(
+    navController: NavController,
+    viewModel: ItemFeedViewModel = hiltViewModel(),
+) {
     val filters = listOf("All", "Lost", "Found")
     var selectedFilter by remember { mutableStateOf("All") }
     var searchQuery by remember { mutableStateOf("") }
@@ -34,8 +38,11 @@ fun ItemFeedScreen(navController: NavController) {
     val categories = listOf("All", "Electronics", "Documents", "Accessories", "Clothing", "Others")
     var selectedCategory by remember { mutableStateOf("All") }
 
-    val filteredItems = remember(selectedFilter, searchQuery, selectedCategory) {
-        MockItems.items.filter { item ->
+    val itemsState by viewModel.itemsState.collectAsState()
+    val allItems: List<ItemDto> = (itemsState as? UiState.Success)?.data.orEmpty()
+
+    val filteredItems = remember(itemsState, selectedFilter, searchQuery, selectedCategory) {
+        allItems.filter { item ->
             val matchesType = when (selectedFilter) {
                 "Lost" -> item.type == "LOST"
                 "Found" -> item.type == "FOUND"
@@ -44,7 +51,7 @@ fun ItemFeedScreen(navController: NavController) {
             val matchesSearch = if (searchQuery.isBlank()) true
             else item.title.contains(searchQuery, true) ||
                     item.description.contains(searchQuery, true) ||
-                    item.locationDescription.contains(searchQuery, true)
+                    (item.location?.contains(searchQuery, true) == true)
             val matchesCategory = if (selectedCategory == "All") true
             else item.category.equals(selectedCategory, true)
             matchesType && matchesSearch && matchesCategory
@@ -152,34 +159,55 @@ fun ItemFeedScreen(navController: NavController) {
             }
 
             // ── Items Feed ──
-            if (filteredItems.isEmpty()) {
-                EmptyState(
-                    icon = Icons.Default.SearchOff,
-                    title = "No items found",
-                    message = "Try adjusting your filters or search term.",
-                    actionLabel = "Clear Filters",
-                    onAction = {
-                        selectedFilter = "All"
-                        selectedCategory = "All"
-                        searchQuery = ""
+            when (val state = itemsState) {
+                is UiState.Loading, UiState.Idle -> {
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
                     }
-                )
-            } else {
-                LazyColumn(
-                    contentPadding = PaddingValues(
-                        start = UniLostSpacing.md,
-                        end = UniLostSpacing.md,
-                        bottom = UniLostSpacing.xxl
-                    ),
-                    verticalArrangement = Arrangement.spacedBy(UniLostSpacing.sm)
-                ) {
-                    items(filteredItems) { item ->
-                        FeedItemCard(
-                            item = item,
-                            onClick = {
-                                navController.navigate("item_detail_screen/${item.id}")
+                }
+                is UiState.Error -> {
+                    EmptyState(
+                        icon = Icons.Default.CloudOff,
+                        title = "Couldn't load items",
+                        message = state.message,
+                        actionLabel = "Retry",
+                        onAction = { viewModel.loadItems() }
+                    )
+                }
+                is UiState.Success -> {
+                    if (filteredItems.isEmpty()) {
+                        EmptyState(
+                            icon = Icons.Default.SearchOff,
+                            title = "No items found",
+                            message = "Try adjusting your filters or search term.",
+                            actionLabel = "Clear Filters",
+                            onAction = {
+                                selectedFilter = "All"
+                                selectedCategory = "All"
+                                searchQuery = ""
                             }
                         )
+                    } else {
+                        LazyColumn(
+                            contentPadding = PaddingValues(
+                                start = UniLostSpacing.md,
+                                end = UniLostSpacing.md,
+                                bottom = UniLostSpacing.xxl
+                            ),
+                            verticalArrangement = Arrangement.spacedBy(UniLostSpacing.sm)
+                        ) {
+                            items(filteredItems) { item ->
+                                FeedItemCard(
+                                    item = item,
+                                    onClick = {
+                                        navController.navigate("item_detail_screen/${item.id}")
+                                    }
+                                )
+                            }
+                        }
                     }
                 }
             }
@@ -193,11 +221,13 @@ fun ItemFeedScreen(navController: NavController) {
  */
 @Composable
 private fun FeedItemCard(
-    item: MockItem,
+    item: ItemDto,
     onClick: () -> Unit
 ) {
     val isFound = item.type == "FOUND"
     val accentColor = if (item.type == "LOST") ErrorRed else Sage400
+    val posterName = item.reporter?.fullName.takeUnless { it.isNullOrBlank() } ?: "Unknown"
+    val locationText = item.location.orEmpty()
 
     Card(
         modifier = Modifier
@@ -272,24 +302,13 @@ private fun FeedItemCard(
                     .weight(1f)
                     .padding(UniLostSpacing.sm)
             ) {
-                // Status row
+                // Status row — claim count badge omitted: backend ItemDTO does not expose it.
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(UniLostSpacing.xs)
                 ) {
                     StatusChip(item.status)
                     Spacer(modifier = Modifier.weight(1f))
-                    if (item.claimCount > 0) {
-                        Badge(
-                            containerColor = Purple,
-                            contentColor = White
-                        ) {
-                            Text(
-                                "${item.claimCount}",
-                                style = MaterialTheme.typography.labelSmall
-                            )
-                        }
-                    }
                 }
 
                 Spacer(modifier = Modifier.height(UniLostSpacing.xs))
@@ -335,7 +354,7 @@ private fun FeedItemCard(
                         )
                         Spacer(modifier = Modifier.width(2.dp))
                         Text(
-                            text = item.locationDescription,
+                            text = locationText,
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             maxLines = 1,
@@ -345,7 +364,7 @@ private fun FeedItemCard(
 
                     // Time ago
                     Text(
-                        text = MockItems.timeAgo(item.createdAt),
+                        text = timeAgo(item.createdAt),
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -356,12 +375,12 @@ private fun FeedItemCard(
                 // Posted by
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     AvatarView(
-                        name = item.postedByName,
+                        name = posterName,
                         size = 20.dp
                     )
                     Spacer(modifier = Modifier.width(UniLostSpacing.xs))
                     Text(
-                        text = item.postedByName,
+                        text = posterName,
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -382,3 +401,4 @@ private fun FeedItemCard(
         }
     }
 }
+
