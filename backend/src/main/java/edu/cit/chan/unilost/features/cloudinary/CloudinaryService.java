@@ -1,4 +1,4 @@
-package edu.cit.chan.unilost.service;
+package edu.cit.chan.unilost.features.cloudinary;
 
 import com.cloudinary.Cloudinary;
 import com.cloudinary.utils.ObjectUtils;

@@ -1,4 +1,4 @@
-package edu.cit.chan.unilost.service;
+package edu.cit.chan.unilost.features.email;
 
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;

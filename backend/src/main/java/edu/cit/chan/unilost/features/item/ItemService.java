@@ -7,7 +7,7 @@ import edu.cit.chan.unilost.features.campus.CampusRepository;
 import edu.cit.chan.unilost.features.user.Role;
 import edu.cit.chan.unilost.features.user.UserEntity;
 import edu.cit.chan.unilost.features.user.UserRepository;
-import edu.cit.chan.unilost.service.CloudinaryService;
+import edu.cit.chan.unilost.features.cloudinary.CloudinaryService;
 import edu.cit.chan.unilost.util.DtoMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
