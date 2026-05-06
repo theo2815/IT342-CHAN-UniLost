@@ -1,8 +1,5 @@
-package edu.cit.chan.unilost.controller;
+package edu.cit.chan.unilost.features.chat;
 
-import edu.cit.chan.unilost.dto.ChatDTO;
-import edu.cit.chan.unilost.dto.MessageDTO;
-import edu.cit.chan.unilost.service.ChatService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;

@@ -1,6 +1,5 @@
-package edu.cit.chan.unilost.repository;
+package edu.cit.chan.unilost.features.chat;
 
-import edu.cit.chan.unilost.entity.ChatEntity;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.mongodb.repository.MongoRepository;

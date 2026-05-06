@@ -1,8 +1,5 @@
-package edu.cit.chan.unilost.service;
+package edu.cit.chan.unilost.features.chat;
 
-import edu.cit.chan.unilost.dto.ChatDTO;
-import edu.cit.chan.unilost.dto.MessageDTO;
-import edu.cit.chan.unilost.entity.*;
 import edu.cit.chan.unilost.exception.ForbiddenException;
 import edu.cit.chan.unilost.exception.ResourceNotFoundException;
 import edu.cit.chan.unilost.features.claim.ClaimEntity;
@@ -11,7 +8,7 @@ import edu.cit.chan.unilost.features.item.ItemEntity;
 import edu.cit.chan.unilost.features.item.ItemRepository;
 import edu.cit.chan.unilost.features.user.UserEntity;
 import edu.cit.chan.unilost.features.user.UserRepository;
-import edu.cit.chan.unilost.repository.*;
+import edu.cit.chan.unilost.service.NotificationService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;

@@ -1,10 +1,10 @@
 package edu.cit.chan.unilost.config;
 
-import edu.cit.chan.unilost.entity.ChatEntity;
+import edu.cit.chan.unilost.features.chat.ChatEntity;
+import edu.cit.chan.unilost.features.chat.ChatRepository;
 import edu.cit.chan.unilost.features.user.AccountStatus;
 import edu.cit.chan.unilost.features.user.UserEntity;
 import edu.cit.chan.unilost.features.user.UserRepository;
-import edu.cit.chan.unilost.repository.ChatRepository;
 import edu.cit.chan.unilost.features.auth.JwtUtils;
 import lombok.RequiredArgsConstructor;
 import org.springframework.messaging.Message;
