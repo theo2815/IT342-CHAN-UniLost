@@ -1,6 +1,5 @@
 package edu.cit.chan.unilost.features.claim;
 
-import edu.cit.chan.unilost.entity.*;
 import edu.cit.chan.unilost.exception.ForbiddenException;
 import edu.cit.chan.unilost.exception.ResourceNotFoundException;
 import edu.cit.chan.unilost.features.campus.CampusEntity;

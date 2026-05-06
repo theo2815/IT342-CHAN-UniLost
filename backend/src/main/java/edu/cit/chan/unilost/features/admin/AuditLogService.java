@@ -1,8 +1,5 @@
-package edu.cit.chan.unilost.service;
+package edu.cit.chan.unilost.features.admin;
 
-import edu.cit.chan.unilost.dto.AuditLogDTO;
-import edu.cit.chan.unilost.entity.AuditLogEntity;
-import edu.cit.chan.unilost.repository.AuditLogRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;

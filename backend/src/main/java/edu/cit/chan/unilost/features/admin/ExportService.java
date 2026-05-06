@@ -1,4 +1,4 @@
-package edu.cit.chan.unilost.service;
+package edu.cit.chan.unilost.features.admin;
 
 import edu.cit.chan.unilost.features.campus.CampusEntity;
 import edu.cit.chan.unilost.features.campus.CampusRepository;
