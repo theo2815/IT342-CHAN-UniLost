@@ -34,7 +34,21 @@
       "Bash(Select-Object FullName)",
       "Bash(Get-ChildItem *)",
       "Bash(git add *)",
-      "Bash(git commit *)"
+      "Bash(git commit *)",
+      "Bash(mkdir -p features/auth features/user features/campus features/item features/claim features/chat features/notification features/admin features/cloudinary features/email shared/config shared/filter shared/websocket shared/exception shared/util)",
+      "Bash(touch __TRACKED_VAR__/.gitkeep)",
+      "Bash(git mv *)",
+      "Bash(git rm *)",
+      "Bash(./mvnw.cmd -q -DskipTests compile)",
+      "Bash(./mvnw.cmd -DskipTests compile)",
+      "Bash(./mvnw.cmd clean *)",
+      "Bash(git filter-branch *)",
+      "Bash(git stash *)",
+      "PowerShell(\\(Get-ChildItem \"C:\\\\Users\\\\Theo Cedric Chan\\\\Documents\\\\Obsidian Vault\\\\UniLost Vault\\\\\" | Measure-Object\\).Count)",
+      "PowerShell(Get-ChildItem *)",
+      "Bash(Select-Object Name)",
+      "Read(//tmp/**)",
+      "Bash(kill %1)"
     ]
   },
   "defaultMode": "acceptEdits"
