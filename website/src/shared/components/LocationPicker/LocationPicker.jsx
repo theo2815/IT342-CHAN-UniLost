@@ -1,7 +1,7 @@
 import { useState, useCallback } from "react";
 import { Map, AdvancedMarker } from "@vis.gl/react-google-maps";
 import { MapPin, Loader, X } from "lucide-react";
-import useGoogleMaps from "../hooks/useGoogleMaps";
+import useGoogleMaps from "../../hooks/useGoogleMaps";
 import "./LocationPicker.css";
 
 const CEBU_CENTER = { lat: 10.3157, lng: 123.8854 };

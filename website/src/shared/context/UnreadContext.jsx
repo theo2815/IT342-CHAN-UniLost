@@ -1,9 +1,9 @@
 import { createContext, useContext, useEffect, useState, useCallback, useRef } from 'react';
 import { Client } from '@stomp/stompjs';
 import SockJS from 'sockjs-client';
-import authService from '../services/authService';
-import chatService from '../services/chatService';
-import notificationService from '../services/notificationService';
+import authService from '../../features/auth/authService';
+import chatService from '../../features/messaging/chatService';
+import notificationService from '../../features/user/notificationService';
 
 const WS_URL = import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:8080';
 

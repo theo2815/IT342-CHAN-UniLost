@@ -1,6 +1,6 @@
 import { Navigate, Outlet } from "react-router-dom";
 import { useEffect, useState } from "react";
-import authService from "../services/authService";
+import authService from "../../features/auth/authService";
 
 export const AdminRoute = () => {
   const isAuthenticated = authService.isAuthenticated();

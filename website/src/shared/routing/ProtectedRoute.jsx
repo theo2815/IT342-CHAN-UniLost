@@ -1,5 +1,5 @@
 import { Navigate, Outlet, useLocation } from "react-router-dom";
-import authService from "../services/authService";
+import authService from "../../features/auth/authService";
 
 const ProtectedRoute = () => {
   const isAuthenticated = authService.isAuthenticated();

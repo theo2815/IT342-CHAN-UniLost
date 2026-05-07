@@ -16,10 +16,10 @@ import {
   MessageSquare,
   PlusCircle,
 } from "lucide-react";
-import authService from "../services/authService";
-import { useUnread } from "../context/UnreadContext";
-import { Dropdown } from "./ui";
-import NotificationDropdown from "./NotificationDropdown";
+import authService from "../../../features/auth/authService";
+import { useUnread } from "../../context/UnreadContext";
+import { Dropdown } from "../../components/ui";
+import NotificationDropdown from "../../../features/user/NotificationDropdown/NotificationDropdown";
 import "./Header.css";
 
 function Header() {
