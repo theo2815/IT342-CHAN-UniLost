@@ -1,9 +1,9 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { Search, Lock, ArrowRight, Eye, EyeOff, CheckCircle } from 'lucide-react';
-import authService from '../../services/authService';
-import { useToast } from '../../components/Toast';
-import { Input, Button } from '../../components/ui';
+import authService from '../authService';
+import { useToast } from '../../../shared/hooks/useToast';
+import { Input, Button } from '../../../shared/components/ui';
 import './ResetPassword.css';
 
 function ResetPassword() {

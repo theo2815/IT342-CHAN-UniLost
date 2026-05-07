@@ -1,5 +1,5 @@
-import api from './api';
-import { ROLES } from '../constants/roles';
+import api from '../../shared/services/api';
+import { ROLES } from '../../shared/constants/roles';
 
 const authService = {
     // Register a new user

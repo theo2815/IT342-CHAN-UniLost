@@ -1,9 +1,9 @@
 import { useState, useRef, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { Search, ArrowLeft, ShieldCheck } from 'lucide-react';
-import authService from '../../services/authService';
-import { useToast } from '../../components/Toast';
-import { Button } from '../../components/ui';
+import authService from '../authService';
+import { useToast } from '../../../shared/hooks/useToast';
+import { Button } from '../../../shared/components/ui';
 import './VerifyOTP.css';
 
 function VerifyOTP() {

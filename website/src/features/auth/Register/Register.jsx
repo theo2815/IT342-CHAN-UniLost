@@ -1,10 +1,10 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Search, GraduationCap, Mail, Lock, User, ArrowRight, AlertTriangle, CheckSquare, Square, CheckCircle, ShieldCheck, MapPinned, Eye, EyeOff } from 'lucide-react';
-import authService from '../../services/authService';
-import campusService from '../../services/campusService';
-import { useToast } from '../../components/Toast';
-import { Input, Button, Alert } from '../../components/ui';
+import authService from '../authService';
+import campusService from '../../../shared/services/campusService';
+import { useToast } from '../../../shared/hooks/useToast';
+import { Input, Button, Alert } from '../../../shared/components/ui';
 import './Register.css';
 
 function Register() {

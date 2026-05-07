@@ -1,9 +1,9 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Search, Mail, ArrowRight, ArrowLeft } from 'lucide-react';
-import authService from '../../services/authService';
-import { useToast } from '../../components/Toast';
-import { Input, Button } from '../../components/ui';
+import authService from '../authService';
+import { useToast } from '../../../shared/hooks/useToast';
+import { Input, Button } from '../../../shared/components/ui';
 import './ForgotPassword.css';
 
 function ForgotPassword() {

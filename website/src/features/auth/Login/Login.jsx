@@ -1,9 +1,9 @@
 import { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { Search, Mail, Lock, CheckSquare, Square, AlertTriangle, ArrowLeft, ArrowRight, ShieldCheck, MapPin, Eye, EyeOff } from 'lucide-react';
-import authService from '../../services/authService';
-import { useToast } from '../../components/Toast';
-import { Input, Button, Alert } from '../../components/ui';
+import authService from '../authService';
+import { useToast } from '../../../shared/hooks/useToast';
+import { Input, Button, Alert } from '../../../shared/components/ui';
 import './Login.css';
 
 function Login() {
