@@ -11,11 +11,11 @@ import {
   ChevronDown,
 } from "lucide-react";
 import { Link } from "react-router-dom";
-import Header from "../../components/Header";
+import Header from "../../../shared/layout/Header/Header";
 import { Dropdown } from "../../../shared/components/ui";
-import userService from "../../services/userService";
-import authService from "../../services/authService";
-import { useCampuses } from "../../context/CampusContext";
+import userService from "../userService";
+import authService from "../../auth/authService";
+import { useCampuses } from "../../../shared/context/CampusContext";
 import "./Leaderboard.css";
 
 function Leaderboard() {

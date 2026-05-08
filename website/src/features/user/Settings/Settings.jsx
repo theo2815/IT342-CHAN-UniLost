@@ -3,7 +3,7 @@ import { User, Lock, Bell, Palette, Camera, Save, X, Edit2, Eye, EyeOff } from '
 import authService from '../../auth/authService';
 import userService from '../userService';
 import Header from '../../../shared/layout/Header/Header';
-import { useToast } from '../../components/Toast';
+import { useToast } from '../../../shared/hooks/useToast';
 import { useTheme } from '../../../shared/context/ThemeContext';
 import './Settings.css';
 

@@ -11,10 +11,10 @@ import {
   ArrowRight,
   Loader,
 } from "lucide-react";
-import Header from "../../components/Header";
-import Footer from "../../components/Footer";
-import ItemCard from "../../components/ItemCard";
-import itemService from "../../services/itemService";
+import Header from "../../../shared/layout/Header/Header";
+import Footer from "../../../shared/layout/Footer/Footer";
+import ItemCard from "../../items/ItemCard/ItemCard";
+import itemService from "../../items/itemService";
 import "./Landing.css";
 
 const Landing = () => {

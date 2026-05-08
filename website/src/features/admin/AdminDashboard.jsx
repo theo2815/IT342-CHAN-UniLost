@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Shield, Users, Package, Clock, CheckCircle, Ban, ChevronRight, Loader2, AlertCircle, ScrollText, BarChart3, Activity } from 'lucide-react';
-import Header from '../../../shared/layout/Header/Header';
-import adminService from '../adminService';
+import Header from '../../shared/layout/Header/Header';
+import adminService from './adminService';
 import './AdminDashboard.css';
 
 const AdminDashboard = () => {

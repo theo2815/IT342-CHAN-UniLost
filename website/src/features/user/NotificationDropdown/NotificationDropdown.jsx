@@ -13,7 +13,7 @@ import {
   HandMetal,
   PackageCheck,
 } from "lucide-react";
-import notificationService from "../services/notificationService";
+import notificationService from "../notificationService";
 import "./NotificationDropdown.css";
 
 const typeConfig = {

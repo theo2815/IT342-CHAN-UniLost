@@ -1,9 +1,9 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Package, Search, Eye, Trash2, ChevronLeft, ChevronRight, X, AlertTriangle, Loader2, Flag, EyeOff, RotateCcw, Download, CheckSquare } from 'lucide-react';
-import Header from '../../../shared/layout/Header/Header';
-import Dropdown from '../../../shared/components/ui/Dropdown';
-import adminService from '../adminService';
+import Header from '../../shared/layout/Header/Header';
+import Dropdown from '../../shared/components/ui/Dropdown';
+import adminService from './adminService';
 import './AdminItems.css';
 
 const statusOptions = ['All', 'ACTIVE', 'CLAIMED', 'HANDED_OVER', 'EXPIRED', 'RETURNED', 'HIDDEN'];

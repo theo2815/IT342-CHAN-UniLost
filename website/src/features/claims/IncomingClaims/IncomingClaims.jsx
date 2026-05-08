@@ -5,7 +5,7 @@ import Header from '../../../shared/layout/Header/Header';
 import StatusBadge from '../../../shared/components/StatusBadge/StatusBadge';
 import EmptyState from '../../../shared/components/EmptyState/EmptyState';
 import claimService from '../claimService';
-import itemService from '../itemService';
+import itemService from '../../items/itemService';
 import { timeAgo } from '../../../shared/utils/timeAgo';
 import './IncomingClaims.css';
 

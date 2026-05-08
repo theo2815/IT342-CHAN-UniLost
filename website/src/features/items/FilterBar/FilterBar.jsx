@@ -1,7 +1,7 @@
 import { Search, ChevronDown } from "lucide-react";
-import { ITEM_CATEGORIES, CATEGORY_LABELS } from "../constants/categories";
-import { useCampuses } from "../context/CampusContext";
-import { Input, Dropdown } from "./ui";
+import { ITEM_CATEGORIES, CATEGORY_LABELS } from "../../../shared/constants/categories";
+import { useCampuses } from "../../../shared/context/CampusContext";
+import { Input, Dropdown } from "../../../shared/components/ui";
 import "./FilterBar.css";
 
 function FilterBar({

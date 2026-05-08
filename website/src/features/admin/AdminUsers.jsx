@@ -1,9 +1,9 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { Users, Search, ShieldOff, ShieldCheck, ChevronLeft, ChevronRight, X, AlertTriangle, Loader2, Download, CheckSquare } from 'lucide-react';
-import Header from '../../../shared/layout/Header/Header';
-import Dropdown from '../../../shared/components/ui/Dropdown';
-import adminService from '../adminService';
+import Header from '../../shared/layout/Header/Header';
+import Dropdown from '../../shared/components/ui/Dropdown';
+import adminService from './adminService';
 import './AdminUsers.css';
 
 const roleOptions = ['All', 'STUDENT', 'ADMIN'];

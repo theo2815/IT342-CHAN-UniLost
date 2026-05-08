@@ -1,8 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { Activity, Database, Clock, Cpu, Loader2, AlertCircle } from 'lucide-react';
-import Header from '../../../shared/layout/Header/Header';
-import adminService from '../adminService';
+import Header from '../../shared/layout/Header/Header';
+import adminService from './adminService';
 import './AdminHealth.css';
 
 const AdminHealth = () => {

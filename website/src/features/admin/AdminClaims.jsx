@@ -1,8 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Gavel, Eye, ChevronLeft, ChevronRight, Loader2, AlertTriangle } from 'lucide-react';
-import Header from '../../../shared/layout/Header/Header';
-import adminService from '../adminService';
+import Header from '../../shared/layout/Header/Header';
+import adminService from './adminService';
 import './AdminClaims.css';
 
 const tabs = [

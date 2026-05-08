@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react';
 import { Building2, Edit3, Plus, X, Loader } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import Header from '../../../shared/layout/Header/Header';
-import adminService from '../adminService';
-import campusService from '../../../shared/services/campusService';
-import api from '../../../shared/services/api';
+import Header from '../../shared/layout/Header/Header';
+import adminService from './adminService';
+import campusService from '../../shared/services/campusService';
+import api from '../../shared/services/api';
 import './CampusManagement.css';
 
 const CampusManagement = () => {

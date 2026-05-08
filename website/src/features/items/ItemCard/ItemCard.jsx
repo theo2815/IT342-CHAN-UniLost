@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { MapPin, Clock, EyeOff, ChevronLeft, ChevronRight } from "lucide-react";
-import { timeAgo } from "../utils/timeAgo";
-import StatusBadge from "./StatusBadge";
+import { timeAgo } from "../../../shared/utils/timeAgo";
+import StatusBadge from "../../../shared/components/StatusBadge/StatusBadge";
 import "./ItemCard.css";
 
 function ItemCard({ item, onClick, variant = "default" }) {

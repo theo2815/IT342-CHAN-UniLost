@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
 import { Star, Building2, Edit3, X, Loader } from 'lucide-react';
-import Header from '../../../shared/layout/Header/Header';
-import adminService from '../adminService';
-import api from '../../../shared/services/api';
+import Header from '../../shared/layout/Header/Header';
+import adminService from './adminService';
+import api from '../../shared/services/api';
 import './SuperAdminPanel.css';
 
 const SuperAdminPanel = () => {

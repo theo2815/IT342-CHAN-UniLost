@@ -6,8 +6,8 @@ import {
     BarChart, Bar, XAxis, YAxis, CartesianGrid,
     AreaChart, Area
 } from 'recharts';
-import Header from '../../../shared/layout/Header/Header';
-import adminService from '../adminService';
+import Header from '../../shared/layout/Header/Header';
+import adminService from './adminService';
 import './AdminAnalytics.css';
 
 const STATUS_COLORS = {

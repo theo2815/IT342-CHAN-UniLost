@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { X, CheckCircle, Lock, MessageSquare, Mail } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import claimService from "../services/claimService";
+import claimService from "../claimService";
 import "./ClaimModal.css";
 
 function ClaimModal({ item, onClose }) {

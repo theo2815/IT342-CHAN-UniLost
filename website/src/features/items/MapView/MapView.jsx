@@ -3,11 +3,11 @@ import { useState, useEffect, useRef } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Map, AdvancedMarker, InfoWindow, useMap } from "@vis.gl/react-google-maps";
 import { MapPin, Loader, AlertCircle, Navigation, ChevronDown } from "lucide-react";
-import Header from "../../components/Header";
+import Header from "../../../shared/layout/Header/Header";
 import { Dropdown } from "../../../shared/components/ui";
-import useGoogleMaps from "../../hooks/useGoogleMaps";
-import itemService from "../../services/itemService";
-import { useCampuses } from "../../context/CampusContext";
+import useGoogleMaps from "../../../shared/hooks/useGoogleMaps";
+import itemService from "../itemService";
+import { useCampuses } from "../../../shared/context/CampusContext";
 import { timeAgo } from "../../../shared/utils/timeAgo";
 import "./MapView.css";
 

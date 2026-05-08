@@ -9,8 +9,8 @@ import { Alert, Button, Card } from '../../../shared/components/ui';
 import { timeAgo } from '../../../shared/utils/timeAgo';
 import authService from '../../auth/authService';
 import itemService from '../itemService';
-import claimService from '../claimService';
-import adminService from '../adminService';
+import claimService from '../../claims/claimService';
+import adminService from '../../admin/adminService';
 import { ROLES } from '../../../shared/constants/roles';
 import './ItemDetail.css';
 

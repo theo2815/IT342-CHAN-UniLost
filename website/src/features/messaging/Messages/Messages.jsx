@@ -23,14 +23,14 @@ import {
 import { useSearchParams } from "react-router-dom";
 import SockJS from "sockjs-client/dist/sockjs";
 import { Client } from "@stomp/stompjs";
-import Header from "../../components/Header";
-import StatusBadge from "../../components/StatusBadge";
-import chatService from "../../services/chatService";
-import claimService from "../../services/claimService";
-import authService from "../../services/authService";
-import ConfirmDialog from "../../components/ConfirmDialog";
-import { useToast } from "../../hooks/useToast";
-import { useUnread } from "../../context/UnreadContext";
+import Header from "../../../shared/layout/Header/Header";
+import StatusBadge from "../../../shared/components/StatusBadge/StatusBadge";
+import chatService from "../chatService";
+import claimService from "../../claims/claimService";
+import authService from "../../auth/authService";
+import ConfirmDialog from "../../../shared/components/ConfirmDialog/ConfirmDialog";
+import { useToast } from "../../../shared/hooks/useToast";
+import { useUnread } from "../../../shared/context/UnreadContext";
 import "./Messages.css";
 
 function Messages() {

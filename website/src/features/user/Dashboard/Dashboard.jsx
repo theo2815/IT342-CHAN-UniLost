@@ -11,15 +11,15 @@ import {
   TrendingUp,
   Loader,
 } from "lucide-react";
-import Header from "../../components/Header";
-import Footer from "../../components/Footer";
-import ItemCard from "../../components/ItemCard";
-import EmptyState from "../../components/EmptyState";
-import authService from "../../services/authService";
-import itemService from "../../services/itemService";
-import userService from "../../services/userService";
-import campusService from "../../services/campusService";
-import { useCampuses } from "../../context/CampusContext";
+import Header from "../../../shared/layout/Header/Header";
+import Footer from "../../../shared/layout/Footer/Footer";
+import ItemCard from "../../items/ItemCard/ItemCard";
+import EmptyState from "../../../shared/components/EmptyState/EmptyState";
+import authService from "../../auth/authService";
+import itemService from "../../items/itemService";
+import userService from "../userService";
+import campusService from "../../../shared/services/campusService";
+import { useCampuses } from "../../../shared/context/CampusContext";
 import "./Dashboard.css";
 
 function Dashboard() {

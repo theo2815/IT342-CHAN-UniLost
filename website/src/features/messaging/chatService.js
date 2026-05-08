@@ -1,4 +1,4 @@
-import api from './api';
+import api from '../../shared/services/api';
 
 const chatService = {
     async getMyChats() {

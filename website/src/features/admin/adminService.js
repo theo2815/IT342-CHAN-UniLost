@@ -1,4 +1,4 @@
-import api from './api';
+import api from '../../shared/services/api';
 
 function downloadBlob(blob, filename) {
   const url = window.URL.createObjectURL(blob);

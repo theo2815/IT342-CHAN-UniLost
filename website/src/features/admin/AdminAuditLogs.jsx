@@ -1,9 +1,9 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { ScrollText, ChevronLeft, ChevronRight, Loader2, AlertTriangle } from 'lucide-react';
-import Header from '../../../shared/layout/Header/Header';
-import Dropdown from '../../../shared/components/ui/Dropdown';
-import adminService from '../adminService';
+import Header from '../../shared/layout/Header/Header';
+import Dropdown from '../../shared/components/ui/Dropdown';
+import adminService from './adminService';
 import './AdminAuditLogs.css';
 
 const actionOptions = ['All', 'UPDATE_ITEM_STATUS', 'DELETE_ITEM', 'UPDATE_USER_STATUS', 'FORCE_COMPLETE_HANDOVER', 'BULK_UPDATE_ITEMS', 'BULK_DELETE_ITEMS', 'BULK_UPDATE_USERS', 'EXPORT_DATA'];
