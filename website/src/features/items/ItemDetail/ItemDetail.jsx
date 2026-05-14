@@ -475,23 +475,23 @@ function ItemDetail() {
                                     <>
                                         {currentUser ? (
                                             existingClaim ? (
-                                                <Button 
-                                                    variant="primary" 
-                                                    icon={MessageSquare} 
+                                                <Button
+                                                    variant="primary"
+                                                    icon={MessageSquare}
                                                     onClick={() => navigate(existingClaim.chatId ? `/messages?chatId=${existingClaim.chatId}` : `/profile?tab=claims`)}
                                                 >
                                                     {existingClaim.chatId ? 'Open Chat' : 'Claim Submitted'}
                                                 </Button>
-                                            ) : (
+                                            ) : item.status === 'ACTIVE' ? (
                                                 <Button variant="primary" icon={isFound ? Hand : Search} onClick={() => setShowClaimModal(true)}>
                                                     {isFound ? "I Think This Is Mine" : "I Found This"}
                                                 </Button>
-                                            )
-                                        ) : (
+                                            ) : null
+                                        ) : item.status === 'ACTIVE' ? (
                                             <Button variant="primary" onClick={() => navigate('/login', { state: { from: `/items/${id}` } })}>
                                                 Log in to Claim
                                             </Button>
-                                        )}
+                                        ) : null}
                                         {item.latitude != null && item.longitude != null && (
                                             <Button variant="secondary" icon={MapPin} onClick={handleViewLocation}>
                                                 View Location

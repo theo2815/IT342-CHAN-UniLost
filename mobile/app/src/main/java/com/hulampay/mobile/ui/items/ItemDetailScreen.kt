@@ -175,26 +175,28 @@ private fun ItemDetailContent(
         },
         bottomBar = {
             if (!isPoster) {
-                Surface(
-                    modifier = Modifier.fillMaxWidth(),
-                    shadowElevation = 8.dp,
-                    color = MaterialTheme.colorScheme.surface
-                ) {
-                    Row(
-                        modifier = Modifier.padding(UniLostSpacing.md),
-                        horizontalArrangement = Arrangement.spacedBy(UniLostSpacing.sm)
+                if (item.status == "ACTIVE") {
+                    Surface(
+                        modifier = Modifier.fillMaxWidth(),
+                        shadowElevation = 8.dp,
+                        color = MaterialTheme.colorScheme.surface
                     ) {
-                        UniLostButton(
-                            text = if (isFound) "This Is Mine" else "I Found This",
-                            onClick = { showClaimSheet = true },
-                            icon = if (isFound) Icons.Default.PanTool else Icons.Default.Search,
-                            modifier = Modifier.weight(1f)
-                        )
-                        OutlinedButton(
-                            onClick = { showReportDialog = true },
-                            shape = UniLostShapes.md
+                        Row(
+                            modifier = Modifier.padding(UniLostSpacing.md),
+                            horizontalArrangement = Arrangement.spacedBy(UniLostSpacing.sm)
                         ) {
-                            Icon(Icons.Default.Flag, contentDescription = "Report", modifier = Modifier.size(18.dp))
+                            UniLostButton(
+                                text = if (isFound) "This Is Mine" else "I Found This",
+                                onClick = { showClaimSheet = true },
+                                icon = if (isFound) Icons.Default.PanTool else Icons.Default.Search,
+                                modifier = Modifier.weight(1f)
+                            )
+                            OutlinedButton(
+                                onClick = { showReportDialog = true },
+                                shape = UniLostShapes.md
+                            ) {
+                                Icon(Icons.Default.Flag, contentDescription = "Report", modifier = Modifier.size(18.dp))
+                            }
                         }
                     }
                 }
