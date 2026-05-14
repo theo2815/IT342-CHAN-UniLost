@@ -42,7 +42,6 @@ fun ProfileScreen(
     val karmaRank = "Contributor"
     val nextRankAt = 50
     val nextRank = "Helper"
-    val isAdmin = true
 
     var selectedTab by remember { mutableIntStateOf(0) }
     val tabs = listOf("Lost Items", "Found Items", "My Claims")
@@ -397,15 +396,6 @@ fun ProfileScreen(
                     variant = ButtonVariant.SECONDARY,
                     icon = Icons.Default.Edit
                 )
-
-                if (isAdmin) {
-                    UniLostButton(
-                        text = "Admin Panel",
-                        onClick = { navController.navigate(Screen.Admin.route) },
-                        variant = ButtonVariant.SECONDARY,
-                        icon = Icons.Default.Shield
-                    )
-                }
 
                 UniLostButton(
                     text = "Logout",
