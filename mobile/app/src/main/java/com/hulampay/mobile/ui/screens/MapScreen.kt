@@ -13,6 +13,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.hulampay.mobile.navigation.Screen
 import com.hulampay.mobile.ui.components.*
@@ -24,15 +25,23 @@ import com.hulampay.mobile.ui.theme.*
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun MapScreen(navController: NavController) {
+fun MapScreen(
+    navController: NavController,
+    badgeViewModel: NotificationBadgeViewModel = hiltViewModel(),
+    chatBadgeViewModel: ChatBadgeViewModel = hiltViewModel(),
+) {
     val filters = listOf("All", "Lost", "Found")
     var selectedFilter by remember { mutableStateOf("All") }
+    val unreadNotifications by badgeViewModel.unread.collectAsState()
+    val unreadChats by chatBadgeViewModel.unread.collectAsState()
 
     Scaffold(
         topBar = {
             UniLostTopBar(
                 onNotificationsClick = { navController.navigate(Screen.Notifications.route) },
-                notificationCount = 3
+                onChatClick = { navController.navigate(Screen.ChatList.route) },
+                notificationCount = unreadNotifications.toInt(),
+                chatCount = unreadChats.toInt()
             )
         },
         floatingActionButton = {
@@ -47,7 +56,8 @@ fun MapScreen(navController: NavController) {
                     contentDescription = "My Location"
                 )
             }
-        }
+        },
+        bottomBar = { BottomNavBar(navController = navController) }
     ) { padding ->
         Box(
             modifier = Modifier

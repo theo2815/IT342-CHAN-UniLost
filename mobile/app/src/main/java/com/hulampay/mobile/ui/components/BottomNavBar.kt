@@ -117,7 +117,7 @@ fun BottomNavBar(
                                     onClick = {
                                         if (currentRoute != item.route) {
                                             navController.navigate(item.route) {
-                                                popUpTo("item_feed_screen") { saveState = true }
+                                                popUpTo("dashboard_screen") { saveState = true }
                                                 launchSingleTop = true
                                                 restoreState = true
                                             }
@@ -144,7 +144,7 @@ fun BottomNavBar(
                                     onClick = {
                                         if (currentRoute != item.route) {
                                             navController.navigate(item.route) {
-                                                popUpTo("item_feed_screen") { saveState = true }
+                                                popUpTo("dashboard_screen") { saveState = true }
                                                 launchSingleTop = true
                                                 restoreState = true
                                             }

@@ -35,8 +35,12 @@ import com.hulampay.mobile.utils.timeAgo
 fun ChatListScreen(
     navController: NavController,
     viewModel: ChatListViewModel = hiltViewModel(),
+    badgeViewModel: NotificationBadgeViewModel = hiltViewModel(),
+    chatBadgeViewModel: ChatBadgeViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsState()
+    val unreadNotifications by badgeViewModel.unread.collectAsState()
+    val unreadChats by chatBadgeViewModel.unread.collectAsState()
 
     LaunchedEffect(Unit) {
         viewModel.load()
@@ -46,7 +50,8 @@ fun ChatListScreen(
         topBar = {
             UniLostTopBar(
                 onNotificationsClick = { navController.navigate(Screen.Notifications.route) },
-                notificationCount = 0
+                notificationCount = unreadNotifications.toInt(),
+                chatCount = unreadChats.toInt()
             )
         }
     ) { padding ->

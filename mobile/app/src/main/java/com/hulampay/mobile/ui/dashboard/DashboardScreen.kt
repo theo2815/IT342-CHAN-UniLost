@@ -32,7 +32,9 @@ import com.hulampay.mobile.utils.timeAgo
 @Composable
 fun DashboardScreen(
     navController: NavController,
-    viewModel: DashboardViewModel = hiltViewModel()
+    viewModel: DashboardViewModel = hiltViewModel(),
+    badgeViewModel: NotificationBadgeViewModel = hiltViewModel(),
+    chatBadgeViewModel: ChatBadgeViewModel = hiltViewModel(),
 ) {
     val scrollState = rememberScrollState()
     val items by viewModel.items.collectAsState()
@@ -40,14 +42,19 @@ fun DashboardScreen(
     val recentItems = remember(items) { items.take(6) }
     val lostCount = remember(items) { items.count { it.type == "LOST" } }
     val foundCount = remember(items) { items.count { it.type == "FOUND" } }
+    val unreadNotifications by badgeViewModel.unread.collectAsState()
+    val unreadChats by chatBadgeViewModel.unread.collectAsState()
 
     Scaffold(
         topBar = {
             UniLostTopBar(
                 onNotificationsClick = { navController.navigate("notifications_screen") },
-                notificationCount = 3
+                onChatClick = { navController.navigate(Screen.ChatList.route) },
+                notificationCount = unreadNotifications.toInt(),
+                chatCount = unreadChats.toInt()
             )
-        }
+        },
+        bottomBar = { BottomNavBar(navController = navController) }
     ) { padding ->
         Column(
             modifier = Modifier

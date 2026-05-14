@@ -20,6 +20,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.hulampay.mobile.data.model.ItemDto
+import com.hulampay.mobile.navigation.Screen
 import com.hulampay.mobile.ui.components.*
 import com.hulampay.mobile.ui.theme.*
 import com.hulampay.mobile.utils.UiState
@@ -30,6 +31,8 @@ import com.hulampay.mobile.utils.timeAgo
 fun ItemFeedScreen(
     navController: NavController,
     viewModel: ItemFeedViewModel = hiltViewModel(),
+    badgeViewModel: NotificationBadgeViewModel = hiltViewModel(),
+    chatBadgeViewModel: ChatBadgeViewModel = hiltViewModel(),
 ) {
     val filters = listOf("All", "Lost", "Found")
     var selectedFilter by remember { mutableStateOf("All") }
@@ -40,6 +43,8 @@ fun ItemFeedScreen(
 
     val itemsState by viewModel.itemsState.collectAsState()
     val allItems: List<ItemDto> = (itemsState as? UiState.Success)?.data.orEmpty()
+    val unreadNotifications by badgeViewModel.unread.collectAsState()
+    val unreadChats by chatBadgeViewModel.unread.collectAsState()
 
     val filteredItems = remember(itemsState, selectedFilter, searchQuery, selectedCategory) {
         allItems.filter { item ->
@@ -62,9 +67,12 @@ fun ItemFeedScreen(
         topBar = {
             UniLostTopBar(
                 onNotificationsClick = { navController.navigate("notifications_screen") },
-                notificationCount = 3
+                onChatClick = { navController.navigate(Screen.ChatList.route) },
+                notificationCount = unreadNotifications.toInt(),
+                chatCount = unreadChats.toInt()
             )
-        }
+        },
+        bottomBar = { BottomNavBar(navController = navController) }
     ) { padding ->
         Column(
             modifier = Modifier

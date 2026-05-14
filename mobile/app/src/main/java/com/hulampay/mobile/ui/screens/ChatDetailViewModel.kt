@@ -9,6 +9,7 @@ import com.hulampay.mobile.data.model.MessageDto
 import com.hulampay.mobile.data.model.User
 import com.hulampay.mobile.data.repository.ChatRepository
 import com.hulampay.mobile.data.repository.ClaimRepository
+import com.hulampay.mobile.data.state.ChatUnreadCountState
 import com.hulampay.mobile.data.ws.ChatWebSocketClient
 import com.hulampay.mobile.utils.TokenManager
 import com.hulampay.mobile.utils.UiState
@@ -69,6 +70,7 @@ class ChatDetailViewModel @Inject constructor(
     private val claimRepository: ClaimRepository,
     private val webSocketClient: ChatWebSocketClient,
     private val tokenManager: TokenManager,
+    private val chatUnreadCountState: ChatUnreadCountState,
 ) : ViewModel() {
 
     private val gson = Gson()
@@ -229,6 +231,7 @@ class ChatDetailViewModel @Inject constructor(
                 _state.value = UiState.Success(
                     current.copy(chat = current.chat.copy(unreadCount = 0))
                 )
+                chatUnreadCountState.refresh()
             }
         }
     }
