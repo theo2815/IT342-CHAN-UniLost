@@ -1,6 +1,7 @@
 package com.hulampay.mobile.ui.screens
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
@@ -8,84 +9,164 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
+import com.hulampay.mobile.data.model.User
 import com.hulampay.mobile.ui.components.*
 import com.hulampay.mobile.ui.theme.*
+import com.hulampay.mobile.utils.UiState
 
 /**
  * Leaderboard screen — Spec Section 10.12.
- * Layout-only stub with mock data.
+ * Reads top users via GET /api/users/leaderboard.
  */
-
-private data class MockLeaderboardEntry(
-    val rank: Int,
-    val name: String,
-    val campus: String,
-    val karma: Int
-)
-
-private val mockLeaderboard = listOf(
-    MockLeaderboardEntry(1, "Maria Santos", "CIT-U", 156),
-    MockLeaderboardEntry(2, "Carlos Reyes", "USC", 142),
-    MockLeaderboardEntry(3, "Ana Garcia", "USJR", 128),
-    MockLeaderboardEntry(4, "Juan Dela Cruz", "CIT-U", 95),
-    MockLeaderboardEntry(5, "Sofia Lim", "UC", 88),
-    MockLeaderboardEntry(6, "Miguel Torres", "SWU", 76),
-    MockLeaderboardEntry(7, "Theo Chan", "CIT-U", 42),
-    MockLeaderboardEntry(8, "Isabella Cruz", "USC", 38),
-    MockLeaderboardEntry(9, "Rafael Aquino", "CTU", 31),
-    MockLeaderboardEntry(10, "Carmen Villanueva", "CNU", 24),
-)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun LeaderboardScreen(navController: NavController) {
+fun LeaderboardScreen(
+    navController: NavController,
+    viewModel: LeaderboardViewModel = hiltViewModel(),
+) {
+    val state by viewModel.state.collectAsState()
+    val currentUserId by viewModel.currentUserId.collectAsState()
+
     Scaffold(
         topBar = {
             UniLostDetailTopBar(
                 title = "Leaderboard",
                 onBackClick = { navController.popBackStack() }
             )
-        }
+        },
+        bottomBar = { BottomNavBar(navController = navController) }
     ) { padding ->
-        LazyColumn(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding),
-            contentPadding = PaddingValues(UniLostSpacing.md),
-            verticalArrangement = Arrangement.spacedBy(UniLostSpacing.sm)
-        ) {
-            // Top 3 Podium
-            item {
-                PodiumSection(mockLeaderboard.take(3))
+        when (val s = state) {
+            is UiState.Loading, UiState.Idle -> {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(padding),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
+                }
             }
 
-            item {
-                Spacer(modifier = Modifier.height(UniLostSpacing.sm))
-                Text(
-                    "Rankings",
-                    style = MaterialTheme.typography.headlineSmall,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
+            is UiState.Error -> {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(padding)
+                        .padding(UniLostSpacing.lg),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Icon(
+                            Icons.Default.Warning,
+                            contentDescription = null,
+                            modifier = Modifier.size(48.dp),
+                            tint = MaterialTheme.colorScheme.error
+                        )
+                        Spacer(modifier = Modifier.height(UniLostSpacing.sm))
+                        Text(
+                            "Couldn't load leaderboard",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                        Spacer(modifier = Modifier.height(UniLostSpacing.xs))
+                        Text(
+                            s.message,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            textAlign = TextAlign.Center
+                        )
+                        Spacer(modifier = Modifier.height(UniLostSpacing.md))
+                        Button(onClick = { viewModel.load() }) { Text("Retry") }
+                    }
+                }
             }
 
-            // 4th onward
-            itemsIndexed(mockLeaderboard.drop(3)) { _, entry ->
-                LeaderboardRow(entry)
+            is UiState.Success -> {
+                val entries = s.data
+                if (entries.isEmpty()) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(padding)
+                            .padding(UniLostSpacing.lg),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Icon(
+                                Icons.Default.EmojiEvents,
+                                contentDescription = null,
+                                modifier = Modifier.size(48.dp),
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            Spacer(modifier = Modifier.height(UniLostSpacing.sm))
+                            Text(
+                                "No rankings yet",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.SemiBold,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                            Spacer(modifier = Modifier.height(UniLostSpacing.xs))
+                            Text(
+                                "Return a found item to earn karma and get on the leaderboard.",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                textAlign = TextAlign.Center
+                            )
+                        }
+                    }
+                } else {
+                    LazyColumn(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(padding),
+                        contentPadding = PaddingValues(UniLostSpacing.md),
+                        verticalArrangement = Arrangement.spacedBy(UniLostSpacing.sm)
+                    ) {
+                        if (entries.size >= 3) {
+                            item { PodiumSection(entries.take(3)) }
+                        }
+
+                        item {
+                            Spacer(modifier = Modifier.height(UniLostSpacing.sm))
+                            Text(
+                                "Rankings",
+                                style = MaterialTheme.typography.headlineSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                        }
+
+                        val rest = if (entries.size >= 3) entries.drop(3) else entries
+                        val baseRank = if (entries.size >= 3) 4 else 1
+                        itemsIndexed(rest) { index, entry ->
+                            LeaderboardRow(
+                                rank = baseRank + index,
+                                user = entry,
+                                isCurrentUser = entry.id == currentUserId
+                            )
+                        }
+                    }
+                }
             }
         }
     }
 }
 
 @Composable
-private fun PodiumSection(top3: List<MockLeaderboardEntry>) {
+private fun PodiumSection(top3: List<User>) {
     if (top3.size < 3) return
 
     Card(
@@ -103,33 +184,17 @@ private fun PodiumSection(top3: List<MockLeaderboardEntry>) {
             horizontalArrangement = Arrangement.SpaceEvenly,
             verticalAlignment = Alignment.Bottom
         ) {
-            // 2nd place
-            PodiumEntry(
-                entry = top3[1],
-                podiumHeight = 80.dp,
-                badgeColor = Slate400
-            )
-
-            // 1st place
-            PodiumEntry(
-                entry = top3[0],
-                podiumHeight = 110.dp,
-                badgeColor = Warning
-            )
-
-            // 3rd place
-            PodiumEntry(
-                entry = top3[2],
-                podiumHeight = 60.dp,
-                badgeColor = Sage400
-            )
+            PodiumEntry(rank = 2, user = top3[1], podiumHeight = 80.dp, badgeColor = Slate400)
+            PodiumEntry(rank = 1, user = top3[0], podiumHeight = 110.dp, badgeColor = Warning)
+            PodiumEntry(rank = 3, user = top3[2], podiumHeight = 60.dp, badgeColor = Sage400)
         }
     }
 }
 
 @Composable
 private fun PodiumEntry(
-    entry: MockLeaderboardEntry,
+    rank: Int,
+    user: User,
     podiumHeight: androidx.compose.ui.unit.Dp,
     badgeColor: androidx.compose.ui.graphics.Color
 ) {
@@ -137,7 +202,6 @@ private fun PodiumEntry(
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = Modifier.width(90.dp)
     ) {
-        // Rank badge
         Surface(
             shape = UniLostShapes.full,
             color = badgeColor,
@@ -145,7 +209,7 @@ private fun PodiumEntry(
         ) {
             Box(contentAlignment = Alignment.Center) {
                 Text(
-                    "#${entry.rank}",
+                    "#$rank",
                     style = MaterialTheme.typography.labelSmall,
                     fontWeight = FontWeight.Bold,
                     color = White
@@ -154,26 +218,25 @@ private fun PodiumEntry(
         }
         Spacer(modifier = Modifier.height(UniLostSpacing.xs))
 
-        AvatarView(name = entry.name, size = 56.dp)
+        AvatarView(name = user.fullName, size = 56.dp)
 
         Spacer(modifier = Modifier.height(UniLostSpacing.xs))
 
         Text(
-            entry.name.split(" ").first(),
+            user.firstName.ifBlank { user.fullName },
             style = MaterialTheme.typography.labelMedium,
             fontWeight = FontWeight.SemiBold,
             color = MaterialTheme.colorScheme.onSurface,
             textAlign = TextAlign.Center
         )
         Text(
-            "${entry.karma} pts",
+            "${user.karmaScore} pts",
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
 
         Spacer(modifier = Modifier.height(UniLostSpacing.xs))
 
-        // Podium bar
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -189,9 +252,16 @@ private fun PodiumEntry(
 }
 
 @Composable
-private fun LeaderboardRow(entry: MockLeaderboardEntry) {
+private fun LeaderboardRow(rank: Int, user: User, isCurrentUser: Boolean) {
+    val highlightModifier = if (isCurrentUser) {
+        Modifier.border(1.5.dp, MaterialTheme.colorScheme.primary, UniLostShapes.md)
+    } else {
+        Modifier
+    }
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .then(highlightModifier),
         shape = UniLostShapes.md,
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surface
@@ -202,9 +272,8 @@ private fun LeaderboardRow(entry: MockLeaderboardEntry) {
             modifier = Modifier.padding(UniLostSpacing.sm),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Rank
             Text(
-                "#${entry.rank}",
+                "#$rank",
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -214,26 +283,29 @@ private fun LeaderboardRow(entry: MockLeaderboardEntry) {
 
             Spacer(modifier = Modifier.width(UniLostSpacing.sm))
 
-            AvatarView(name = entry.name, size = 40.dp)
+            AvatarView(name = user.fullName, size = 40.dp)
 
             Spacer(modifier = Modifier.width(UniLostSpacing.sm))
 
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    entry.name,
+                    if (isCurrentUser) "${user.fullName} (You)" else user.fullName,
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold,
                     color = MaterialTheme.colorScheme.onSurface
                 )
+                val campusLabel = user.campus?.let { c ->
+                    c.shortLabel.ifBlank { c.name }
+                }.orEmpty()
                 Text(
-                    entry.campus,
+                    campusLabel,
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
 
             Text(
-                "${entry.karma} karma",
+                "${user.karmaScore} karma",
                 style = MaterialTheme.typography.labelLarge,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.secondary
