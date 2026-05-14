@@ -16,40 +16,119 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
-import com.hulampay.mobile.data.mock.MockClaims
-import com.hulampay.mobile.data.mock.MockItems
+import com.hulampay.mobile.data.model.ClaimDto
 import com.hulampay.mobile.ui.components.*
 import com.hulampay.mobile.ui.theme.*
+import com.hulampay.mobile.utils.UiState
+import com.hulampay.mobile.utils.timeAgo
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ClaimDetailScreen(navController: NavController, claimId: String) {
-    val claim = remember { MockClaims.getClaimById(claimId) }
+fun ClaimDetailScreen(
+    navController: NavController,
+    claimId: String,
+    viewModel: ClaimDetailViewModel = hiltViewModel(),
+) {
+    val state by viewModel.state.collectAsState()
+    val actionInFlight by viewModel.actionInFlight.collectAsState()
+    val actionError by viewModel.actionError.collectAsState()
     val context = LocalContext.current
-    var showCancelDialog by remember { mutableStateOf(false) }
 
-    if (claim == null) {
-        Scaffold(
-            topBar = {
-                UniLostDetailTopBar(
-                    title = "Not Found",
-                    onBackClick = { navController.popBackStack() }
-                )
-            }
-        ) { padding ->
-            EmptyState(
-                icon = Icons.Default.SearchOff,
-                title = "Claim not found",
-                message = "This claim may have been removed or doesn't exist.",
-                modifier = Modifier.padding(padding)
-            )
-        }
-        return
+    LaunchedEffect(claimId) {
+        viewModel.load(claimId)
     }
 
-    val isClaimant = claim.claimantId == "u1"
-    val isPoster = claim.posterId == "u1"
+    LaunchedEffect(actionError) {
+        actionError?.let {
+            Toast.makeText(context, it, Toast.LENGTH_SHORT).show()
+            viewModel.consumeActionError()
+        }
+    }
+
+    when (val current = state) {
+        UiState.Idle, UiState.Loading -> ClaimLoadingScaffold(navController)
+        is UiState.Error -> ClaimErrorScaffold(navController, current.message)
+        is UiState.Success -> ClaimDetailContent(
+            navController = navController,
+            data = current.data,
+            actionInFlight = actionInFlight,
+            onAccept = viewModel::acceptClaim,
+            onReject = viewModel::rejectClaim,
+            onCancel = {
+                viewModel.cancelClaim()
+            },
+            onMarkReturned = viewModel::markReturned,
+            onConfirmReceived = viewModel::confirmReceived,
+        )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun ClaimLoadingScaffold(navController: NavController) {
+    Scaffold(
+        topBar = {
+            UniLostDetailTopBar(
+                title = "Claim Details",
+                onBackClick = { navController.popBackStack() }
+            )
+        }
+    ) { padding ->
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding),
+            contentAlignment = Alignment.Center
+        ) {
+            CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun ClaimErrorScaffold(navController: NavController, message: String) {
+    Scaffold(
+        topBar = {
+            UniLostDetailTopBar(
+                title = "Not Found",
+                onBackClick = { navController.popBackStack() }
+            )
+        }
+    ) { padding ->
+        EmptyState(
+            icon = Icons.Default.SearchOff,
+            title = "Claim not found",
+            message = message.ifBlank { "This claim may have been removed or doesn't exist." },
+            modifier = Modifier.padding(padding)
+        )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun ClaimDetailContent(
+    navController: NavController,
+    data: ClaimDetailData,
+    actionInFlight: Boolean,
+    onAccept: () -> Unit,
+    onReject: () -> Unit,
+    onCancel: () -> Unit,
+    onMarkReturned: () -> Unit,
+    onConfirmReceived: () -> Unit,
+) {
+    val claim = data.claim
+    var showCancelDialog by remember { mutableStateOf(false) }
+
+    val isClaimant = data.isClaimant
+    val isPoster = data.isPoster
+    val isFinder = data.isFinder
+    val isOwner = data.isOwner
+    val isAccepted = claim.status.equals("ACCEPTED", ignoreCase = true)
+    val isCompleted = claim.status.equals("COMPLETED", ignoreCase = true) ||
+        claim.status.equals("HANDED_OVER", ignoreCase = true)
 
     Scaffold(
         topBar = {
@@ -59,9 +138,8 @@ fun ClaimDetailScreen(navController: NavController, claimId: String) {
             )
         },
         bottomBar = {
-            // Action buttons based on claim status and role
-            val showBottomBar = (isClaimant && claim.status == "PENDING") ||
-                    (claim.status == "APPROVED" || claim.status == "HANDED_OVER")
+            val showBottomBar = (isClaimant && claim.status.equals("PENDING", ignoreCase = true)) ||
+                isAccepted || isCompleted
             if (showBottomBar) {
                 Surface(
                     modifier = Modifier.fillMaxWidth(),
@@ -72,25 +150,25 @@ fun ClaimDetailScreen(navController: NavController, claimId: String) {
                         modifier = Modifier.padding(UniLostSpacing.md),
                         horizontalArrangement = Arrangement.spacedBy(UniLostSpacing.sm)
                     ) {
-                        // "Open Chat" for approved/handed_over claims
-                        if (claim.status == "APPROVED" || claim.status == "HANDED_OVER") {
+                        if (isAccepted || isCompleted) {
                             UniLostButton(
                                 text = "Open Chat",
                                 onClick = {
-                                    navController.navigate("chat_detail_screen/${claim.id}")
+                                    val chatId = claim.chatId ?: claim.id
+                                    navController.navigate("chat_detail_screen/$chatId")
                                 },
                                 icon = Icons.Default.Chat,
                                 modifier = Modifier.weight(1f)
                             )
                         }
-                        // "Cancel Claim" for pending claims (claimant only)
-                        if (isClaimant && claim.status == "PENDING") {
+                        if (isClaimant && claim.status.equals("PENDING", ignoreCase = true)) {
                             UniLostButton(
                                 text = "Cancel Claim",
                                 onClick = { showCancelDialog = true },
                                 variant = ButtonVariant.DANGER,
                                 icon = Icons.Default.Cancel,
-                                modifier = Modifier.weight(1f)
+                                modifier = Modifier.weight(1f),
+                                enabled = !actionInFlight
                             )
                         }
                     }
@@ -132,7 +210,7 @@ fun ClaimDetailScreen(navController: NavController, claimId: String) {
                     )
                     Spacer(modifier = Modifier.height(UniLostSpacing.xs))
                     Text(
-                        "Claimed ${MockItems.timeAgo(claim.createdAt)}",
+                        "Claimed ${timeAgo(claim.createdAt)}",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -144,7 +222,8 @@ fun ClaimDetailScreen(navController: NavController, claimId: String) {
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(UniLostSpacing.sm)
             ) {
-                // Poster
+                // Poster (item reporter)
+                val posterDisplayName = data.posterName.ifBlank { "Unknown" }
                 Card(
                     modifier = Modifier.weight(1f),
                     shape = UniLostShapes.md,
@@ -156,7 +235,7 @@ fun ClaimDetailScreen(navController: NavController, claimId: String) {
                         modifier = Modifier.padding(UniLostSpacing.sm),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        AvatarView(name = claim.posterName, size = 36.dp)
+                        AvatarView(name = posterDisplayName, size = 36.dp)
                         Spacer(modifier = Modifier.width(UniLostSpacing.sm))
                         Column {
                             Text(
@@ -165,7 +244,7 @@ fun ClaimDetailScreen(navController: NavController, claimId: String) {
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                             Text(
-                                claim.posterName,
+                                posterDisplayName,
                                 style = MaterialTheme.typography.bodySmall,
                                 fontWeight = FontWeight.SemiBold,
                                 color = MaterialTheme.colorScheme.onSurface
@@ -214,7 +293,8 @@ fun ClaimDetailScreen(navController: NavController, claimId: String) {
                 )
             ) {
                 Column(modifier = Modifier.padding(UniLostSpacing.md)) {
-                    if (claim.secretDetailAnswer.isNotBlank()) {
+                    val providedAnswer = claim.providedAnswer.orEmpty()
+                    if (providedAnswer.isNotBlank()) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(
                                 Icons.Default.Lock,
@@ -232,7 +312,7 @@ fun ClaimDetailScreen(navController: NavController, claimId: String) {
                         }
                         Spacer(modifier = Modifier.height(UniLostSpacing.xs))
                         Text(
-                            claim.secretDetailAnswer,
+                            providedAnswer,
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurface
                         )
@@ -265,8 +345,8 @@ fun ClaimDetailScreen(navController: NavController, claimId: String) {
             }
 
             // Status-specific content
-            when (claim.status) {
-                "PENDING" -> {
+            when {
+                claim.status.equals("PENDING", ignoreCase = true) -> {
                     Card(
                         modifier = Modifier.fillMaxWidth(),
                         shape = UniLostShapes.md,
@@ -310,26 +390,24 @@ fun ClaimDetailScreen(navController: NavController, claimId: String) {
                         ) {
                             UniLostButton(
                                 text = "Reject",
-                                onClick = {
-                                    Toast.makeText(context, "Claim rejected (Mock action)", Toast.LENGTH_SHORT).show()
-                                },
+                                onClick = onReject,
                                 variant = ButtonVariant.DANGER,
                                 icon = Icons.Default.Close,
-                                modifier = Modifier.weight(1f)
+                                modifier = Modifier.weight(1f),
+                                enabled = !actionInFlight
                             )
                             UniLostButton(
                                 text = "Approve",
-                                onClick = {
-                                    Toast.makeText(context, "Claim approved (Mock action)", Toast.LENGTH_SHORT).show()
-                                },
+                                onClick = onAccept,
                                 variant = ButtonVariant.PRIMARY,
                                 icon = Icons.Default.Check,
-                                modifier = Modifier.weight(1f)
+                                modifier = Modifier.weight(1f),
+                                enabled = !actionInFlight
                             )
                         }
                     }
                 }
-                "REJECTED" -> {
+                claim.status.equals("REJECTED", ignoreCase = true) -> {
                     Card(
                         modifier = Modifier.fillMaxWidth(),
                         shape = UniLostShapes.md,
@@ -364,14 +442,14 @@ fun ClaimDetailScreen(navController: NavController, claimId: String) {
                         }
                     }
                 }
-                "APPROVED", "HANDED_OVER" -> {
+                isAccepted || isCompleted -> {
                     HandoverStepper(
                         claim = claim,
-                        isClaimant = isClaimant,
-                        isPoster = isPoster,
-                        onConfirm = {
-                            Toast.makeText(context, "Handover confirmed! (Mock action)", Toast.LENGTH_SHORT).show()
-                        }
+                        isFinder = isFinder,
+                        isOwner = isOwner,
+                        actionInFlight = actionInFlight,
+                        onMarkReturned = onMarkReturned,
+                        onConfirmReceived = onConfirmReceived,
                     )
                 }
             }
@@ -391,7 +469,7 @@ fun ClaimDetailScreen(navController: NavController, claimId: String) {
             },
             text = {
                 Text(
-                    "Are you sure you want to cancel your claim on \"${claim?.itemTitle}\"? This action cannot be undone.",
+                    "Are you sure you want to cancel your claim on \"${claim.itemTitle}\"? This action cannot be undone.",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -400,8 +478,7 @@ fun ClaimDetailScreen(navController: NavController, claimId: String) {
                 TextButton(
                     onClick = {
                         showCancelDialog = false
-                        Toast.makeText(context, "Claim cancelled (Mock action)", Toast.LENGTH_SHORT).show()
-                        navController.popBackStack()
+                        onCancel()
                     },
                     colors = ButtonDefaults.textButtonColors(
                         contentColor = MaterialTheme.colorScheme.error
@@ -422,21 +499,29 @@ fun ClaimDetailScreen(navController: NavController, claimId: String) {
 
 @Composable
 fun HandoverStepper(
-    claim: com.hulampay.mobile.data.mock.MockClaim,
-    isClaimant: Boolean,
-    isPoster: Boolean,
-    onConfirm: () -> Unit
+    claim: ClaimDto,
+    isFinder: Boolean,
+    isOwner: Boolean,
+    actionInFlight: Boolean,
+    onMarkReturned: () -> Unit,
+    onConfirmReceived: () -> Unit,
 ) {
     val steps = listOf("Claim Approved", "Poster Confirms", "Claimant Confirms", "Handed Over")
 
+    val finderConfirmed = claim.finderMarkedReturnedAt != null
+    val ownerConfirmed = claim.ownerConfirmedReceivedAt != null
+    val isCompleted = claim.status.equals("COMPLETED", ignoreCase = true) ||
+        claim.status.equals("HANDED_OVER", ignoreCase = true)
+
     val currentStep = when {
-        claim.status == "HANDED_OVER" || (claim.posterConfirmed && claim.claimantConfirmed) -> 4
-        claim.posterConfirmed -> 2
-        claim.claimantConfirmed -> 1
+        isCompleted || (finderConfirmed && ownerConfirmed) -> 4
+        finderConfirmed -> 2
+        ownerConfirmed -> 1
         else -> 1
     }
 
-    val canConfirm = (isClaimant && !claim.claimantConfirmed) || (isPoster && !claim.posterConfirmed)
+    val canMarkReturned = isFinder && !finderConfirmed && !isCompleted
+    val canConfirmReceived = isOwner && finderConfirmed && !ownerConfirmed && !isCompleted
 
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -455,28 +540,26 @@ fun HandoverStepper(
             )
             Spacer(modifier = Modifier.height(UniLostSpacing.md))
 
-            // Steps
             steps.forEachIndexed { index, step ->
                 val stepNum = index + 1
-                val isCompleted = stepNum < currentStep || currentStep == 4
+                val isStepCompleted = stepNum < currentStep || currentStep == 4
                 val isActive = stepNum == currentStep && currentStep < 4
 
                 Row(verticalAlignment = Alignment.Top) {
-                    // Circle
                     Box(
                         modifier = Modifier
                             .size(32.dp)
                             .clip(CircleShape)
                             .background(
                                 when {
-                                    isCompleted -> Success
+                                    isStepCompleted -> Success
                                     isActive -> MaterialTheme.colorScheme.primary
                                     else -> MaterialTheme.colorScheme.outline
                                 }
                             ),
                         contentAlignment = Alignment.Center
                     ) {
-                        if (isCompleted) {
+                        if (isStepCompleted) {
                             Icon(
                                 Icons.Default.Check,
                                 contentDescription = null,
@@ -499,8 +582,8 @@ fun HandoverStepper(
                         Text(
                             step,
                             style = MaterialTheme.typography.bodyMedium,
-                            fontWeight = if (isCompleted || isActive) FontWeight.SemiBold else FontWeight.Normal,
-                            color = if (isCompleted || isActive) {
+                            fontWeight = if (isStepCompleted || isActive) FontWeight.SemiBold else FontWeight.Normal,
+                            color = if (isStepCompleted || isActive) {
                                 MaterialTheme.colorScheme.onSurface
                             } else {
                                 MaterialTheme.colorScheme.onSurfaceVariant
@@ -512,7 +595,6 @@ fun HandoverStepper(
                     }
                 }
 
-                // Connecting line
                 if (index < steps.size - 1) {
                     Box(
                         modifier = Modifier
@@ -520,7 +602,7 @@ fun HandoverStepper(
                             .width(2.dp)
                             .height(UniLostSpacing.md)
                             .background(
-                                if (isCompleted) Success else MaterialTheme.colorScheme.outline
+                                if (isStepCompleted) Success else MaterialTheme.colorScheme.outline
                             )
                     )
                 }
@@ -528,20 +610,38 @@ fun HandoverStepper(
 
             Spacer(modifier = Modifier.height(UniLostSpacing.md))
 
-            // Confirm button
-            if (canConfirm) {
-                UniLostButton(
-                    text = "Confirm Handover",
-                    onClick = onConfirm,
-                    icon = Icons.Default.CheckCircle
-                )
-                Spacer(modifier = Modifier.height(UniLostSpacing.xs))
-                Text(
-                    "Confirm that you have ${if (isClaimant) "received" else "handed over"} the item.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.fillMaxWidth()
-                )
+            // Action button — call the right backend endpoint based on role + state
+            when {
+                canMarkReturned -> {
+                    UniLostButton(
+                        text = "Mark as Returned",
+                        onClick = onMarkReturned,
+                        icon = Icons.Default.CheckCircle,
+                        enabled = !actionInFlight
+                    )
+                    Spacer(modifier = Modifier.height(UniLostSpacing.xs))
+                    Text(
+                        "Confirm that you have handed over the item.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+                canConfirmReceived -> {
+                    UniLostButton(
+                        text = "Confirm Receipt",
+                        onClick = onConfirmReceived,
+                        icon = Icons.Default.CheckCircle,
+                        enabled = !actionInFlight
+                    )
+                    Spacer(modifier = Modifier.height(UniLostSpacing.xs))
+                    Text(
+                        "Confirm that you have received the item.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
             }
 
             // Status text
@@ -575,9 +675,9 @@ fun HandoverStepper(
             } else {
                 Text(
                     when {
-                        claim.posterConfirmed && !claim.claimantConfirmed && isClaimant ->
+                        finderConfirmed && !ownerConfirmed && isOwner ->
                             "The poster has confirmed. Please confirm once you receive the item."
-                        claim.claimantConfirmed && !claim.posterConfirmed && isPoster ->
+                        ownerConfirmed && !finderConfirmed && isFinder ->
                             "The claimant has confirmed. Please confirm the handover."
                         else -> "Both parties need to confirm the handover."
                     },
