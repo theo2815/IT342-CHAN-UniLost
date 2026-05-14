@@ -24,6 +24,8 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.hulampay.mobile.navigation.Screen
 import com.hulampay.mobile.ui.components.UniLostButton
+import com.hulampay.mobile.ui.components.UniLostDropdownItem
+import com.hulampay.mobile.ui.components.UniLostSelectField
 import com.hulampay.mobile.ui.components.UniLostTextField
 import com.hulampay.mobile.ui.theme.*
 import com.hulampay.mobile.utils.UiState
@@ -44,7 +46,6 @@ fun RegisterScreen(
     var confirmPassword by remember { mutableStateOf("") }
     var selectedCampusId by remember { mutableStateOf<String?>(null) }
     var agreedToTerms   by remember { mutableStateOf(false) }
-    var campusDropdownExpanded by remember { mutableStateOf(false) }
 
     val registerState   by viewModel.registerState.collectAsState()
     val matchedCampuses by viewModel.matchedCampuses.collectAsState()
@@ -198,35 +199,25 @@ fun RegisterScreen(
                         matchedCampuses.size > 1 -> {
                             // Multiple matches — show dropdown
                             val selectedLabel = matchedCampuses
-                                .find { it.id == selectedCampusId }?.displayName ?: "Select your campus"
-                            ExposedDropdownMenuBox(
-                                expanded = campusDropdownExpanded,
-                                onExpandedChange = { campusDropdownExpanded = it },
-                            ) {
-                                OutlinedTextField(
-                                    value = selectedLabel,
-                                    onValueChange = {},
-                                    readOnly = true,
-                                    label = { Text("Campus") },
-                                    trailingIcon = {
-                                        ExposedDropdownMenuDefaults.TrailingIcon(expanded = campusDropdownExpanded)
-                                    },
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .menuAnchor(),
-                                    shape = RoundedCornerShape(12.dp),
-                                    colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors(),
+                                .find { it.id == selectedCampusId }?.displayName ?: ""
+                            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                Text(
+                                    text = "Campus",
+                                    style = MaterialTheme.typography.labelLarge,
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                    fontWeight = FontWeight.Medium,
                                 )
-                                ExposedDropdownMenu(
-                                    expanded = campusDropdownExpanded,
-                                    onDismissRequest = { campusDropdownExpanded = false },
-                                ) {
+                                UniLostSelectField(
+                                    selectedLabel = selectedLabel,
+                                    placeholder = "Select your campus",
+                                ) { close ->
                                     matchedCampuses.forEach { campus ->
-                                        DropdownMenuItem(
-                                            text = { Text(campus.displayName) },
+                                        UniLostDropdownItem(
+                                            text = campus.displayName,
+                                            active = selectedCampusId == campus.id,
                                             onClick = {
                                                 selectedCampusId = campus.id
-                                                campusDropdownExpanded = false
+                                                close()
                                             },
                                         )
                                     }

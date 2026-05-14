@@ -56,7 +56,6 @@ fun PostItemScreen(
     var category by remember { mutableStateOf("") }
     var location by remember { mutableStateOf("") }
     var secretDetail by remember { mutableStateOf("") }
-    var categoryExpanded by remember { mutableStateOf(false) }
     var dateText by remember { mutableStateOf("") }
     var selectedDateMillis by remember { mutableStateOf<Long?>(null) }
     var showDatePicker by remember { mutableStateOf(false) }
@@ -154,26 +153,25 @@ fun PostItemScreen(
             )
 
             // Category dropdown
-            ExposedDropdownMenuBox(
-                expanded = categoryExpanded,
-                onExpandedChange = { categoryExpanded = !categoryExpanded }
-            ) {
-                UniLostTextField(
-                    value = category,
-                    onValueChange = {},
-                    label = "Category *",
-                    readOnly = true,
-                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = categoryExpanded) },
-                    modifier = Modifier.menuAnchor()
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text(
+                    text = "Category *",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    fontWeight = FontWeight.Medium,
                 )
-                ExposedDropdownMenu(
-                    expanded = categoryExpanded,
-                    onDismissRequest = { categoryExpanded = false }
-                ) {
+                UniLostSelectField(
+                    selectedLabel = category,
+                    placeholder = "Select a category",
+                ) { close ->
                     ItemCategory.displayLabels.forEach { cat ->
-                        DropdownMenuItem(
-                            text = { Text(cat) },
-                            onClick = { category = cat; categoryExpanded = false }
+                        UniLostDropdownItem(
+                            text = cat,
+                            active = category == cat,
+                            onClick = {
+                                category = cat
+                                close()
+                            },
                         )
                     }
                 }
