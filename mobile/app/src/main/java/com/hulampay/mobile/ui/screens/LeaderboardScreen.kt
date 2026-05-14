@@ -294,9 +294,7 @@ private fun LeaderboardRow(rank: Int, user: User, isCurrentUser: Boolean) {
                     fontWeight = FontWeight.SemiBold,
                     color = MaterialTheme.colorScheme.onSurface
                 )
-                val campusLabel = user.campus?.let { c ->
-                    c.shortLabel.ifBlank { c.name }
-                }.orEmpty()
+                val campusLabel = user.campus?.displayName.orEmpty()
                 Text(
                     campusLabel,
                     style = MaterialTheme.typography.labelSmall,

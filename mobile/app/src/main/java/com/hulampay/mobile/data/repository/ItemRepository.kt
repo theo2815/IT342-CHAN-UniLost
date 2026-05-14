@@ -1,6 +1,6 @@
 package com.hulampay.mobile.data.repository
 
-import com.google.gson.Gson
+import com.hulampay.mobile.data.api.AppGson
 import com.hulampay.mobile.data.api.ItemApiService
 import com.hulampay.mobile.data.model.ItemDto
 import com.hulampay.mobile.data.model.ItemRequest
@@ -16,7 +16,7 @@ class ItemRepository @Inject constructor(
     private val itemApiService: ItemApiService,
 ) {
 
-    private val gson = Gson()
+    private val gson = AppGson.instance
 
     suspend fun getItems(
         keyword: String? = null,

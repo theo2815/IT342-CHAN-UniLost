@@ -4,7 +4,7 @@ import android.content.Context
 import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.google.gson.Gson
+import com.hulampay.mobile.data.api.AppGson
 import com.hulampay.mobile.data.model.ItemCategory
 import com.hulampay.mobile.data.model.ItemDto
 import com.hulampay.mobile.data.model.ItemRequest
@@ -36,7 +36,7 @@ class PostItemViewModel @Inject constructor(
     @ApplicationContext private val context: Context,
 ) : ViewModel() {
 
-    private val gson = Gson()
+    private val gson = AppGson.instance
 
     private val _submitState = MutableStateFlow<UiState<ItemDto>>(UiState.Idle)
     val submitState: StateFlow<UiState<ItemDto>> = _submitState

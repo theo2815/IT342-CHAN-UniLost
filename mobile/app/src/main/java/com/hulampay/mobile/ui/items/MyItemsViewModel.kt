@@ -2,7 +2,7 @@ package com.hulampay.mobile.ui.items
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.google.gson.Gson
+import com.hulampay.mobile.data.api.AppGson
 import com.hulampay.mobile.data.model.ItemDto
 import com.hulampay.mobile.data.model.User
 import com.hulampay.mobile.data.repository.ItemRepository
@@ -21,7 +21,7 @@ class MyItemsViewModel @Inject constructor(
     private val tokenManager: TokenManager,
 ) : ViewModel() {
 
-    private val gson = Gson()
+    private val gson = AppGson.instance
 
     private val _state = MutableStateFlow<UiState<List<ItemDto>>>(UiState.Idle)
     val state: StateFlow<UiState<List<ItemDto>>> = _state

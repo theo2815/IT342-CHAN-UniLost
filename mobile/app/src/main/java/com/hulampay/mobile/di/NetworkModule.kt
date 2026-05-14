@@ -1,5 +1,7 @@
 package com.hulampay.mobile.di
 
+import com.google.gson.Gson
+import com.hulampay.mobile.data.api.AppGson
 import com.hulampay.mobile.data.api.AuthApiService
 import com.hulampay.mobile.data.api.AuthInterceptor
 import com.hulampay.mobile.data.api.CampusApiService
@@ -46,11 +48,15 @@ object NetworkModule {
 
     @Provides
     @Singleton
-    fun provideRetrofit(okHttpClient: OkHttpClient): Retrofit {
+    fun provideGson(): Gson = AppGson.instance
+
+    @Provides
+    @Singleton
+    fun provideRetrofit(okHttpClient: OkHttpClient, gson: Gson): Retrofit {
         return Retrofit.Builder()
             .baseUrl(BASE_URL)
             .client(okHttpClient)
-            .addConverterFactory(GsonConverterFactory.create())
+            .addConverterFactory(GsonConverterFactory.create(gson))
             .build()
     }
 

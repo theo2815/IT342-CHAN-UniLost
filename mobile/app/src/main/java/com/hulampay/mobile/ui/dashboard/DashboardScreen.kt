@@ -305,10 +305,12 @@ fun DashboardScreen(
                 horizontalArrangement = Arrangement.spacedBy(UniLostSpacing.sm)
             ) {
                 items(campusStats, key = { it.id }) { campus ->
-                    val displayName = campus.shortLabel.ifBlank { campus.name }
-                    val detail = if (campus.shortLabel.isNotBlank() &&
-                        campus.name.isNotBlank() &&
-                        campus.shortLabel != campus.name) campus.name else ""
+                    val shortLabel = campus.shortLabel.orEmpty()
+                    val fullName = campus.name.orEmpty()
+                    val displayName = shortLabel.ifBlank { fullName }
+                    val detail = if (shortLabel.isNotBlank() &&
+                        fullName.isNotBlank() &&
+                        shortLabel != fullName) fullName else ""
                     Card(
                         modifier = Modifier.width(150.dp),
                         shape = UniLostShapes.md,
@@ -411,9 +413,7 @@ fun DashboardScreen(
                         )
                     }
                     topContributors.forEachIndexed { index, user ->
-                        val campusLabel = user.campus?.let { c ->
-                            c.shortLabel.ifBlank { c.name }
-                        }.orEmpty()
+                        val campusLabel = user.campus?.displayName.orEmpty()
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()

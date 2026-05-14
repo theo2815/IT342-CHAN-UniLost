@@ -8,7 +8,7 @@ import com.google.gson.annotations.SerializedName
  */
 data class CampusStatDto(
     @SerializedName("id")          val id: String = "",
-    @SerializedName("name")        val name: String = "",
-    @SerializedName("shortLabel")  val shortLabel: String = "",
+    @SerializedName("name")        val name: String? = null,
+    @SerializedName("shortLabel")  val shortLabel: String? = null,
     @SerializedName("activeItems") val activeItems: Long = 0L,
 )

@@ -1,6 +1,6 @@
 package com.hulampay.mobile.data.ws
 
-import com.google.gson.Gson
+import com.hulampay.mobile.data.api.AppGson
 import com.hulampay.mobile.data.model.MessageDto
 import com.hulampay.mobile.data.model.NotificationDto
 import com.hulampay.mobile.utils.TokenManager
@@ -36,7 +36,7 @@ class ChatWebSocketClient @Inject constructor(
     okHttpClient: OkHttpClient,
 ) {
 
-    private val gson = Gson()
+    private val gson = AppGson.instance
     private val stompClient = StompClient(OkHttpWebSocketClient(okHttpClient))
     private val mutex = Mutex()
     private var session: StompSession? = null

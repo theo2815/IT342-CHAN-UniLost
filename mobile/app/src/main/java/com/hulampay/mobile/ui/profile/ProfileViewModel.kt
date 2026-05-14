@@ -2,7 +2,7 @@ package com.hulampay.mobile.ui.profile
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.google.gson.Gson
+import com.hulampay.mobile.data.api.AppGson
 import com.hulampay.mobile.data.model.ClaimDto
 import com.hulampay.mobile.data.model.ItemDto
 import com.hulampay.mobile.data.model.User
@@ -31,7 +31,7 @@ class ProfileViewModel @Inject constructor(
     private val chatUnreadCountState: ChatUnreadCountState,
 ) : ViewModel() {
 
-    private val gson = Gson()
+    private val gson = AppGson.instance
 
     private val _currentUser = MutableStateFlow<User?>(null)
     val currentUser: StateFlow<User?> = _currentUser

@@ -1,6 +1,6 @@
 package com.hulampay.mobile.data.repository
 
-import com.google.gson.Gson
+import com.hulampay.mobile.data.api.AppGson
 import com.hulampay.mobile.data.api.AuthApiService
 import com.hulampay.mobile.data.api.AuthResponse
 import com.hulampay.mobile.data.model.School
@@ -14,7 +14,7 @@ class AuthRepository @Inject constructor(
     private val authApiService: AuthApiService,
     private val tokenManager: TokenManager,
 ) {
-    private val gson = Gson()
+    private val gson = AppGson.instance
 
     // ── Login ─────────────────────────────────────────────────────────────────
     suspend fun login(email: String, password: String): Result<AuthResponse> {

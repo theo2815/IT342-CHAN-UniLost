@@ -2,7 +2,7 @@ package com.hulampay.mobile.ui.screens
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.google.gson.Gson
+import com.hulampay.mobile.data.api.AppGson
 import com.hulampay.mobile.data.model.User
 import com.hulampay.mobile.data.repository.UserRepository
 import com.hulampay.mobile.utils.TokenManager
@@ -20,7 +20,7 @@ class LeaderboardViewModel @Inject constructor(
     private val tokenManager: TokenManager,
 ) : ViewModel() {
 
-    private val gson = Gson()
+    private val gson = AppGson.instance
 
     private val _state = MutableStateFlow<UiState<List<User>>>(UiState.Idle)
     val state: StateFlow<UiState<List<User>>> = _state
