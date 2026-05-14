@@ -11,6 +11,16 @@ hilt {
     enableAggregatingTask = true
 }
 
+// Read MAPS_API_KEY from local.properties (gitignored).
+def localProperties = new Properties()
+def localPropertiesFile = rootProject.file('local.properties')
+if (localPropertiesFile.exists()) {
+    localPropertiesFile.withReader('UTF-8') { reader ->
+        localProperties.load(reader)
+    }
+}
+def mapsApiKey = localProperties.getProperty('MAPS_API_KEY', '')
+
 android {
     namespace 'com.hulampay.mobile'
     compileSdk appCompileSdkVersion
@@ -21,6 +31,8 @@ android {
         targetSdk appTargetSdkVersion
         versionCode 1
         versionName "1.0"
+
+        manifestPlaceholders = [MAPS_API_KEY: mapsApiKey]
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -117,6 +129,17 @@ dependencies {
     implementation(libs.retrofit)
     implementation(libs.converter.gson)
     implementation(libs.logging.interceptor)
+
+    // Krossbow — STOMP over WebSocket (Phase 6 mobile messaging)
+    implementation(libs.krossbow.stomp.core)
+    implementation(libs.krossbow.websocket.okhttp)
+
+    // Google Maps (Phase 8 — Campus Map)
+    implementation(libs.play.services.maps)
+    implementation(libs.maps.compose)
+
+    // Coil — image loading for Compose
+    implementation(libs.coil.compose)
 
     // DataStore
     implementation("androidx.datastore:datastore-preferences:1.0.0")

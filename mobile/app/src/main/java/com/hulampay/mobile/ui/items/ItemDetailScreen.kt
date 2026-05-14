@@ -175,26 +175,28 @@ private fun ItemDetailContent(
         },
         bottomBar = {
             if (!isPoster) {
-                Surface(
-                    modifier = Modifier.fillMaxWidth(),
-                    shadowElevation = 8.dp,
-                    color = MaterialTheme.colorScheme.surface
-                ) {
-                    Row(
-                        modifier = Modifier.padding(UniLostSpacing.md),
-                        horizontalArrangement = Arrangement.spacedBy(UniLostSpacing.sm)
+                if (item.status == "ACTIVE") {
+                    Surface(
+                        modifier = Modifier.fillMaxWidth(),
+                        shadowElevation = 8.dp,
+                        color = MaterialTheme.colorScheme.surface
                     ) {
-                        UniLostButton(
-                            text = if (isFound) "This Is Mine" else "I Found This",
-                            onClick = { showClaimSheet = true },
-                            icon = if (isFound) Icons.Default.PanTool else Icons.Default.Search,
-                            modifier = Modifier.weight(1f)
-                        )
-                        OutlinedButton(
-                            onClick = { showReportDialog = true },
-                            shape = UniLostShapes.md
+                        Row(
+                            modifier = Modifier.padding(UniLostSpacing.md),
+                            horizontalArrangement = Arrangement.spacedBy(UniLostSpacing.sm)
                         ) {
-                            Icon(Icons.Default.Flag, contentDescription = "Report", modifier = Modifier.size(18.dp))
+                            UniLostButton(
+                                text = if (isFound) "This Is Mine" else "I Found This",
+                                onClick = { showClaimSheet = true },
+                                icon = if (isFound) Icons.Default.PanTool else Icons.Default.Search,
+                                modifier = Modifier.weight(1f)
+                            )
+                            OutlinedButton(
+                                onClick = { showReportDialog = true },
+                                shape = UniLostShapes.md
+                            ) {
+                                Icon(Icons.Default.Flag, contentDescription = "Report", modifier = Modifier.size(18.dp))
+                            }
                         }
                     }
                 }
@@ -244,20 +246,13 @@ private fun ItemDetailContent(
                     .background(MaterialTheme.colorScheme.surfaceVariant),
                 contentAlignment = Alignment.Center
             ) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .then(if (isFound) Modifier.blur(20.dp) else Modifier)
-                        .background(MaterialTheme.colorScheme.surfaceVariant),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        Icons.Default.Image,
-                        contentDescription = null,
-                        modifier = Modifier.size(64.dp),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
+                RemoteImage(
+                    url = item.imageUrls.firstOrNull(),
+                    contentDescription = item.title,
+                    modifier = Modifier.fillMaxSize(),
+                    blurred = isFound,
+                    placeholderIconSize = 64.dp,
+                )
 
                 // Type badge
                 Surface(

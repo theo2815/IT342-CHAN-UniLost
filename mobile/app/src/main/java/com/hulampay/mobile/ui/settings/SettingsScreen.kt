@@ -1,9 +1,11 @@
 package com.hulampay.mobile.ui.settings
 
+import android.widget.Toast
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -12,15 +14,26 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.hulampay.mobile.ui.components.*
 import com.hulampay.mobile.ui.theme.*
+import com.hulampay.mobile.utils.PasswordStrengthLevel
+import com.hulampay.mobile.utils.UiState
+import com.hulampay.mobile.utils.calculatePasswordStrength
+import com.hulampay.mobile.utils.getStrengthLevel
+import com.hulampay.mobile.utils.isPasswordValid
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SettingsScreen(navController: NavController) {
+fun SettingsScreen(
+    navController: NavController,
+    viewModel: SettingsViewModel = hiltViewModel(),
+) {
     // Mock user data
     var firstName by remember { mutableStateOf("Theo") }
     var lastName by remember { mutableStateOf("Chan") }
@@ -303,41 +316,8 @@ fun SettingsScreen(navController: NavController) {
 
             Spacer(modifier = Modifier.height(UniLostSpacing.md))
 
-            // Change Password Section (placeholder)
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = UniLostSpacing.md),
-                shape = UniLostShapes.lg,
-                elevation = CardDefaults.cardElevation(1.dp),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surface
-                )
-            ) {
-                Column(modifier = Modifier.padding(UniLostSpacing.lg)) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(
-                            Icons.Outlined.Lock,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.size(20.dp)
-                        )
-                        Spacer(modifier = Modifier.width(UniLostSpacing.sm))
-                        Text(
-                            "Change Password",
-                            style = MaterialTheme.typography.titleLarge,
-                            fontWeight = FontWeight.SemiBold,
-                            color = MaterialTheme.colorScheme.onSurface
-                        )
-                    }
-                    Spacer(modifier = Modifier.height(UniLostSpacing.sm))
-                    Text(
-                        "Coming soon - Password change functionality will be available when backend APIs are connected.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            }
+            // Change Password Section
+            ChangePasswordCard(viewModel = viewModel)
 
             Spacer(modifier = Modifier.height(UniLostSpacing.sm))
 
@@ -475,5 +455,166 @@ private fun ThemeOptionCard(
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun ChangePasswordCard(viewModel: SettingsViewModel) {
+    var currentPassword by remember { mutableStateOf("") }
+    var newPassword by remember { mutableStateOf("") }
+    var confirmPassword by remember { mutableStateOf("") }
+
+    val passwordState by viewModel.passwordState.collectAsState()
+    val context = LocalContext.current
+
+    val passwordScore = calculatePasswordStrength(newPassword)
+    val strengthLevel = getStrengthLevel(passwordScore)
+    val newPasswordError = when {
+        newPassword.isNotEmpty() && !isPasswordValid(newPassword) ->
+            "8+ chars with uppercase, number & special char (e.g. !@#\$)"
+        else -> null
+    }
+    val confirmError = when {
+        confirmPassword.isNotEmpty() && confirmPassword != newPassword -> "Passwords don't match"
+        else -> null
+    }
+
+    LaunchedEffect(passwordState) {
+        when (val s = passwordState) {
+            is UiState.Success -> {
+                Toast.makeText(context, s.data, Toast.LENGTH_SHORT).show()
+                currentPassword = ""
+                newPassword = ""
+                confirmPassword = ""
+                viewModel.consumePasswordState()
+            }
+            is UiState.Error -> {
+                Toast.makeText(context, s.message, Toast.LENGTH_LONG).show()
+                viewModel.consumePasswordState()
+            }
+            else -> {}
+        }
+    }
+
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = UniLostSpacing.md),
+        shape = UniLostShapes.lg,
+        elevation = CardDefaults.cardElevation(1.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface
+        )
+    ) {
+        Column(modifier = Modifier.padding(UniLostSpacing.lg)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    Icons.Outlined.Lock,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(20.dp)
+                )
+                Spacer(modifier = Modifier.width(UniLostSpacing.sm))
+                Text(
+                    "Change Password",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+            }
+            Spacer(modifier = Modifier.height(UniLostSpacing.md))
+
+            UniLostTextField(
+                value = currentPassword,
+                onValueChange = { currentPassword = it },
+                label = "Current Password",
+                leadingIcon = Icons.Outlined.Lock,
+                isPassword = true,
+            )
+
+            Spacer(modifier = Modifier.height(UniLostSpacing.sm))
+
+            UniLostTextField(
+                value = newPassword,
+                onValueChange = { newPassword = it },
+                label = "New Password",
+                leadingIcon = Icons.Outlined.Lock,
+                isPassword = true,
+                errorMessage = newPasswordError,
+            )
+
+            if (newPassword.isNotEmpty()) {
+                PasswordStrengthBar(
+                    score = passwordScore,
+                    level = strengthLevel,
+                    modifier = Modifier.padding(top = 4.dp, bottom = 4.dp),
+                )
+            } else {
+                Spacer(modifier = Modifier.height(UniLostSpacing.sm))
+            }
+
+            UniLostTextField(
+                value = confirmPassword,
+                onValueChange = { confirmPassword = it },
+                label = "Confirm New Password",
+                leadingIcon = Icons.Outlined.Lock,
+                isPassword = true,
+                errorMessage = confirmError,
+            )
+
+            Spacer(modifier = Modifier.height(UniLostSpacing.md))
+
+            val canSubmit = currentPassword.isNotBlank() &&
+                isPasswordValid(newPassword) &&
+                confirmPassword == newPassword &&
+                confirmPassword.isNotEmpty()
+
+            UniLostButton(
+                text = "Update Password",
+                onClick = {
+                    viewModel.changePassword(
+                        currentPassword = currentPassword,
+                        newPassword = newPassword,
+                        confirmPassword = confirmPassword,
+                    )
+                },
+                icon = Icons.Default.Save,
+                isLoading = passwordState is UiState.Loading,
+                enabled = canSubmit,
+                fillWidth = false,
+            )
+        }
+    }
+}
+
+@Composable
+private fun PasswordStrengthBar(
+    score: Int,
+    level: PasswordStrengthLevel,
+    modifier: Modifier = Modifier,
+) {
+    val color = when (level) {
+        PasswordStrengthLevel.WEAK -> MaterialTheme.colorScheme.error
+        PasswordStrengthLevel.MEDIUM -> Warning
+        PasswordStrengthLevel.STRONG -> Success
+    }
+    val fraction = score.coerceIn(0, 5) / 5f
+
+    Column(modifier = modifier.fillMaxWidth()) {
+        LinearProgressIndicator(
+            progress = fraction,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(4.dp)
+                .clip(RoundedCornerShape(2.dp)),
+            color = color,
+            trackColor = MaterialTheme.colorScheme.outline,
+        )
+        Text(
+            text = "Strength: ${level.label}",
+            style = MaterialTheme.typography.labelSmall,
+            color = color,
+            modifier = Modifier.padding(top = 3.dp),
+        )
     }
 }

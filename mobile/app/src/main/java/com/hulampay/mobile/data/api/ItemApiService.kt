@@ -26,6 +26,14 @@ interface ItemApiService {
         @Query("size")     size: Int = 20,
     ): Response<PageDto<ItemDto>>
 
+    /** GET /api/items/map — list of items with coordinates for the campus map. */
+    @GET("items/map")
+    suspend fun getMapItems(
+        @Query("campusId") campusId: String? = null,
+        @Query("type")     type: String? = null,
+        @Query("limit")    limit: Int? = null,
+    ): Response<List<ItemDto>>
+
     /** GET /api/items/{id} */
     @GET("items/{id}")
     suspend fun getItemById(@Path("id") id: String): Response<ItemDto>

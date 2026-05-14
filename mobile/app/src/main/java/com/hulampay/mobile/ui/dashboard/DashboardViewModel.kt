@@ -2,11 +2,14 @@ package com.hulampay.mobile.ui.dashboard
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.google.gson.Gson
+import com.hulampay.mobile.data.api.AppGson
+import com.hulampay.mobile.data.model.CampusStatDto
 import com.hulampay.mobile.data.model.ItemDto
 import com.hulampay.mobile.data.model.User
 import com.hulampay.mobile.data.repository.AuthRepository
+import com.hulampay.mobile.data.repository.CampusRepository
 import com.hulampay.mobile.data.repository.ItemRepository
+import com.hulampay.mobile.data.repository.UserRepository
 import com.hulampay.mobile.utils.TokenManager
 import com.hulampay.mobile.utils.UiState
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -20,10 +23,12 @@ import javax.inject.Inject
 class DashboardViewModel @Inject constructor(
     private val authRepository: AuthRepository,
     private val itemRepository: ItemRepository,
+    private val userRepository: UserRepository,
+    private val campusRepository: CampusRepository,
     private val tokenManager: TokenManager,
 ) : ViewModel() {
 
-    private val gson = Gson()
+    private val gson = AppGson.instance
 
     private val _currentUser = MutableStateFlow<User?>(null)
     val currentUser: StateFlow<User?> = _currentUser
@@ -37,9 +42,17 @@ class DashboardViewModel @Inject constructor(
     private val _totalItems = MutableStateFlow(0L)
     val totalItems: StateFlow<Long> = _totalItems
 
+    private val _campusStats = MutableStateFlow<List<CampusStatDto>>(emptyList())
+    val campusStats: StateFlow<List<CampusStatDto>> = _campusStats
+
+    private val _topContributors = MutableStateFlow<List<User>>(emptyList())
+    val topContributors: StateFlow<List<User>> = _topContributors
+
     init {
         loadCurrentUser()
         loadDashboardItems()
+        loadCampusStats()
+        loadTopContributors()
     }
 
     fun loadDashboardItems() {
@@ -49,6 +62,25 @@ class DashboardViewModel @Inject constructor(
                 val page = result.getOrThrow()
                 _items.value = page.content
                 _totalItems.value = page.totalElements
+            }
+        }
+    }
+
+    fun loadCampusStats() {
+        viewModelScope.launch {
+            val result = campusRepository.getCampusStats()
+            if (result.isSuccess) {
+                _campusStats.value = result.getOrThrow()
+                    .sortedByDescending { it.activeItems }
+            }
+        }
+    }
+
+    fun loadTopContributors() {
+        viewModelScope.launch {
+            val result = userRepository.getLeaderboard(size = 5)
+            if (result.isSuccess) {
+                _topContributors.value = result.getOrThrow()
             }
         }
     }

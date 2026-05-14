@@ -1,9 +1,15 @@
 package com.hulampay.mobile.di
 
+import com.google.gson.Gson
+import com.hulampay.mobile.data.api.AppGson
 import com.hulampay.mobile.data.api.AuthApiService
 import com.hulampay.mobile.data.api.AuthInterceptor
+import com.hulampay.mobile.data.api.CampusApiService
+import com.hulampay.mobile.data.api.ChatApiService
 import com.hulampay.mobile.data.api.ClaimApiService
 import com.hulampay.mobile.data.api.ItemApiService
+import com.hulampay.mobile.data.api.NotificationApiService
+import com.hulampay.mobile.data.api.UserApiService
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -42,11 +48,15 @@ object NetworkModule {
 
     @Provides
     @Singleton
-    fun provideRetrofit(okHttpClient: OkHttpClient): Retrofit {
+    fun provideGson(): Gson = AppGson.instance
+
+    @Provides
+    @Singleton
+    fun provideRetrofit(okHttpClient: OkHttpClient, gson: Gson): Retrofit {
         return Retrofit.Builder()
             .baseUrl(BASE_URL)
             .client(okHttpClient)
-            .addConverterFactory(GsonConverterFactory.create())
+            .addConverterFactory(GsonConverterFactory.create(gson))
             .build()
     }
 
@@ -66,6 +76,30 @@ object NetworkModule {
     @Singleton
     fun provideClaimApiService(retrofit: Retrofit): ClaimApiService {
         return retrofit.create(ClaimApiService::class.java)
+    }
+
+    @Provides
+    @Singleton
+    fun provideChatApiService(retrofit: Retrofit): ChatApiService {
+        return retrofit.create(ChatApiService::class.java)
+    }
+
+    @Provides
+    @Singleton
+    fun provideNotificationApiService(retrofit: Retrofit): NotificationApiService {
+        return retrofit.create(NotificationApiService::class.java)
+    }
+
+    @Provides
+    @Singleton
+    fun provideUserApiService(retrofit: Retrofit): UserApiService {
+        return retrofit.create(UserApiService::class.java)
+    }
+
+    @Provides
+    @Singleton
+    fun provideCampusApiService(retrofit: Retrofit): CampusApiService {
+        return retrofit.create(CampusApiService::class.java)
     }
 
     @Provides

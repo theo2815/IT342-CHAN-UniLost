@@ -1,63 +1,91 @@
 package com.hulampay.mobile.ui.screens
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
+import com.hulampay.mobile.data.model.ChatDto
 import com.hulampay.mobile.navigation.Screen
 import com.hulampay.mobile.ui.components.*
 import com.hulampay.mobile.ui.theme.*
+import com.hulampay.mobile.utils.UiState
+import com.hulampay.mobile.utils.timeAgo
 
 /**
  * Chat List screen — Spec Section 10.6.
- * Layout-only stub with mock data.
+ * Wired to GET /api/chats; preserves the original layout.
+ *
+ * Pass 3 additions (parity with website Messages.jsx sidebar):
+ *  - All / Unread filter tabs at the top
+ *  - Per-row status dot on the avatar (active / pending / completed / closed)
+ *  - Per-row item status chip showing the underlying item state
  */
-
-private data class MockChat(
-    val id: String,
-    val otherPersonName: String,
-    val lastMessage: String,
-    val itemTitle: String,
-    val timeAgo: String,
-    val unreadCount: Int
-)
-
-private val mockChats = listOf(
-    MockChat("c1", "Maria Santos", "Hi, I think I found your phone!", "Black Samsung Galaxy S24", "2m ago", 2),
-    MockChat("c2", "Carlos Reyes", "Can we meet at the library?", "Blue Backpack with Laptop", "15m ago", 0),
-    MockChat("c3", "Ana Garcia", "I left it at the security office.", "Student ID Card", "1h ago", 1),
-    MockChat("c4", "Juan Dela Cruz", "Thanks for finding it!", "Silver Watch", "3h ago", 0),
-    MockChat("c5", "Sofia Lim", "Is the charger included?", "MacBook Pro Charger", "1d ago", 0),
-)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ChatListScreen(navController: NavController) {
+fun ChatListScreen(
+    navController: NavController,
+    viewModel: ChatListViewModel = hiltViewModel(),
+    badgeViewModel: NotificationBadgeViewModel = hiltViewModel(),
+    chatBadgeViewModel: ChatBadgeViewModel = hiltViewModel(),
+) {
+    val state by viewModel.state.collectAsState()
+    val unreadNotifications by badgeViewModel.unread.collectAsState()
+    val unreadChats by chatBadgeViewModel.unread.collectAsState()
+
+    var filter by rememberSaveable { mutableStateOf(ChatListFilter.ALL) }
+
+    LaunchedEffect(Unit) {
+        viewModel.load()
+    }
+
     Scaffold(
         topBar = {
             UniLostTopBar(
+                onLogoClick = {
+                    navController.navigate(Screen.Dashboard.route) {
+                        popUpTo(Screen.Dashboard.route) {
+                            inclusive = false
+                            saveState = true
+                        }
+                        launchSingleTop = true
+                        restoreState = true
+                    }
+                },
                 onNotificationsClick = { navController.navigate(Screen.Notifications.route) },
-                notificationCount = 3
+                notificationCount = unreadNotifications.toInt(),
+                chatCount = unreadChats.toInt()
             )
-        }
+        },
+        bottomBar = { BottomNavBar(navController = navController) }
     ) { padding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
         ) {
-            // Section header
             Text(
                 "Messages",
                 style = MaterialTheme.typography.headlineMedium,
@@ -69,24 +97,66 @@ fun ChatListScreen(navController: NavController) {
                 color = MaterialTheme.colorScheme.onSurface
             )
 
-            if (mockChats.isEmpty()) {
-                EmptyState(
-                    icon = Icons.Default.Chat,
-                    title = "No messages yet",
-                    message = "Start a conversation by claiming an item."
-                )
-            } else {
-                LazyColumn(
-                    contentPadding = PaddingValues(horizontal = UniLostSpacing.md),
-                    verticalArrangement = Arrangement.spacedBy(UniLostSpacing.sm)
+            ChatListFilterTabs(
+                selected = filter,
+                onSelect = { filter = it },
+                modifier = Modifier.padding(
+                    horizontal = UniLostSpacing.md,
+                    vertical = UniLostSpacing.xs,
+                ),
+            )
+
+            when (val current = state) {
+                UiState.Idle, UiState.Loading -> Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
                 ) {
-                    items(mockChats) { chat ->
-                        ChatRow(
-                            chat = chat,
-                            onClick = {
-                                navController.navigate("${Screen.ChatDetail.route}/${chat.id}")
+                    CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
+                }
+
+                is UiState.Error -> Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(UniLostSpacing.md),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        current.message,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.error
+                    )
+                }
+
+                is UiState.Success -> {
+                    val chats = current.data
+                    val filtered = when (filter) {
+                        ChatListFilter.ALL -> chats
+                        ChatListFilter.UNREAD -> chats.filter { it.unreadCount > 0 }
+                    }
+                    if (filtered.isEmpty()) {
+                        EmptyState(
+                            icon = Icons.Default.Chat,
+                            title = if (filter == ChatListFilter.UNREAD) "No unread messages" else "No messages yet",
+                            message = if (filter == ChatListFilter.UNREAD) {
+                                "All caught up — switch to All to see every conversation."
+                            } else {
+                                "Start a conversation by claiming an item."
                             }
                         )
+                    } else {
+                        LazyColumn(
+                            contentPadding = PaddingValues(horizontal = UniLostSpacing.md),
+                            verticalArrangement = Arrangement.spacedBy(UniLostSpacing.sm)
+                        ) {
+                            items(filtered, key = { it.id }) { chat ->
+                                ChatRow(
+                                    chat = chat,
+                                    onClick = {
+                                        navController.navigate("${Screen.ChatDetail.route}/${chat.id}")
+                                    }
+                                )
+                            }
+                        }
                     }
                 }
             }
@@ -94,8 +164,103 @@ fun ChatListScreen(navController: NavController) {
     }
 }
 
+private enum class ChatListFilter { ALL, UNREAD }
+
 @Composable
-private fun ChatRow(chat: MockChat, onClick: () -> Unit) {
+private fun ChatListFilterTabs(
+    selected: ChatListFilter,
+    onSelect: (ChatListFilter) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Surface(
+        modifier = modifier,
+        shape = UniLostShapes.full,
+        color = MaterialTheme.colorScheme.surfaceVariant,
+    ) {
+        Row(modifier = Modifier.padding(2.dp)) {
+            FilterTab(
+                label = "All",
+                isSelected = selected == ChatListFilter.ALL,
+                onClick = { onSelect(ChatListFilter.ALL) },
+                modifier = Modifier.weight(1f),
+            )
+            FilterTab(
+                label = "Unread",
+                isSelected = selected == ChatListFilter.UNREAD,
+                onClick = { onSelect(ChatListFilter.UNREAD) },
+                modifier = Modifier.weight(1f),
+            )
+        }
+    }
+}
+
+@Composable
+private fun FilterTab(
+    label: String,
+    isSelected: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Surface(
+        modifier = modifier
+            .clip(UniLostShapes.full)
+            .clickable(onClick = onClick),
+        shape = UniLostShapes.full,
+        color = if (isSelected) MaterialTheme.colorScheme.surface else Color.Transparent,
+        shadowElevation = if (isSelected) 1.dp else 0.dp,
+    ) {
+        Box(
+            modifier = Modifier.padding(
+                horizontal = UniLostSpacing.md,
+                vertical = UniLostSpacing.xs,
+            ),
+            contentAlignment = Alignment.Center,
+        ) {
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Medium,
+                color = if (isSelected) {
+                    MaterialTheme.colorScheme.onSurface
+                } else {
+                    MaterialTheme.colorScheme.onSurfaceVariant
+                },
+            )
+        }
+    }
+}
+
+/**
+ * Mirrors website `getChatStatusType` — drives the dot color on each row.
+ */
+private enum class ChatRowStatus(val color: Color) {
+    COMPLETED(Success),
+    PENDING(Warning),
+    CLOSED(Slate400),
+    ACTIVE(Info);
+
+    companion object {
+        fun of(chat: ChatDto): ChatRowStatus {
+            val cs = (chat.claimStatus ?: "").uppercase()
+            val itemStatus = (chat.itemStatus ?: "").uppercase()
+            return when {
+                cs == "COMPLETED" -> COMPLETED
+                cs == "REJECTED" || cs == "CANCELLED" -> CLOSED
+                itemStatus == "PENDING_OWNER_CONFIRMATION" -> PENDING
+                else -> ACTIVE
+            }
+        }
+    }
+}
+
+@Composable
+private fun ChatRow(chat: ChatDto, onClick: () -> Unit) {
+    val unread = chat.unreadCount.toInt().coerceAtLeast(0)
+    val displayName = chat.otherParticipantName.ifBlank { "Unknown" }
+    val preview = chat.lastMessagePreview?.takeIf { it.isNotBlank() } ?: "No messages yet"
+    val rowStatus = ChatRowStatus.of(chat)
+    val itemStatus = chat.itemStatus?.takeIf { it.isNotBlank() }
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -104,13 +269,30 @@ private fun ChatRow(chat: MockChat, onClick: () -> Unit) {
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surface
         ),
-        elevation = CardDefaults.cardElevation(if (chat.unreadCount > 0) 2.dp else 0.dp)
+        elevation = CardDefaults.cardElevation(if (unread > 0) 2.dp else 0.dp)
     ) {
         Row(
             modifier = Modifier.padding(UniLostSpacing.sm),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            AvatarView(name = chat.otherPersonName, size = 48.dp)
+            Box {
+                AvatarView(name = displayName, size = 48.dp)
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.BottomEnd)
+                        .size(12.dp)
+                        .clip(CircleShape)
+                        .background(MaterialTheme.colorScheme.surface),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(8.dp)
+                            .clip(CircleShape)
+                            .background(rowStatus.color)
+                    )
+                }
+            }
 
             Spacer(modifier = Modifier.width(UniLostSpacing.sm))
 
@@ -121,23 +303,23 @@ private fun ChatRow(chat: MockChat, onClick: () -> Unit) {
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        chat.otherPersonName,
+                        displayName,
                         style = MaterialTheme.typography.titleMedium,
-                        fontWeight = if (chat.unreadCount > 0) FontWeight.Bold else FontWeight.SemiBold,
+                        fontWeight = if (unread > 0) FontWeight.Bold else FontWeight.SemiBold,
                         color = MaterialTheme.colorScheme.onSurface,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                         modifier = Modifier.weight(1f)
                     )
                     Text(
-                        chat.timeAgo,
+                        timeAgo(chat.lastMessageAt),
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
                 Spacer(modifier = Modifier.height(UniLostSpacing.xxs))
                 Text(
-                    chat.lastMessage,
+                    preview,
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,
@@ -146,7 +328,7 @@ private fun ChatRow(chat: MockChat, onClick: () -> Unit) {
                 Spacer(modifier = Modifier.height(UniLostSpacing.xxs))
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
+                    horizontalArrangement = Arrangement.spacedBy(UniLostSpacing.xs),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
@@ -157,12 +339,13 @@ private fun ChatRow(chat: MockChat, onClick: () -> Unit) {
                         overflow = TextOverflow.Ellipsis,
                         modifier = Modifier.weight(1f)
                     )
-                    if (chat.unreadCount > 0) {
+                    itemStatus?.let { StatusChip(status = it) }
+                    if (unread > 0) {
                         Badge(
                             containerColor = MaterialTheme.colorScheme.primary,
                             contentColor = MaterialTheme.colorScheme.onPrimary
                         ) {
-                            Text("${chat.unreadCount}")
+                            Text("$unread")
                         }
                     }
                 }

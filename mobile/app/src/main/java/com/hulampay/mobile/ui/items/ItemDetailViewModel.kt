@@ -2,7 +2,7 @@ package com.hulampay.mobile.ui.items
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.google.gson.Gson
+import com.hulampay.mobile.data.api.AppGson
 import com.hulampay.mobile.data.model.ClaimDto
 import com.hulampay.mobile.data.model.ClaimRequest
 import com.hulampay.mobile.data.model.ItemDto
@@ -52,7 +52,7 @@ class ItemDetailViewModel @Inject constructor(
     private val tokenManager: TokenManager,
 ) : ViewModel() {
 
-    private val gson = Gson()
+    private val gson = AppGson.instance
 
     private val _state = MutableStateFlow<UiState<ItemDetailData>>(UiState.Idle)
     val state: StateFlow<UiState<ItemDetailData>> = _state

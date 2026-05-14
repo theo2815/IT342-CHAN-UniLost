@@ -1,10 +1,13 @@
 package com.hulampay.mobile.ui.components
 
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -26,6 +29,7 @@ import com.hulampay.mobile.ui.theme.*
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun UniLostTopBar(
+    onLogoClick: () -> Unit = {},
     onNotificationsClick: () -> Unit = {},
     onChatClick: () -> Unit = {},
     notificationCount: Int = 0,
@@ -38,7 +42,12 @@ fun UniLostTopBar(
                 text = "UniLost",
                 style = MaterialTheme.typography.headlineSmall,
                 fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurface
+                color = MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier.clickable(
+                    interactionSource = remember { MutableInteractionSource() },
+                    indication = null,
+                    onClick = onLogoClick,
+                )
             )
         },
         actions = {

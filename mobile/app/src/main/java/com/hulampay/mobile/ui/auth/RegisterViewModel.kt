@@ -52,7 +52,7 @@ class RegisterViewModel @Inject constructor(
         }
         val domain = email.substringAfter("@").lowercase().trim()
         _matchedCampuses.value = _allCampuses.value.filter {
-            it.domainWhitelist.lowercase() == domain
+            it.domainWhitelist?.lowercase() == domain
         }
     }
 

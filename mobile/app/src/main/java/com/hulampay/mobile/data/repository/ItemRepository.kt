@@ -1,6 +1,6 @@
 package com.hulampay.mobile.data.repository
 
-import com.google.gson.Gson
+import com.hulampay.mobile.data.api.AppGson
 import com.hulampay.mobile.data.api.ItemApiService
 import com.hulampay.mobile.data.model.ItemDto
 import com.hulampay.mobile.data.model.ItemRequest
@@ -16,7 +16,7 @@ class ItemRepository @Inject constructor(
     private val itemApiService: ItemApiService,
 ) {
 
-    private val gson = Gson()
+    private val gson = AppGson.instance
 
     suspend fun getItems(
         keyword: String? = null,
@@ -41,6 +41,27 @@ class ItemRepository @Inject constructor(
                 Result.success(response.body()!!)
             } else {
                 Result.failure(Exception(response.errorBody()?.string() ?: "Failed to load items"))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun getMapItems(
+        campusId: String? = null,
+        type: String? = null,
+        limit: Int? = null,
+    ): Result<List<ItemDto>> {
+        return try {
+            val response = itemApiService.getMapItems(
+                campusId = campusId?.takeIf { it.isNotBlank() },
+                type = type?.takeIf { it.isNotBlank() },
+                limit = limit,
+            )
+            if (response.isSuccessful && response.body() != null) {
+                Result.success(response.body()!!)
+            } else {
+                Result.failure(Exception(response.errorBody()?.string() ?: "Failed to load map items"))
             }
         } catch (e: Exception) {
             Result.failure(e)

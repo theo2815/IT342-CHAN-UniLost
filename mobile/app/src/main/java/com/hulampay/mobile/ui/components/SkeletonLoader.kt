@@ -64,7 +64,7 @@ fun ShimmerBox(
 }
 
 /**
- * Shimmer skeleton matching the ItemCard layout.
+ * Shimmer skeleton matching the feed item card layout.
  * Used in ItemFeed loading state.
  */
 @Composable

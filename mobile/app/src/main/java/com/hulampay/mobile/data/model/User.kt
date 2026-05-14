@@ -17,6 +17,7 @@ data class User(
     @SerializedName("emailVerified")    val emailVerified: Boolean = false,
     @SerializedName("createdAt")        val createdAt: String? = null,
     @SerializedName("lastLogin")        val lastLogin: String? = null,
+    @SerializedName("campus")           val campus: School? = null,
 ) {
     /** First word of fullName — used in greeting "Hi, {firstName}!" */
     val firstName: String
