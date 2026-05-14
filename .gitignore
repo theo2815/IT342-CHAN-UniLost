@@ -29,3 +29,12 @@ website/coverage/
 website/npm-debug.log*
 website/yarn-debug.log*
 website/yarn-error.log*
+
+# Claude
+.claude/
+/CLAUDE.md
+
+# Regression PDF source (only the PDF is committed)
+docs/regression/build-html.mjs
+docs/regression/FullRegressionReport_Solo_UniLost.html
+docs/regression/FullRegressionReport_Solo_UniLost.md

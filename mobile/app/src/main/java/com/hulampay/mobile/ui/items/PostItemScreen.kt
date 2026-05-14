@@ -1,10 +1,18 @@
 package com.hulampay.mobile.ui.items
 
+import android.graphics.BitmapFactory
+import android.net.Uri
 import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -12,22 +20,36 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
-import com.hulampay.mobile.data.mock.MockItems
+import com.hulampay.mobile.data.model.ItemCategory
 import com.hulampay.mobile.ui.components.*
 import com.hulampay.mobile.ui.theme.*
+import com.hulampay.mobile.utils.UiState
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import java.text.SimpleDateFormat
-import java.util.*
+import java.util.Date
+import java.util.Locale
+
+private const val MAX_IMAGES = 3
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun PostItemScreen(navController: NavController) {
+fun PostItemScreen(
+    navController: NavController,
+    viewModel: PostItemViewModel = hiltViewModel(),
+) {
     var type by remember { mutableStateOf("LOST") }
     var title by remember { mutableStateOf("") }
     var description by remember { mutableStateOf("") }
@@ -36,15 +58,43 @@ fun PostItemScreen(navController: NavController) {
     var secretDetail by remember { mutableStateOf("") }
     var categoryExpanded by remember { mutableStateOf(false) }
     var dateText by remember { mutableStateOf("") }
+    var selectedDateMillis by remember { mutableStateOf<Long?>(null) }
     var showDatePicker by remember { mutableStateOf(false) }
+    var selectedImageUris by remember { mutableStateOf<List<Uri>>(emptyList()) }
 
     val context = LocalContext.current
-    val isFormValid = title.isNotBlank() && description.isNotBlank() && category.isNotBlank() && location.isNotBlank()
+    val submitState by viewModel.submitState.collectAsState()
+    val isSubmitting = submitState is UiState.Loading
 
-    // Date picker state
+    val isFormValid = title.isNotBlank() && description.isNotBlank() &&
+            category.isNotBlank() && location.isNotBlank() && !isSubmitting
+
     val datePickerState = rememberDatePickerState(
         initialSelectedDateMillis = System.currentTimeMillis()
     )
+
+    val pickImagesLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.PickMultipleVisualMedia(maxItems = MAX_IMAGES)
+    ) { uris: List<Uri> ->
+        if (uris.isNotEmpty()) {
+            selectedImageUris = uris.take(MAX_IMAGES)
+        }
+    }
+
+    LaunchedEffect(submitState) {
+        when (val s = submitState) {
+            is UiState.Success -> {
+                Toast.makeText(context, "Item posted successfully!", Toast.LENGTH_SHORT).show()
+                viewModel.resetSubmitState()
+                navController.popBackStack()
+            }
+            is UiState.Error -> {
+                Toast.makeText(context, s.message, Toast.LENGTH_LONG).show()
+                viewModel.resetSubmitState()
+            }
+            else -> Unit
+        }
+    }
 
     Scaffold(
         topBar = {
@@ -120,7 +170,7 @@ fun PostItemScreen(navController: NavController) {
                     expanded = categoryExpanded,
                     onDismissRequest = { categoryExpanded = false }
                 ) {
-                    MockItems.categories.forEach { cat ->
+                    ItemCategory.displayLabels.forEach { cat ->
                         DropdownMenuItem(
                             text = { Text(cat) },
                             onClick = { category = cat; categoryExpanded = false }
@@ -149,34 +199,18 @@ fun PostItemScreen(navController: NavController) {
                 modifier = Modifier.clickable { showDatePicker = true }
             )
 
-            // Image upload placeholder
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(120.dp)
-                    .border(
-                        2.dp,
-                        MaterialTheme.colorScheme.outline,
-                        UniLostShapes.md
+            // Image upload
+            ImagePickerArea(
+                selectedUris = selectedImageUris,
+                onPickClick = {
+                    pickImagesLauncher.launch(
+                        PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
                     )
-                    .clickable { /* image picker */ },
-                contentAlignment = Alignment.Center
-            ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Icon(
-                        Icons.Default.CameraAlt,
-                        contentDescription = null,
-                        modifier = Modifier.size(32.dp),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Spacer(modifier = Modifier.height(UniLostSpacing.xs))
-                    Text(
-                        "Tap to add photos (max 3)",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
+                },
+                onRemove = { uri ->
+                    selectedImageUris = selectedImageUris.filterNot { it == uri }
                 }
-            }
+            )
 
             // Secret detail (FOUND only)
             if (type == "FOUND") {
@@ -227,10 +261,18 @@ fun PostItemScreen(navController: NavController) {
 
             // Submit button
             UniLostButton(
-                text = "Post Item",
+                text = if (isSubmitting) "Posting..." else "Post Item",
                 onClick = {
-                    Toast.makeText(context, "Item posted successfully!", Toast.LENGTH_SHORT).show()
-                    navController.popBackStack()
+                    viewModel.submit(
+                        type = type,
+                        title = title,
+                        description = description,
+                        categoryDisplay = category,
+                        location = location,
+                        secretDetail = secretDetail,
+                        dateMillis = selectedDateMillis,
+                        imageUris = selectedImageUris,
+                    )
                 },
                 enabled = isFormValid
             )
@@ -247,6 +289,7 @@ fun PostItemScreen(navController: NavController) {
                 TextButton(
                     onClick = {
                         datePickerState.selectedDateMillis?.let { millis ->
+                            selectedDateMillis = millis
                             val sdf = SimpleDateFormat("MMM dd, yyyy", Locale.getDefault())
                             dateText = sdf.format(Date(millis))
                         }
@@ -269,6 +312,142 @@ fun PostItemScreen(navController: NavController) {
             )
         }
     }
+}
+
+@Composable
+private fun ImagePickerArea(
+    selectedUris: List<Uri>,
+    onPickClick: () -> Unit,
+    onRemove: (Uri) -> Unit,
+) {
+    if (selectedUris.isEmpty()) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(120.dp)
+                .border(
+                    2.dp,
+                    MaterialTheme.colorScheme.outline,
+                    UniLostShapes.md
+                )
+                .clickable(onClick = onPickClick),
+            contentAlignment = Alignment.Center
+        ) {
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Icon(
+                    Icons.Default.CameraAlt,
+                    contentDescription = null,
+                    modifier = Modifier.size(32.dp),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Spacer(modifier = Modifier.height(UniLostSpacing.xs))
+                Text(
+                    "Tap to add photos (max $MAX_IMAGES)",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+    } else {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(UniLostSpacing.sm)
+        ) {
+            selectedUris.forEach { uri ->
+                Box(
+                    modifier = Modifier
+                        .size(96.dp)
+                        .clip(UniLostShapes.md)
+                        .background(MaterialTheme.colorScheme.surfaceVariant)
+                        .border(1.dp, MaterialTheme.colorScheme.outline, UniLostShapes.md)
+                ) {
+                    val bitmap = rememberDownsampledBitmap(uri)
+                    if (bitmap != null) {
+                        Image(
+                            bitmap = bitmap,
+                            contentDescription = null,
+                            contentScale = ContentScale.Crop,
+                            modifier = Modifier.fillMaxSize()
+                        )
+                    } else {
+                        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                            CircularProgressIndicator(
+                                strokeWidth = 2.dp,
+                                modifier = Modifier.size(20.dp),
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                    // Remove badge
+                    Surface(
+                        shape = CircleShape,
+                        color = Color.Black.copy(alpha = 0.65f),
+                        modifier = Modifier
+                            .align(Alignment.TopEnd)
+                            .padding(4.dp)
+                            .size(24.dp)
+                            .clickable { onRemove(uri) }
+                    ) {
+                        Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
+                            Icon(
+                                Icons.Default.Close,
+                                contentDescription = "Remove",
+                                tint = Color.White,
+                                modifier = Modifier.size(14.dp)
+                            )
+                        }
+                    }
+                }
+            }
+            if (selectedUris.size < MAX_IMAGES) {
+                Box(
+                    modifier = Modifier
+                        .size(96.dp)
+                        .border(
+                            2.dp,
+                            MaterialTheme.colorScheme.outline,
+                            UniLostShapes.md
+                        )
+                        .clip(UniLostShapes.md)
+                        .clickable(onClick = onPickClick),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Icon(
+                            Icons.Default.Add,
+                            contentDescription = "Add more",
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(24.dp)
+                        )
+                        Text(
+                            "Add",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun rememberDownsampledBitmap(uri: Uri, sampleSize: Int = 4): ImageBitmap? {
+    val context = LocalContext.current
+    var bitmap by remember(uri) { mutableStateOf<ImageBitmap?>(null) }
+    LaunchedEffect(uri) {
+        bitmap = withContext(Dispatchers.IO) {
+            try {
+                context.contentResolver.openInputStream(uri)?.use { stream ->
+                    val opts = BitmapFactory.Options().apply { inSampleSize = sampleSize }
+                    BitmapFactory.decodeStream(stream, null, opts)?.asImageBitmap()
+                }
+            } catch (e: Exception) {
+                null
+            }
+        }
+    }
+    return bitmap
 }
 
 @Composable

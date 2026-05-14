@@ -15,7 +15,6 @@ sealed class Screen(val route: String) {
     object MyClaims : Screen("my_claims_screen")
     object ClaimDetail : Screen("claim_detail_screen")
     object Notifications : Screen("notifications_screen")
-    object Admin : Screen("admin_screen")
     object Profile : Screen("profile_screen")
     object Settings : Screen("settings_screen")
     object Landing : Screen("landing_screen")

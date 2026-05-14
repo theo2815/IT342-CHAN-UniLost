@@ -11,34 +11,26 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
-import com.hulampay.mobile.data.mock.MockClaim
-import com.hulampay.mobile.data.mock.MockClaims
-import com.hulampay.mobile.data.mock.MockItems
+import com.hulampay.mobile.data.model.ClaimDto
 import com.hulampay.mobile.ui.components.*
 import com.hulampay.mobile.ui.theme.*
+import com.hulampay.mobile.utils.UiState
+import com.hulampay.mobile.utils.timeAgo
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun MyClaimsScreen(navController: NavController) {
+fun MyClaimsScreen(
+    navController: NavController,
+    viewModel: MyClaimsViewModel = hiltViewModel(),
+) {
     val filters = listOf("All", "Pending", "Approved", "Rejected", "Handed Over")
     var selectedFilter by remember { mutableStateOf("All") }
-
-    val myClaims = remember { MockClaims.getMyOutgoingClaims("u1") }
-
-    val filteredClaims = remember(selectedFilter, myClaims) {
-        when (selectedFilter) {
-            "Pending" -> myClaims.filter { it.status == "PENDING" }
-            "Approved" -> myClaims.filter { it.status == "APPROVED" }
-            "Rejected" -> myClaims.filter { it.status == "REJECTED" }
-            "Handed Over" -> myClaims.filter { it.status == "HANDED_OVER" }
-            else -> myClaims
-        }
-    }
+    val state by viewModel.state.collectAsState()
 
     Scaffold(
         topBar = {
@@ -80,25 +72,44 @@ fun MyClaimsScreen(navController: NavController) {
                 }
             }
 
-            if (filteredClaims.isEmpty()) {
-                EmptyState(
-                    icon = Icons.Default.Description,
-                    title = "No claims here",
-                    message = "Claims you submit on items will appear here",
-                    actionLabel = "Browse Items",
-                    actionIcon = Icons.Default.Search,
-                    onAction = { navController.navigate("item_feed_screen") }
-                )
-            } else {
-                LazyColumn(
-                    contentPadding = PaddingValues(UniLostSpacing.md),
-                    verticalArrangement = Arrangement.spacedBy(UniLostSpacing.sm)
+            when (val current = state) {
+                UiState.Idle, UiState.Loading -> Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
                 ) {
-                    items(filteredClaims) { claim ->
-                        ClaimCard(
-                            claim = claim,
-                            onClick = { navController.navigate("claim_detail_screen/${claim.id}") }
+                    CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
+                }
+                is UiState.Error -> EmptyState(
+                    icon = Icons.Default.ErrorOutline,
+                    title = "Couldn't load claims",
+                    message = current.message,
+                    actionLabel = "Try again",
+                    actionIcon = Icons.Default.Refresh,
+                    onAction = { viewModel.load() }
+                )
+                is UiState.Success -> {
+                    val filteredClaims = filterClaims(current.data, selectedFilter)
+                    if (filteredClaims.isEmpty()) {
+                        EmptyState(
+                            icon = Icons.Default.Description,
+                            title = "No claims here",
+                            message = "Claims you submit on items will appear here",
+                            actionLabel = "Browse Items",
+                            actionIcon = Icons.Default.Search,
+                            onAction = { navController.navigate("item_feed_screen") }
                         )
+                    } else {
+                        LazyColumn(
+                            contentPadding = PaddingValues(UniLostSpacing.md),
+                            verticalArrangement = Arrangement.spacedBy(UniLostSpacing.sm)
+                        ) {
+                            items(filteredClaims) { claim ->
+                                ClaimCard(
+                                    claim = claim,
+                                    onClick = { navController.navigate("claim_detail_screen/${claim.id}") }
+                                )
+                            }
+                        }
                     }
                 }
             }
@@ -106,8 +117,21 @@ fun MyClaimsScreen(navController: NavController) {
     }
 }
 
+private fun filterClaims(claims: List<ClaimDto>, selectedFilter: String): List<ClaimDto> {
+    return when (selectedFilter) {
+        "Pending" -> claims.filter { it.status.equals("PENDING", ignoreCase = true) }
+        "Approved" -> claims.filter { it.status.equals("ACCEPTED", ignoreCase = true) }
+        "Rejected" -> claims.filter { it.status.equals("REJECTED", ignoreCase = true) }
+        "Handed Over" -> claims.filter {
+            it.status.equals("COMPLETED", ignoreCase = true) ||
+                it.status.equals("HANDED_OVER", ignoreCase = true)
+        }
+        else -> claims
+    }
+}
+
 @Composable
-fun ClaimCard(claim: MockClaim, onClick: () -> Unit) {
+fun ClaimCard(claim: ClaimDto, onClick: () -> Unit) {
     Card(
         modifier = Modifier.fillMaxWidth().clickable(onClick = onClick),
         shape = UniLostShapes.md,
@@ -159,18 +183,21 @@ fun ClaimCard(claim: MockClaim, onClick: () -> Unit) {
                     overflow = TextOverflow.Ellipsis
                 )
                 Text(
-                    "Submitted ${MockItems.timeAgo(claim.createdAt)}",
+                    "Submitted ${timeAgo(claim.createdAt)}",
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
 
-                // Handover progress for APPROVED claims
-                if (claim.status == "APPROVED") {
+                // Handover progress for ACCEPTED claims (not yet completed)
+                val isAccepted = claim.status.equals("ACCEPTED", ignoreCase = true)
+                if (isAccepted) {
                     Spacer(modifier = Modifier.height(UniLostSpacing.xs))
+                    val finderConfirmed = claim.finderMarkedReturnedAt != null
+                    val ownerConfirmed = claim.ownerConfirmedReceivedAt != null
                     val progressText = when {
-                        claim.posterConfirmed && claim.claimantConfirmed -> "Both confirmed"
-                        claim.posterConfirmed -> "Poster confirmed - Your turn"
-                        claim.claimantConfirmed -> "You confirmed - Waiting for poster"
+                        finderConfirmed && ownerConfirmed -> "Both confirmed"
+                        finderConfirmed -> "Poster confirmed - Your turn"
+                        ownerConfirmed -> "You confirmed - Waiting for poster"
                         else -> "Awaiting confirmations"
                     }
                     Surface(

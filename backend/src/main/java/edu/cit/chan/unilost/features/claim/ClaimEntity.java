@@ -1,0 +1,64 @@
+package edu.cit.chan.unilost.features.claim;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import org.springframework.data.annotation.Id;
+import org.springframework.data.annotation.Version;
+import org.springframework.data.mongodb.core.index.Indexed;
+import org.springframework.data.mongodb.core.mapping.Document;
+
+import java.time.LocalDateTime;
+
+/**
+ * Represents a claim attempt on a found item.
+ * Handover state is tracked via finderMarkedReturnedAt / ownerConfirmedReceivedAt.
+ *
+ * Relationships (MongoDB references via ID):
+ * - Many-to-One: Claim → Item (item_id)
+ * - Many-to-One: Claim → User (claimant_id)
+ * - Many-to-One: Claim → User (finder_id)
+ */
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Document(collection = "claims")
+public class ClaimEntity {
+
+    @Id
+    private String id;
+
+    /** Reference to items.id — the item being claimed */
+    @Indexed
+    private String itemId;
+
+    /** Reference to users.id — the user making the claim */
+    @Indexed
+    private String claimantId;
+
+    /** Reference to users.id — the finder/poster of the item */
+    @Indexed
+    private String finderId;
+
+    /** The claimant's answer to the item's secret verification question */
+    private String providedAnswer;
+
+    /** Free-text message from the claimant */
+    private String message;
+
+    /** PENDING, ACCEPTED, REJECTED, CANCELLED, COMPLETED */
+    private ClaimStatus status = ClaimStatus.PENDING;
+
+    /** Timestamp when finder marked the item as returned to owner */
+    private LocalDateTime finderMarkedReturnedAt;
+
+    /** Timestamp when owner confirmed receipt of the item */
+    private LocalDateTime ownerConfirmedReceivedAt;
+
+    private LocalDateTime createdAt;
+
+    private LocalDateTime updatedAt;
+
+    @Version
+    private Long version;
+}

@@ -18,7 +18,6 @@ import com.hulampay.mobile.ui.items.MyItemsScreen
 import com.hulampay.mobile.ui.items.MyClaimsScreen
 import com.hulampay.mobile.ui.items.ClaimDetailScreen
 import com.hulampay.mobile.ui.items.NotificationsScreen
-import com.hulampay.mobile.ui.items.AdminScreen
 import com.hulampay.mobile.ui.profile.ProfileScreen
 import com.hulampay.mobile.ui.settings.SettingsScreen
 import com.hulampay.mobile.ui.screens.LandingScreen
@@ -115,11 +114,6 @@ fun NavGraph(navController: NavHostController) {
         // Phase C: Notifications
         composable(Screen.Notifications.route) {
             NotificationsScreen(navController = navController)
-        }
-
-        // Phase D: Admin
-        composable(Screen.Admin.route) {
-            AdminScreen(navController = navController)
         }
 
         // Phase E: Profile & Settings

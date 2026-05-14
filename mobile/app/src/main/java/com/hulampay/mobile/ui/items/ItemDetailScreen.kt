@@ -24,7 +24,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
-import com.hulampay.mobile.data.mock.MockClaims
+import com.hulampay.mobile.data.model.ClaimDto
 import com.hulampay.mobile.data.model.ItemDto
 import com.hulampay.mobile.ui.components.*
 import com.hulampay.mobile.ui.theme.*
@@ -39,6 +39,8 @@ fun ItemDetailScreen(
     viewModel: ItemDetailViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsState()
+    val submitState by viewModel.submitState.collectAsState()
+    val incomingActionInFlight by viewModel.incomingActionInFlight.collectAsState()
 
     LaunchedEffect(itemId) {
         viewModel.load(itemId)
@@ -50,6 +52,12 @@ fun ItemDetailScreen(
         is UiState.Success -> ItemDetailContent(
             navController = navController,
             data = current.data,
+            submitState = submitState,
+            incomingActionInFlight = incomingActionInFlight,
+            onSubmitClaim = viewModel::submitClaim,
+            onResetSubmit = viewModel::resetSubmitState,
+            onAcceptIncoming = viewModel::acceptIncomingClaim,
+            onRejectIncoming = viewModel::rejectIncomingClaim,
         )
     }
 }
@@ -101,11 +109,16 @@ private fun DetailErrorScaffold(navController: NavController, message: String) {
 private fun ItemDetailContent(
     navController: NavController,
     data: ItemDetailData,
+    submitState: SubmitClaimState,
+    incomingActionInFlight: Boolean,
+    onSubmitClaim: (message: String, providedAnswer: String?) -> Unit,
+    onResetSubmit: () -> Unit,
+    onAcceptIncoming: (claimId: String) -> Unit,
+    onRejectIncoming: (claimId: String) -> Unit,
 ) {
     val item = data.item
     val context = LocalContext.current
     val isFound = item.type == "FOUND"
-    val isLost = item.type == "LOST"
     val isPoster = data.isPoster
     val isAdmin = data.isAdmin
 
@@ -115,7 +128,6 @@ private fun ItemDetailContent(
     val locationText = item.location.orEmpty()
 
     var showClaimSheet by remember { mutableStateOf(false) }
-    var claimSubmitted by remember { mutableStateOf(false) }
     var secretAnswer by remember { mutableStateOf("") }
     var claimMessage by remember { mutableStateOf("") }
     var showEmailToPoster by remember { mutableStateOf(false) }
@@ -123,11 +135,15 @@ private fun ItemDetailContent(
     var showReportDialog by remember { mutableStateOf(false) }
     var showDeleteDialog by remember { mutableStateOf(false) }
 
-    // Incoming claims still come from MockClaims — claims wiring is Phase 4.
-    val incomingClaims = remember(item.id) { MockClaims.getClaimsForItem(item.id) }
+    val incomingClaims = data.incomingClaims
 
-    // For LOST items, claims are auto-accepted
-    val isAutoAccept = isLost
+    // Surface submit-claim errors as a toast and reset the VM error so it doesn't re-fire.
+    LaunchedEffect(submitState) {
+        if (submitState is SubmitClaimState.Error) {
+            Toast.makeText(context, submitState.message, Toast.LENGTH_SHORT).show()
+            onResetSubmit()
+        }
+    }
 
     Scaffold(
         topBar = {
@@ -430,7 +446,7 @@ private fun ItemDetailContent(
                     }
                 }
 
-                // Incoming Claims section (visible only for poster) — still backed by MockClaims (Phase 4).
+                // Incoming Claims section (visible only for poster).
                 if (isPoster && incomingClaims.isNotEmpty()) {
                     Spacer(modifier = Modifier.height(UniLostSpacing.lg))
                     Row(
@@ -489,7 +505,7 @@ private fun ItemDetailContent(
                                             color = MaterialTheme.colorScheme.onSurface
                                         )
                                         Text(
-                                            claim.claimantSchool,
+                                            claim.claimantSchool.orEmpty(),
                                             style = MaterialTheme.typography.labelSmall,
                                             color = MaterialTheme.colorScheme.onSurfaceVariant
                                         )
@@ -498,7 +514,7 @@ private fun ItemDetailContent(
                                 }
 
                                 // Secret detail comparison (for FOUND items)
-                                if (isFound && claim.secretDetailAnswer.isNotBlank()) {
+                                if (isFound && !claim.providedAnswer.isNullOrBlank()) {
                                     Spacer(modifier = Modifier.height(UniLostSpacing.sm))
                                     Row(
                                         modifier = Modifier.fillMaxWidth(),
@@ -538,7 +554,7 @@ private fun ItemDetailContent(
                                                 )
                                                 Spacer(modifier = Modifier.height(UniLostSpacing.xxs))
                                                 Text(
-                                                    claim.secretDetailAnswer,
+                                                    claim.providedAnswer.orEmpty(),
                                                     style = MaterialTheme.typography.bodySmall,
                                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                                 )
@@ -557,7 +573,7 @@ private fun ItemDetailContent(
                                 )
 
                                 // Approve / Reject buttons (only for PENDING)
-                                if (claim.status == "PENDING") {
+                                if (claim.status.equals("PENDING", ignoreCase = true)) {
                                     Spacer(modifier = Modifier.height(UniLostSpacing.sm))
                                     Row(
                                         modifier = Modifier.fillMaxWidth(),
@@ -565,23 +581,21 @@ private fun ItemDetailContent(
                                     ) {
                                         UniLostButton(
                                             text = "Reject",
-                                            onClick = {
-                                                Toast.makeText(context, "Claim rejected (Mock action)", Toast.LENGTH_SHORT).show()
-                                            },
+                                            onClick = { onRejectIncoming(claim.id) },
                                             variant = ButtonVariant.DANGER,
                                             icon = Icons.Default.Close,
                                             modifier = Modifier.weight(1f),
-                                            isCompact = true
+                                            isCompact = true,
+                                            enabled = !incomingActionInFlight
                                         )
                                         UniLostButton(
                                             text = "Approve",
-                                            onClick = {
-                                                Toast.makeText(context, "Claim approved (Mock action)", Toast.LENGTH_SHORT).show()
-                                            },
+                                            onClick = { onAcceptIncoming(claim.id) },
                                             variant = ButtonVariant.PRIMARY,
                                             icon = Icons.Default.Check,
                                             modifier = Modifier.weight(1f),
-                                            isCompact = true
+                                            isCompact = true,
+                                            enabled = !incomingActionInFlight
                                         )
                                     }
                                 }
@@ -712,14 +726,15 @@ private fun ItemDetailContent(
 
     // Claim Bottom Sheet
     if (showClaimSheet) {
+        val closeSheet: () -> Unit = {
+            showClaimSheet = false
+            onResetSubmit()
+            secretAnswer = ""
+            claimMessage = ""
+            showEmailToPoster = false
+        }
         ModalBottomSheet(
-            onDismissRequest = {
-                showClaimSheet = false
-                claimSubmitted = false
-                secretAnswer = ""
-                claimMessage = ""
-                showEmailToPoster = false
-            },
+            onDismissRequest = closeSheet,
             sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
             containerColor = MaterialTheme.colorScheme.surface,
             shape = UniLostShapes.bottomSheet
@@ -730,7 +745,9 @@ private fun ItemDetailContent(
                     .padding(horizontal = 20.dp)
                     .padding(bottom = UniLostSpacing.xl)
             ) {
-                if (claimSubmitted) {
+                if (submitState is SubmitClaimState.Success) {
+                    val submittedClaim = submitState.claim
+                    val isAutoAccept = submittedClaim.status.equals("ACCEPTED", ignoreCase = true)
                     // Success state - different messages for LOST (auto-accept) vs FOUND
                     Column(
                         modifier = Modifier
@@ -798,14 +815,14 @@ private fun ItemDetailContent(
 
                         Spacer(modifier = Modifier.height(UniLostSpacing.lg))
 
-                        // "Open Chat" button (shown when auto-accepted or chatId exists)
+                        // "Open Chat" button (shown when auto-accepted and chat exists)
                         if (isAutoAccept) {
+                            val chatRoute = submittedClaim.chatId ?: submittedClaim.id
                             UniLostButton(
                                 text = "Open Chat",
                                 onClick = {
-                                    showClaimSheet = false
-                                    claimSubmitted = false
-                                    navController.navigate("chat_detail_screen/c1")
+                                    closeSheet()
+                                    navController.navigate("chat_detail_screen/$chatRoute")
                                 },
                                 icon = Icons.Default.Chat,
                                 fillWidth = false
@@ -816,8 +833,7 @@ private fun ItemDetailContent(
                         UniLostButton(
                             text = "View My Claims",
                             onClick = {
-                                showClaimSheet = false
-                                claimSubmitted = false
+                                closeSheet()
                                 navController.navigate("my_claims_screen")
                             },
                             variant = if (isAutoAccept) ButtonVariant.SECONDARY else ButtonVariant.PRIMARY,
@@ -826,13 +842,7 @@ private fun ItemDetailContent(
                         Spacer(modifier = Modifier.height(UniLostSpacing.sm))
                         UniLostButton(
                             text = "Back to Item",
-                            onClick = {
-                                showClaimSheet = false
-                                claimSubmitted = false
-                                secretAnswer = ""
-                                claimMessage = ""
-                                showEmailToPoster = false
-                            },
+                            onClick = closeSheet,
                             variant = ButtonVariant.GHOST,
                             fillWidth = false
                         )
@@ -1004,11 +1014,17 @@ private fun ItemDetailContent(
                     Spacer(modifier = Modifier.height(UniLostSpacing.md))
 
                     // Submit
+                    val isSubmitting = submitState is SubmitClaimState.Submitting
                     UniLostButton(
-                        text = "Submit Claim",
-                        onClick = { claimSubmitted = true },
+                        text = if (isSubmitting) "Submitting..." else "Submit Claim",
+                        onClick = {
+                            onSubmitClaim(
+                                claimMessage,
+                                secretAnswer.takeIf { isFound && it.isNotBlank() },
+                            )
+                        },
                         icon = Icons.Default.Send,
-                        enabled = claimMessage.isNotBlank()
+                        enabled = claimMessage.isNotBlank() && !isSubmitting
                     )
                 }
             }
