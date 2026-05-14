@@ -2,6 +2,7 @@ package com.hulampay.mobile.di
 
 import com.hulampay.mobile.data.api.AuthApiService
 import com.hulampay.mobile.data.api.AuthInterceptor
+import com.hulampay.mobile.data.api.CampusApiService
 import com.hulampay.mobile.data.api.ChatApiService
 import com.hulampay.mobile.data.api.ClaimApiService
 import com.hulampay.mobile.data.api.ItemApiService
@@ -87,6 +88,12 @@ object NetworkModule {
     @Singleton
     fun provideUserApiService(retrofit: Retrofit): UserApiService {
         return retrofit.create(UserApiService::class.java)
+    }
+
+    @Provides
+    @Singleton
+    fun provideCampusApiService(retrofit: Retrofit): CampusApiService {
+        return retrofit.create(CampusApiService::class.java)
     }
 
     @Provides

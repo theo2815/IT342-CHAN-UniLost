@@ -39,6 +39,8 @@ fun DashboardScreen(
     val scrollState = rememberScrollState()
     val items by viewModel.items.collectAsState()
     val totalItems by viewModel.totalItems.collectAsState()
+    val campusStats by viewModel.campusStats.collectAsState()
+    val topContributors by viewModel.topContributors.collectAsState()
     val recentItems = remember(items) { items.take(6) }
     val lostCount = remember(items) { items.count { it.type == "LOST" } }
     val foundCount = remember(items) { items.count { it.type == "FOUND" } }
@@ -302,15 +304,11 @@ fun DashboardScreen(
                 contentPadding = PaddingValues(horizontal = UniLostSpacing.md),
                 horizontalArrangement = Arrangement.spacedBy(UniLostSpacing.sm)
             ) {
-                val hotZones = listOf(
-                    Triple("CIT-U Library", 12, "2nd Floor"),
-                    Triple("USC Bunzel", 8, "Room 301"),
-                    Triple("UP Cebu Lab", 6, "Room 204"),
-                    Triple("USJ-R Gate", 5, "Main Campus"),
-                    Triple("SWU Parking", 4, "Area B"),
-                    Triple("CNU Room 105", 3, "Main Building")
-                )
-                items(hotZones) { (name, count, detail) ->
+                items(campusStats, key = { it.id }) { campus ->
+                    val displayName = campus.shortLabel.ifBlank { campus.name }
+                    val detail = if (campus.shortLabel.isNotBlank() &&
+                        campus.name.isNotBlank() &&
+                        campus.shortLabel != campus.name) campus.name else ""
                     Card(
                         modifier = Modifier.width(150.dp),
                         shape = UniLostShapes.md,
@@ -329,7 +327,7 @@ fun DashboardScreen(
                                 )
                                 Spacer(modifier = Modifier.width(UniLostSpacing.xs))
                                 Text(
-                                    name,
+                                    displayName,
                                     style = MaterialTheme.typography.labelMedium,
                                     fontWeight = FontWeight.SemiBold,
                                     color = MaterialTheme.colorScheme.onSurface,
@@ -337,18 +335,22 @@ fun DashboardScreen(
                                     overflow = TextOverflow.Ellipsis
                                 )
                             }
-                            Text(
-                                detail,
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
+                            if (detail.isNotBlank()) {
+                                Text(
+                                    detail,
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                            }
                             Spacer(modifier = Modifier.height(UniLostSpacing.xs))
                             Surface(
                                 shape = UniLostShapes.full,
                                 color = ErrorRed.copy(alpha = 0.08f)
                             ) {
                                 Text(
-                                    "$count reports",
+                                    "${campus.activeItems} active",
                                     style = MaterialTheme.typography.labelSmall,
                                     fontWeight = FontWeight.Medium,
                                     color = ErrorRed,
@@ -398,14 +400,20 @@ fun DashboardScreen(
                 elevation = CardDefaults.cardElevation(1.dp)
             ) {
                 Column(modifier = Modifier.padding(UniLostSpacing.md)) {
-                    val topUsers = listOf(
-                        Triple("Patricia L.", "SWU", 85),
-                        Triple("Carlo R.", "UP Cebu", 72),
-                        Triple("Maria S.", "USC", 65),
-                        Triple("Juan D.", "CIT-U", 42),
-                        Triple("Ana G.", "USJ-R", 38)
-                    )
-                    topUsers.forEachIndexed { index, (name, school, karma) ->
+                    if (topContributors.isEmpty()) {
+                        Text(
+                            "No rankings yet — return a found item to earn karma.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = UniLostSpacing.sm)
+                        )
+                    }
+                    topContributors.forEachIndexed { index, user ->
+                        val campusLabel = user.campus?.let { c ->
+                            c.shortLabel.ifBlank { c.name }
+                        }.orEmpty()
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -425,19 +433,23 @@ fun DashboardScreen(
                                 },
                                 modifier = Modifier.width(24.dp)
                             )
-                            AvatarView(name = name, size = 32.dp)
+                            AvatarView(name = user.fullName, size = 32.dp)
                             Spacer(modifier = Modifier.width(UniLostSpacing.sm))
                             Column(modifier = Modifier.weight(1f)) {
                                 Text(
-                                    name,
+                                    user.fullName,
                                     style = MaterialTheme.typography.bodyMedium,
                                     fontWeight = FontWeight.SemiBold,
-                                    color = MaterialTheme.colorScheme.onSurface
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
                                 )
                                 Text(
-                                    school,
+                                    campusLabel,
                                     style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
                                 )
                             }
                             Surface(
@@ -456,7 +468,7 @@ fun DashboardScreen(
                                     )
                                     Spacer(modifier = Modifier.width(2.dp))
                                     Text(
-                                        "$karma",
+                                        "${user.karmaScore}",
                                         style = MaterialTheme.typography.labelSmall,
                                         fontWeight = FontWeight.Bold,
                                         color = WarningHover
@@ -464,7 +476,7 @@ fun DashboardScreen(
                                 }
                             }
                         }
-                        if (index < topUsers.size - 1) {
+                        if (index < topContributors.size - 1) {
                             HorizontalDivider(
                                 color = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f),
                                 modifier = Modifier.padding(start = 56.dp)
