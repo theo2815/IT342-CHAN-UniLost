@@ -2,6 +2,7 @@ package com.hulampay.mobile.data.ws
 
 import com.google.gson.Gson
 import com.hulampay.mobile.data.model.MessageDto
+import com.hulampay.mobile.data.model.NotificationDto
 import com.hulampay.mobile.utils.TokenManager
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -49,6 +50,19 @@ class ChatWebSocketClient @Inject constructor(
         s.subscribeText("/topic/chat/$chatId").collect { body ->
             val msg = runCatching { gson.fromJson(body, MessageDto::class.java) }.getOrNull()
             if (msg != null) emit(msg)
+        }
+    }
+
+    /**
+     * Cold flow of NotificationDTOs sent by the server to this user's queue.
+     * Backend uses `convertAndSendToUser(email, "/queue/notifications", dto)`;
+     * Spring rewrites that to `/user/queue/notifications` for the subscriber.
+     */
+    fun subscribeToNotifications(): Flow<NotificationDto> = flow {
+        val s = ensureConnected()
+        s.subscribeText("/user/queue/notifications").collect { body ->
+            val notif = runCatching { gson.fromJson(body, NotificationDto::class.java) }.getOrNull()
+            if (notif != null) emit(notif)
         }
     }
 

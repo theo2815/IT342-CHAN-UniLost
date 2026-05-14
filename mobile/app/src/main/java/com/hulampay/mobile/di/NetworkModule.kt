@@ -5,6 +5,7 @@ import com.hulampay.mobile.data.api.AuthInterceptor
 import com.hulampay.mobile.data.api.ChatApiService
 import com.hulampay.mobile.data.api.ClaimApiService
 import com.hulampay.mobile.data.api.ItemApiService
+import com.hulampay.mobile.data.api.NotificationApiService
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -73,6 +74,12 @@ object NetworkModule {
     @Singleton
     fun provideChatApiService(retrofit: Retrofit): ChatApiService {
         return retrofit.create(ChatApiService::class.java)
+    }
+
+    @Provides
+    @Singleton
+    fun provideNotificationApiService(retrofit: Retrofit): NotificationApiService {
+        return retrofit.create(NotificationApiService::class.java)
     }
 
     @Provides

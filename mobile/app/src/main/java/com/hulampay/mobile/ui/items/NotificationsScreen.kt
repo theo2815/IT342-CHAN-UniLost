@@ -1,6 +1,5 @@
 package com.hulampay.mobile.ui.items
 
-import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -17,54 +16,77 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
-import com.hulampay.mobile.data.mock.MockNotification
-import com.hulampay.mobile.data.mock.MockNotifications
+import com.hulampay.mobile.data.model.NotificationDto
 import com.hulampay.mobile.ui.components.*
 import com.hulampay.mobile.ui.theme.*
+import com.hulampay.mobile.utils.UiState
+import com.hulampay.mobile.utils.timeAgo
 
 private data class NotifTypeConfig(
     val icon: ImageVector,
     val color: Color,
-    val label: String
+    val label: String,
 )
 
 private val typeConfigs = mapOf(
-    "CLAIM_RECEIVED" to NotifTypeConfig(Icons.Default.Notifications, Purple, "Claim Received"),
-    "CLAIM_APPROVED" to NotifTypeConfig(Icons.Default.CheckCircle, Success, "Claim Approved"),
-    "CLAIM_REJECTED" to NotifTypeConfig(Icons.Default.Cancel, ErrorRed, "Claim Rejected"),
-    "HANDOVER_CONFIRMED" to NotifTypeConfig(Icons.Default.Check, Success, "Handover Complete"),
-    "HANDOVER_REMINDER" to NotifTypeConfig(Icons.Default.Schedule, Warning, "Handover Reminder"),
-    "ITEM_EXPIRED" to NotifTypeConfig(Icons.Default.Warning, Slate400, "Item Expired"),
-    "ITEM_MATCH" to NotifTypeConfig(Icons.Default.Search, Info, "Possible Match")
+    "CLAIM_RECEIVED"        to NotifTypeConfig(Icons.Default.Notifications, Purple, "Claim Received"),
+    "CLAIM_ACCEPTED"        to NotifTypeConfig(Icons.Default.CheckCircle,   Success, "Claim Accepted"),
+    "CLAIM_REJECTED"        to NotifTypeConfig(Icons.Default.Cancel,        ErrorRed, "Claim Rejected"),
+    "NEW_MESSAGE"           to NotifTypeConfig(Icons.Default.Forum,         Info, "New Message"),
+    "ITEM_FLAGGED"          to NotifTypeConfig(Icons.Default.Warning,       Warning, "Item Flagged"),
+    "ITEM_MARKED_RETURNED"  to NotifTypeConfig(Icons.Default.LocalShipping, Warning, "Item Returned"),
+    "ITEM_RETURNED"         to NotifTypeConfig(Icons.Default.Verified,      Success, "Return Confirmed"),
+    "HANDOVER_DISPUTED"     to NotifTypeConfig(Icons.Default.ReportProblem, Warning, "Handover Disputed"),
+    "ITEM_FLAG_THRESHOLD"   to NotifTypeConfig(Icons.Default.Flag,          Warning, "Flag Threshold"),
 )
 
-private val claimTypes = listOf("CLAIM_RECEIVED", "CLAIM_APPROVED", "CLAIM_REJECTED", "HANDOVER_CONFIRMED", "HANDOVER_REMINDER")
-private val itemTypes = listOf("ITEM_EXPIRED", "ITEM_MATCH")
+private val claimTypes = setOf(
+    "CLAIM_RECEIVED", "CLAIM_ACCEPTED", "CLAIM_REJECTED",
+    "ITEM_MARKED_RETURNED", "ITEM_RETURNED", "HANDOVER_DISPUTED",
+)
+private val itemTypes = setOf("ITEM_FLAGGED", "NEW_MESSAGE", "ITEM_FLAG_THRESHOLD")
+
+private fun routeFor(notif: NotificationDto): String? {
+    val link = notif.linkId?.takeIf { it.isNotBlank() } ?: return null
+    return when (notif.type) {
+        "CLAIM_RECEIVED", "CLAIM_ACCEPTED", "CLAIM_REJECTED" ->
+            "claim_detail_screen/$link"
+        "ITEM_MARKED_RETURNED", "ITEM_RETURNED", "HANDOVER_DISPUTED", "NEW_MESSAGE" ->
+            "chat_detail_screen/$link"
+        "ITEM_FLAGGED", "ITEM_FLAG_THRESHOLD" ->
+            "item_detail_screen/$link"
+        else -> null
+    }
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun NotificationsScreen(navController: NavController) {
-    val context = LocalContext.current
+fun NotificationsScreen(
+    navController: NavController,
+    viewModel: NotificationsViewModel = hiltViewModel(),
+) {
     val filters = listOf("All", "Unread", "Claims", "Items")
     var selectedFilter by remember { mutableStateOf("All") }
 
-    val allNotifications = remember { MockNotifications.getAll() }
+    val state by viewModel.state.collectAsState()
+    val allNotifications: List<NotificationDto> =
+        (state as? UiState.Success)?.data.orEmpty()
 
-    val filteredNotifications = remember(selectedFilter) {
+    val filteredNotifications = remember(state, selectedFilter) {
         when (selectedFilter) {
-            "Unread" -> allNotifications.filter { !it.isRead }
+            "Unread" -> allNotifications.filter { !it.read }
             "Claims" -> allNotifications.filter { it.type in claimTypes }
-            "Items" -> allNotifications.filter { it.type in itemTypes }
-            else -> allNotifications
+            "Items"  -> allNotifications.filter { it.type in itemTypes }
+            else     -> allNotifications
         }
     }
 
-    val unreadCount = remember { MockNotifications.getUnreadCount() }
+    val unreadCount = allNotifications.count { !it.read }
 
     Scaffold(
         topBar = {
@@ -85,9 +107,7 @@ fun NotificationsScreen(navController: NavController) {
                                 modifier = Modifier.padding(horizontal = UniLostSpacing.sm, vertical = UniLostSpacing.xxs)
                             )
                         }
-                        TextButton(onClick = {
-                            Toast.makeText(context, "All marked as read (Mock action)", Toast.LENGTH_SHORT).show()
-                        }) {
+                        TextButton(onClick = { viewModel.markAllAsRead() }) {
                             Text(
                                 "Mark all read",
                                 style = MaterialTheme.typography.labelMedium,
@@ -131,27 +151,44 @@ fun NotificationsScreen(navController: NavController) {
                 }
             }
 
-            if (filteredNotifications.isEmpty()) {
-                EmptyState(
-                    icon = Icons.Default.NotificationsNone,
-                    title = "No notifications here",
-                    message = "Activity on your items and claims will show up here"
-                )
-            } else {
-                LazyColumn(
-                    contentPadding = PaddingValues(
-                        horizontal = UniLostSpacing.md,
-                        vertical = UniLostSpacing.sm
-                    ),
-                    verticalArrangement = Arrangement.spacedBy(UniLostSpacing.sm)
-                ) {
-                    items(filteredNotifications) { notif ->
-                        NotificationCard(
-                            notification = notif,
-                            onClick = {
-                                navController.navigate(notif.linkRoute)
-                            }
+            when (val s = state) {
+                is UiState.Loading, UiState.Idle -> {
+                    FullScreenLoading("Loading notifications...")
+                }
+                is UiState.Error -> {
+                    EmptyState(
+                        icon = Icons.Default.ErrorOutline,
+                        title = "Couldn't load notifications",
+                        message = s.message,
+                        actionLabel = "Retry",
+                        onAction = { viewModel.load() }
+                    )
+                }
+                is UiState.Success -> {
+                    if (filteredNotifications.isEmpty()) {
+                        EmptyState(
+                            icon = Icons.Default.NotificationsNone,
+                            title = "No notifications here",
+                            message = "Activity on your items and claims will show up here"
                         )
+                    } else {
+                        LazyColumn(
+                            contentPadding = PaddingValues(
+                                horizontal = UniLostSpacing.md,
+                                vertical = UniLostSpacing.sm
+                            ),
+                            verticalArrangement = Arrangement.spacedBy(UniLostSpacing.sm)
+                        ) {
+                            items(filteredNotifications, key = { it.id }) { notif ->
+                                NotificationCard(
+                                    notification = notif,
+                                    onClick = {
+                                        if (!notif.read) viewModel.markAsRead(notif.id)
+                                        routeFor(notif)?.let { navController.navigate(it) }
+                                    }
+                                )
+                            }
+                        }
                     }
                 }
             }
@@ -160,8 +197,9 @@ fun NotificationsScreen(navController: NavController) {
 }
 
 @Composable
-fun NotificationCard(notification: MockNotification, onClick: () -> Unit) {
-    val config = typeConfigs[notification.type] ?: typeConfigs["ITEM_MATCH"]!!
+private fun NotificationCard(notification: NotificationDto, onClick: () -> Unit) {
+    val config = typeConfigs[notification.type]
+        ?: NotifTypeConfig(Icons.Default.Notifications, Slate400, notification.type)
 
     Card(
         modifier = Modifier
@@ -169,20 +207,20 @@ fun NotificationCard(notification: MockNotification, onClick: () -> Unit) {
             .clickable(onClick = onClick),
         shape = UniLostShapes.md,
         colors = CardDefaults.cardColors(
-            containerColor = if (!notification.isRead) {
+            containerColor = if (!notification.read) {
                 MaterialTheme.colorScheme.surface
             } else {
                 MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)
             }
         ),
-        elevation = CardDefaults.cardElevation(if (!notification.isRead) 2.dp else 0.dp)
+        elevation = CardDefaults.cardElevation(if (!notification.read) 2.dp else 0.dp)
     ) {
         Row(
             modifier = Modifier.padding(UniLostSpacing.sm),
             verticalAlignment = Alignment.Top
         ) {
             // Unread indicator
-            if (!notification.isRead) {
+            if (!notification.read) {
                 Box(
                     modifier = Modifier
                         .padding(top = UniLostSpacing.xs, end = UniLostSpacing.sm)
@@ -219,14 +257,14 @@ fun NotificationCard(notification: MockNotification, onClick: () -> Unit) {
                     Text(
                         notification.title,
                         style = MaterialTheme.typography.titleSmall,
-                        fontWeight = if (!notification.isRead) FontWeight.Bold else FontWeight.SemiBold,
+                        fontWeight = if (!notification.read) FontWeight.Bold else FontWeight.SemiBold,
                         color = MaterialTheme.colorScheme.onSurface,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                         modifier = Modifier.weight(1f)
                     )
                     Text(
-                        MockNotifications.timeAgo(notification.createdAt),
+                        timeAgo(notification.createdAt),
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
