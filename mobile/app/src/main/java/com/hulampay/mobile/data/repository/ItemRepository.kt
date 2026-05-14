@@ -1,8 +1,13 @@
 package com.hulampay.mobile.data.repository
 
+import com.google.gson.Gson
 import com.hulampay.mobile.data.api.ItemApiService
 import com.hulampay.mobile.data.model.ItemDto
+import com.hulampay.mobile.data.model.ItemRequest
 import com.hulampay.mobile.data.model.PageDto
+import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.MultipartBody
+import okhttp3.RequestBody.Companion.toRequestBody
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -10,6 +15,8 @@ import javax.inject.Singleton
 class ItemRepository @Inject constructor(
     private val itemApiService: ItemApiService,
 ) {
+
+    private val gson = Gson()
 
     suspend fun getItems(
         keyword: String? = null,
@@ -49,6 +56,44 @@ class ItemRepository @Inject constructor(
                 Result.failure(NoSuchElementException("Item not found"))
             } else {
                 Result.failure(Exception(response.errorBody()?.string() ?: "Failed to load item"))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun getItemsByUser(
+        userId: String,
+        page: Int = 0,
+        size: Int = 50,
+    ): Result<PageDto<ItemDto>> {
+        return try {
+            val response = itemApiService.getItemsByUser(userId, page, size)
+            if (response.isSuccessful && response.body() != null) {
+                Result.success(response.body()!!)
+            } else {
+                Result.failure(Exception(response.errorBody()?.string() ?: "Failed to load your items"))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    /**
+     * Serialize [request] as JSON for the multipart "item" part and submit alongside [images].
+     * The caller is responsible for building the image parts (the field name must be "images").
+     */
+    suspend fun createItem(
+        request: ItemRequest,
+        images: List<MultipartBody.Part>,
+    ): Result<ItemDto> {
+        return try {
+            val itemBody = gson.toJson(request).toRequestBody("application/json".toMediaType())
+            val response = itemApiService.createItem(itemBody, images)
+            if (response.isSuccessful && response.body() != null) {
+                Result.success(response.body()!!)
+            } else {
+                Result.failure(Exception(response.errorBody()?.string() ?: "Failed to post item"))
             }
         } catch (e: Exception) {
             Result.failure(e)

@@ -14,28 +14,32 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
-import com.hulampay.mobile.data.mock.MockItems
+import com.hulampay.mobile.data.model.ItemDto
 import com.hulampay.mobile.ui.components.*
 import com.hulampay.mobile.ui.theme.*
+import com.hulampay.mobile.utils.UiState
+import com.hulampay.mobile.utils.timeAgo
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun MyItemsScreen(navController: NavController) {
+fun MyItemsScreen(
+    navController: NavController,
+    viewModel: MyItemsViewModel = hiltViewModel(),
+) {
     val tabs = listOf("All", "Active", "Claimed", "Recovered", "Expired")
     var selectedTab by remember { mutableStateOf(0) }
 
-    // Mock: filter items by "Juan D." as the current user
-    val myItems = remember {
-        MockItems.items.filter { it.postedByName == "Juan D." }
-    }
+    val state by viewModel.state.collectAsState()
+    val myItems: List<ItemDto> = (state as? UiState.Success)?.data.orEmpty()
 
     val filteredItems = remember(selectedTab, myItems) {
         when (selectedTab) {
             0 -> myItems
             1 -> myItems.filter { it.status == "ACTIVE" }
-            2 -> myItems.filter { it.status == "CLAIMED" }
-            3 -> myItems.filter { it.status == "HANDED_OVER" }
+            2 -> myItems.filter { it.status == "CLAIMED" || it.status == "PENDING_OWNER_CONFIRMATION" }
+            3 -> myItems.filter { it.status == "RETURNED" }
             4 -> myItems.filter { it.status == "EXPIRED" }
             else -> myItems
         }
@@ -44,8 +48,8 @@ fun MyItemsScreen(navController: NavController) {
     val statCounts = remember(myItems) {
         mapOf(
             "Active" to myItems.count { it.status == "ACTIVE" },
-            "Claimed" to myItems.count { it.status == "CLAIMED" },
-            "Recovered" to myItems.count { it.status == "HANDED_OVER" },
+            "Claimed" to myItems.count { it.status == "CLAIMED" || it.status == "PENDING_OWNER_CONFIRMATION" },
+            "Recovered" to myItems.count { it.status == "RETURNED" },
             "Expired" to myItems.count { it.status == "EXPIRED" }
         )
     }
@@ -113,26 +117,47 @@ fun MyItemsScreen(navController: NavController) {
                 }
             }
 
-            // Items list
-            if (filteredItems.isEmpty()) {
-                EmptyState(
-                    icon = Icons.Default.Inbox,
-                    title = "No items here",
-                    message = "Post an item to get started",
-                    actionLabel = "Post Item",
-                    actionIcon = Icons.Default.Add,
-                    onAction = { navController.navigate("post_item_screen") }
-                )
-            } else {
-                LazyColumn(
-                    contentPadding = PaddingValues(UniLostSpacing.md),
-                    verticalArrangement = Arrangement.spacedBy(UniLostSpacing.sm)
-                ) {
-                    items(filteredItems) { item ->
-                        MyItemRow(
-                            item = item,
-                            onClick = { navController.navigate("item_detail_screen/${item.id}") }
+            // List / states
+            when (val current = state) {
+                is UiState.Loading, UiState.Idle -> {
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
+                    }
+                }
+                is UiState.Error -> {
+                    EmptyState(
+                        icon = Icons.Default.CloudOff,
+                        title = "Couldn't load your items",
+                        message = current.message,
+                        actionLabel = "Retry",
+                        onAction = { viewModel.load() }
+                    )
+                }
+                is UiState.Success -> {
+                    if (filteredItems.isEmpty()) {
+                        EmptyState(
+                            icon = Icons.Default.Inbox,
+                            title = "No items here",
+                            message = "Post an item to get started",
+                            actionLabel = "Post Item",
+                            actionIcon = Icons.Default.Add,
+                            onAction = { navController.navigate("post_item_screen") }
                         )
+                    } else {
+                        LazyColumn(
+                            contentPadding = PaddingValues(UniLostSpacing.md),
+                            verticalArrangement = Arrangement.spacedBy(UniLostSpacing.sm)
+                        ) {
+                            items(filteredItems) { item ->
+                                MyItemRow(
+                                    item = item,
+                                    onClick = { navController.navigate("item_detail_screen/${item.id}") }
+                                )
+                            }
+                        }
                     }
                 }
             }
@@ -168,7 +193,7 @@ fun StatMiniCard(label: String, value: Int, color: Color, modifier: Modifier) {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun MyItemRow(item: com.hulampay.mobile.data.mock.MockItem, onClick: () -> Unit) {
+fun MyItemRow(item: ItemDto, onClick: () -> Unit) {
     Card(
         modifier = Modifier.fillMaxWidth().clickable(onClick = onClick),
         shape = UniLostShapes.md,
@@ -213,28 +238,17 @@ fun MyItemRow(item: com.hulampay.mobile.data.mock.MockItem, onClick: () -> Unit)
                 }
                 Spacer(modifier = Modifier.height(UniLostSpacing.xxs))
                 Text(
-                    "${item.category} \u2022 ${item.locationDescription}",
+                    "${item.category} • ${item.location.orEmpty()}",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
                 Text(
-                    MockItems.timeAgo(item.createdAt),
+                    timeAgo(item.createdAt),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
-            }
-
-            // Claim count badge
-            if (item.claimCount > 0) {
-                Spacer(modifier = Modifier.width(UniLostSpacing.sm))
-                Badge(containerColor = Purple) {
-                    Text(
-                        "${item.claimCount}",
-                        style = MaterialTheme.typography.labelSmall
-                    )
-                }
             }
         }
     }

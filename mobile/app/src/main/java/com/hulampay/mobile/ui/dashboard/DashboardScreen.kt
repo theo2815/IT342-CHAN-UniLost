@@ -23,10 +23,10 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
-import com.hulampay.mobile.data.mock.MockItems
 import com.hulampay.mobile.navigation.Screen
 import com.hulampay.mobile.ui.components.*
 import com.hulampay.mobile.ui.theme.*
+import com.hulampay.mobile.utils.timeAgo
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -35,10 +35,11 @@ fun DashboardScreen(
     viewModel: DashboardViewModel = hiltViewModel()
 ) {
     val scrollState = rememberScrollState()
-    val recentItems = remember { MockItems.items.take(6) }
-    val lostCount = remember { MockItems.items.count { it.type == "LOST" } }
-    val foundCount = remember { MockItems.items.count { it.type == "FOUND" } }
-    val totalItems = remember { MockItems.items.size }
+    val items by viewModel.items.collectAsState()
+    val totalItems by viewModel.totalItems.collectAsState()
+    val recentItems = remember(items) { items.take(6) }
+    val lostCount = remember(items) { items.count { it.type == "LOST" } }
+    val foundCount = remember(items) { items.count { it.type == "FOUND" } }
 
     Scaffold(
         topBar = {
@@ -87,9 +88,9 @@ fun DashboardScreen(
                     Row(
                         horizontalArrangement = Arrangement.spacedBy(UniLostSpacing.md)
                     ) {
-                        BannerStat("$totalItems", "Total Items")
-                        BannerStat("$lostCount", "Lost")
-                        BannerStat("$foundCount", "Found")
+                        BannerStat(totalItems.toString(), "Total Items")
+                        BannerStat(lostCount.toString(), "Lost")
+                        BannerStat(foundCount.toString(), "Found")
                     }
                 }
             }
@@ -212,7 +213,7 @@ fun DashboardScreen(
                                 )
                                 Spacer(modifier = Modifier.width(UniLostSpacing.xxs))
                                 Text(
-                                    text = item.locationDescription,
+                                    text = item.location.orEmpty(),
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     maxLines = 1,
@@ -221,7 +222,7 @@ fun DashboardScreen(
                             }
 
                             Text(
-                                text = MockItems.timeAgo(item.createdAt),
+                                text = timeAgo(item.createdAt),
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier.padding(top = UniLostSpacing.xs)
@@ -252,19 +253,19 @@ fun DashboardScreen(
             ) {
                 DashboardStatCard(
                     label = "Active",
-                    value = "${MockItems.items.count { it.status == "ACTIVE" }}",
+                    value = "${items.count { it.status == "ACTIVE" }}",
                     color = Info,
                     modifier = Modifier.weight(1f)
                 )
                 DashboardStatCard(
                     label = "Claimed",
-                    value = "${MockItems.items.count { it.status == "CLAIMED" }}",
+                    value = "${items.count { it.status == "CLAIMED" || it.status == "PENDING_OWNER_CONFIRMATION" }}",
                     color = Warning,
                     modifier = Modifier.weight(1f)
                 )
                 DashboardStatCard(
                     label = "Recovered",
-                    value = "${MockItems.items.count { it.status == "HANDED_OVER" }}",
+                    value = "${items.count { it.status == "RETURNED" }}",
                     color = Success,
                     modifier = Modifier.weight(1f)
                 )
