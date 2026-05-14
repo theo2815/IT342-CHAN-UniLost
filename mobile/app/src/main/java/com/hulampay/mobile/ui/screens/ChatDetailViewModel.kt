@@ -3,7 +3,7 @@ package com.hulampay.mobile.ui.screens
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.google.gson.Gson
+import com.hulampay.mobile.data.api.AppGson
 import com.hulampay.mobile.data.model.ChatDto
 import com.hulampay.mobile.data.model.MessageDto
 import com.hulampay.mobile.data.model.User
@@ -73,13 +73,16 @@ class ChatDetailViewModel @Inject constructor(
     private val chatUnreadCountState: ChatUnreadCountState,
 ) : ViewModel() {
 
-    private val gson = Gson()
+    private val gson = AppGson.instance
 
     private val _state = MutableStateFlow<UiState<ChatDetailData>>(UiState.Idle)
     val state: StateFlow<UiState<ChatDetailData>> = _state
 
     private val _sending = MutableStateFlow(false)
     val sending: StateFlow<Boolean> = _sending
+
+    private val _loadingOlder = MutableStateFlow(false)
+    val loadingOlder: StateFlow<Boolean> = _loadingOlder
 
     private val _actionInFlight = MutableStateFlow(false)
     val actionInFlight: StateFlow<Boolean> = _actionInFlight
@@ -93,6 +96,7 @@ class ChatDetailViewModel @Inject constructor(
     private var subscriptionJob: Job? = null
     private var markReadJob: Job? = null
     private var chatId: String = ""
+    private var currentPage: Int = 0
 
     fun load(chatId: String) {
         if (chatId.isBlank()) {
@@ -121,6 +125,7 @@ class ChatDetailViewModel @Inject constructor(
             val page = messagesResult.getOrThrow()
             // Backend returns DESC — flip to ASC so newest lands at the end.
             val messages = page.content.reversed()
+            currentPage = 0
             _state.value = UiState.Success(
                 ChatDetailData(
                     chat = chatResult.getOrThrow(),
@@ -131,6 +136,35 @@ class ChatDetailViewModel @Inject constructor(
             )
             startSubscription(chatId)
             scheduleMarkRead()
+        }
+    }
+
+    fun loadOlderMessages() {
+        val current = (_state.value as? UiState.Success<ChatDetailData>)?.data ?: return
+        if (!current.hasMoreOlder) return
+        if (_loadingOlder.value) return
+        val activeChatId = chatId.takeIf { it.isNotBlank() } ?: return
+        _loadingOlder.value = true
+        val nextPage = currentPage + 1
+        viewModelScope.launch {
+            val result = chatRepository.getMessages(activeChatId, page = nextPage, size = INITIAL_PAGE_SIZE)
+            _loadingOlder.value = false
+            if (result.isFailure) {
+                _actionError.value = result.exceptionOrNull()?.message ?: "Failed to load older messages"
+                return@launch
+            }
+            val page = result.getOrThrow()
+            // DESC → ASC, then prepend so chronological order is preserved.
+            val older = page.content.reversed()
+            val snapshot = (_state.value as? UiState.Success<ChatDetailData>)?.data ?: return@launch
+            if (snapshot.chat.id != activeChatId) return@launch
+            currentPage = nextPage
+            _state.value = UiState.Success(
+                snapshot.copy(
+                    messages = older + snapshot.messages,
+                    hasMoreOlder = !page.last,
+                )
+            )
         }
     }
 
@@ -172,6 +206,8 @@ class ChatDetailViewModel @Inject constructor(
     fun markReturned() = runClaimAction { id -> claimRepository.markReturned(id) }
     fun confirmReceived() = runClaimAction { id -> claimRepository.confirmReceived(id) }
     fun disputeHandover() = runClaimAction { id -> claimRepository.disputeHandover(id) }
+    fun acceptClaim() = runClaimAction { id -> claimRepository.acceptClaim(id) }
+    fun rejectClaim() = runClaimAction { id -> claimRepository.rejectClaim(id) }
 
     fun consumeActionError() {
         _actionError.value = null
