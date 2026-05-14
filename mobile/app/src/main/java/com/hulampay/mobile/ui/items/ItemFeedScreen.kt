@@ -66,6 +66,16 @@ fun ItemFeedScreen(
     Scaffold(
         topBar = {
             UniLostTopBar(
+                onLogoClick = {
+                    navController.navigate(Screen.Dashboard.route) {
+                        popUpTo(Screen.Dashboard.route) {
+                            inclusive = false
+                            saveState = true
+                        }
+                        launchSingleTop = true
+                        restoreState = true
+                    }
+                },
                 onNotificationsClick = { navController.navigate("notifications_screen") },
                 onChatClick = { navController.navigate(Screen.ChatList.route) },
                 notificationCount = unreadNotifications.toInt(),

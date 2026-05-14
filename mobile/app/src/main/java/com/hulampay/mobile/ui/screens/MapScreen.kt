@@ -38,6 +38,16 @@ fun MapScreen(
     Scaffold(
         topBar = {
             UniLostTopBar(
+                onLogoClick = {
+                    navController.navigate(Screen.Dashboard.route) {
+                        popUpTo(Screen.Dashboard.route) {
+                            inclusive = false
+                            saveState = true
+                        }
+                        launchSingleTop = true
+                        restoreState = true
+                    }
+                },
                 onNotificationsClick = { navController.navigate(Screen.Notifications.route) },
                 onChatClick = { navController.navigate(Screen.ChatList.route) },
                 notificationCount = unreadNotifications.toInt(),
