@@ -118,6 +118,10 @@ dependencies {
     implementation(libs.converter.gson)
     implementation(libs.logging.interceptor)
 
+    // Krossbow — STOMP over WebSocket (Phase 6 mobile messaging)
+    implementation(libs.krossbow.stomp.core)
+    implementation(libs.krossbow.websocket.okhttp)
+
     // DataStore
     implementation("androidx.datastore:datastore-preferences:1.0.0")
 

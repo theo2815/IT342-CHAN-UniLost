@@ -8,47 +8,45 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
+import com.hulampay.mobile.data.model.ChatDto
 import com.hulampay.mobile.navigation.Screen
 import com.hulampay.mobile.ui.components.*
 import com.hulampay.mobile.ui.theme.*
+import com.hulampay.mobile.utils.UiState
+import com.hulampay.mobile.utils.timeAgo
 
 /**
  * Chat List screen — Spec Section 10.6.
- * Layout-only stub with mock data.
+ * Wired to GET /api/chats; preserves the original layout.
  */
-
-private data class MockChat(
-    val id: String,
-    val otherPersonName: String,
-    val lastMessage: String,
-    val itemTitle: String,
-    val timeAgo: String,
-    val unreadCount: Int
-)
-
-private val mockChats = listOf(
-    MockChat("c1", "Maria Santos", "Hi, I think I found your phone!", "Black Samsung Galaxy S24", "2m ago", 2),
-    MockChat("c2", "Carlos Reyes", "Can we meet at the library?", "Blue Backpack with Laptop", "15m ago", 0),
-    MockChat("c3", "Ana Garcia", "I left it at the security office.", "Student ID Card", "1h ago", 1),
-    MockChat("c4", "Juan Dela Cruz", "Thanks for finding it!", "Silver Watch", "3h ago", 0),
-    MockChat("c5", "Sofia Lim", "Is the charger included?", "MacBook Pro Charger", "1d ago", 0),
-)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ChatListScreen(navController: NavController) {
+fun ChatListScreen(
+    navController: NavController,
+    viewModel: ChatListViewModel = hiltViewModel(),
+) {
+    val state by viewModel.state.collectAsState()
+
+    LaunchedEffect(Unit) {
+        viewModel.load()
+    }
+
     Scaffold(
         topBar = {
             UniLostTopBar(
                 onNotificationsClick = { navController.navigate(Screen.Notifications.route) },
-                notificationCount = 3
+                notificationCount = 0
             )
         }
     ) { padding ->
@@ -57,7 +55,6 @@ fun ChatListScreen(navController: NavController) {
                 .fillMaxSize()
                 .padding(padding)
         ) {
-            // Section header
             Text(
                 "Messages",
                 style = MaterialTheme.typography.headlineMedium,
@@ -69,24 +66,49 @@ fun ChatListScreen(navController: NavController) {
                 color = MaterialTheme.colorScheme.onSurface
             )
 
-            if (mockChats.isEmpty()) {
-                EmptyState(
-                    icon = Icons.Default.Chat,
-                    title = "No messages yet",
-                    message = "Start a conversation by claiming an item."
-                )
-            } else {
-                LazyColumn(
-                    contentPadding = PaddingValues(horizontal = UniLostSpacing.md),
-                    verticalArrangement = Arrangement.spacedBy(UniLostSpacing.sm)
+            when (val current = state) {
+                UiState.Idle, UiState.Loading -> Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
                 ) {
-                    items(mockChats) { chat ->
-                        ChatRow(
-                            chat = chat,
-                            onClick = {
-                                navController.navigate("${Screen.ChatDetail.route}/${chat.id}")
-                            }
+                    CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
+                }
+
+                is UiState.Error -> Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(UniLostSpacing.md),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        current.message,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.error
+                    )
+                }
+
+                is UiState.Success -> {
+                    val chats = current.data
+                    if (chats.isEmpty()) {
+                        EmptyState(
+                            icon = Icons.Default.Chat,
+                            title = "No messages yet",
+                            message = "Start a conversation by claiming an item."
                         )
+                    } else {
+                        LazyColumn(
+                            contentPadding = PaddingValues(horizontal = UniLostSpacing.md),
+                            verticalArrangement = Arrangement.spacedBy(UniLostSpacing.sm)
+                        ) {
+                            items(chats, key = { it.id }) { chat ->
+                                ChatRow(
+                                    chat = chat,
+                                    onClick = {
+                                        navController.navigate("${Screen.ChatDetail.route}/${chat.id}")
+                                    }
+                                )
+                            }
+                        }
                     }
                 }
             }
@@ -95,7 +117,11 @@ fun ChatListScreen(navController: NavController) {
 }
 
 @Composable
-private fun ChatRow(chat: MockChat, onClick: () -> Unit) {
+private fun ChatRow(chat: ChatDto, onClick: () -> Unit) {
+    val unread = chat.unreadCount.toInt().coerceAtLeast(0)
+    val displayName = chat.otherParticipantName.ifBlank { "Unknown" }
+    val preview = chat.lastMessagePreview?.takeIf { it.isNotBlank() } ?: "No messages yet"
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -104,13 +130,13 @@ private fun ChatRow(chat: MockChat, onClick: () -> Unit) {
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surface
         ),
-        elevation = CardDefaults.cardElevation(if (chat.unreadCount > 0) 2.dp else 0.dp)
+        elevation = CardDefaults.cardElevation(if (unread > 0) 2.dp else 0.dp)
     ) {
         Row(
             modifier = Modifier.padding(UniLostSpacing.sm),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            AvatarView(name = chat.otherPersonName, size = 48.dp)
+            AvatarView(name = displayName, size = 48.dp)
 
             Spacer(modifier = Modifier.width(UniLostSpacing.sm))
 
@@ -121,23 +147,23 @@ private fun ChatRow(chat: MockChat, onClick: () -> Unit) {
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        chat.otherPersonName,
+                        displayName,
                         style = MaterialTheme.typography.titleMedium,
-                        fontWeight = if (chat.unreadCount > 0) FontWeight.Bold else FontWeight.SemiBold,
+                        fontWeight = if (unread > 0) FontWeight.Bold else FontWeight.SemiBold,
                         color = MaterialTheme.colorScheme.onSurface,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                         modifier = Modifier.weight(1f)
                     )
                     Text(
-                        chat.timeAgo,
+                        timeAgo(chat.lastMessageAt),
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
                 Spacer(modifier = Modifier.height(UniLostSpacing.xxs))
                 Text(
-                    chat.lastMessage,
+                    preview,
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,
@@ -157,12 +183,12 @@ private fun ChatRow(chat: MockChat, onClick: () -> Unit) {
                         overflow = TextOverflow.Ellipsis,
                         modifier = Modifier.weight(1f)
                     )
-                    if (chat.unreadCount > 0) {
+                    if (unread > 0) {
                         Badge(
                             containerColor = MaterialTheme.colorScheme.primary,
                             contentColor = MaterialTheme.colorScheme.onPrimary
                         ) {
-                            Text("${chat.unreadCount}")
+                            Text("$unread")
                         }
                     }
                 }

@@ -37,6 +37,7 @@ crashlytics = "2.9.9"
 ksp = "1.9.22-1.0.17"
 squareup-logging-interceptor = "4.7.2"
 viewpager2 = "1.0.0"
+krossbow = "6.0.0"
 
 [libraries]
 
@@ -94,6 +95,9 @@ gson = { group = "com.google.code.gson", name = "gson", version.ref = "gson" }
 
 glide = { group = "com.github.bumptech.glide", name = "glide", version.ref = "glide" }
 ksp = { module = "com.github.bumptech.glide:ksp", version.ref = "glide-ksp" }
+
+krossbow-stomp-core = { module = "org.hildan.krossbow:krossbow-stomp-core", version.ref = "krossbow" }
+krossbow-websocket-okhttp = { module = "org.hildan.krossbow:krossbow-websocket-okhttp", version.ref = "krossbow" }
 
 firebase = { group = "com.google.firebase", name = "firebase-bom", version.ref = "firebase-bom" }
 analytics = { group = "com.google.firebase", name = "firebase-analytics-ktx" }
