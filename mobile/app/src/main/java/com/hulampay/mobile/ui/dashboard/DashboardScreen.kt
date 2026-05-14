@@ -443,7 +443,7 @@ fun DashboardScreen(
                                 },
                                 modifier = Modifier.width(24.dp)
                             )
-                            AvatarView(name = user.fullName, size = 32.dp)
+                            AvatarView(name = user.fullName, size = 32.dp, imageUrl = user.profilePictureUrl)
                             Spacer(modifier = Modifier.width(UniLostSpacing.sm))
                             Column(modifier = Modifier.weight(1f)) {
                                 Text(

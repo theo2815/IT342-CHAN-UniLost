@@ -266,21 +266,14 @@ private fun FeedItemCard(
                     .background(MaterialTheme.colorScheme.surfaceVariant),
                 contentAlignment = Alignment.Center
             ) {
-                // Placeholder image (blurred for FOUND)
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .then(if (isFound) Modifier.blur(12.dp) else Modifier)
-                        .background(MaterialTheme.colorScheme.surfaceVariant),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        Icons.Default.Image,
-                        contentDescription = null,
-                        modifier = Modifier.size(32.dp),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
-                    )
-                }
+                // Item image (blurred for FOUND). Falls back to a placeholder when no URL.
+                RemoteImage(
+                    url = item.imageUrls.firstOrNull(),
+                    contentDescription = item.title,
+                    modifier = Modifier.fillMaxSize(),
+                    blurred = isFound,
+                    placeholderIconSize = 32.dp,
+                )
 
                 // Type badge overlay
                 Surface(

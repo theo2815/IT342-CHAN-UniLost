@@ -244,20 +244,13 @@ private fun ItemDetailContent(
                     .background(MaterialTheme.colorScheme.surfaceVariant),
                 contentAlignment = Alignment.Center
             ) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .then(if (isFound) Modifier.blur(20.dp) else Modifier)
-                        .background(MaterialTheme.colorScheme.surfaceVariant),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        Icons.Default.Image,
-                        contentDescription = null,
-                        modifier = Modifier.size(64.dp),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
+                RemoteImage(
+                    url = item.imageUrls.firstOrNull(),
+                    contentDescription = item.title,
+                    modifier = Modifier.fillMaxSize(),
+                    blurred = isFound,
+                    placeholderIconSize = 64.dp,
+                )
 
                 // Type badge
                 Surface(

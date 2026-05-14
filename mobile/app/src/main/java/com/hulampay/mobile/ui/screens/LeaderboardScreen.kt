@@ -218,7 +218,7 @@ private fun PodiumEntry(
         }
         Spacer(modifier = Modifier.height(UniLostSpacing.xs))
 
-        AvatarView(name = user.fullName, size = 56.dp)
+        AvatarView(name = user.fullName, size = 56.dp, imageUrl = user.profilePictureUrl)
 
         Spacer(modifier = Modifier.height(UniLostSpacing.xs))
 
@@ -283,7 +283,7 @@ private fun LeaderboardRow(rank: Int, user: User, isCurrentUser: Boolean) {
 
             Spacer(modifier = Modifier.width(UniLostSpacing.sm))
 
-            AvatarView(name = user.fullName, size = 40.dp)
+            AvatarView(name = user.fullName, size = 40.dp, imageUrl = user.profilePictureUrl)
 
             Spacer(modifier = Modifier.width(UniLostSpacing.sm))
 

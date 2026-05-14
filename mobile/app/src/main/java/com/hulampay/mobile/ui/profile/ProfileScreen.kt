@@ -130,7 +130,8 @@ fun ProfileScreen(
                         AvatarView(
                             firstName = firstName,
                             lastName = lastName,
-                            size = 96.dp
+                            size = 96.dp,
+                            imageUrl = user?.profilePictureUrl,
                         )
                         if (user?.emailVerified == true) {
                             Surface(

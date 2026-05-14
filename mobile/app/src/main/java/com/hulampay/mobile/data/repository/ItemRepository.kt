@@ -47,6 +47,27 @@ class ItemRepository @Inject constructor(
         }
     }
 
+    suspend fun getMapItems(
+        campusId: String? = null,
+        type: String? = null,
+        limit: Int? = null,
+    ): Result<List<ItemDto>> {
+        return try {
+            val response = itemApiService.getMapItems(
+                campusId = campusId?.takeIf { it.isNotBlank() },
+                type = type?.takeIf { it.isNotBlank() },
+                limit = limit,
+            )
+            if (response.isSuccessful && response.body() != null) {
+                Result.success(response.body()!!)
+            } else {
+                Result.failure(Exception(response.errorBody()?.string() ?: "Failed to load map items"))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
     suspend fun getItemById(id: String): Result<ItemDto> {
         return try {
             val response = itemApiService.getItemById(id)
