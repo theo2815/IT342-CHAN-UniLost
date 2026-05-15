@@ -105,18 +105,68 @@ public class NotificationService {
                 chatId);
     }
 
-    public void notifyAdminFlagThreshold(String adminUserId, String itemTitle, String itemId, int flagCount) {
-        createAndPush(adminUserId, "ITEM_FLAG_THRESHOLD",
-                "Item flagged " + flagCount + " times",
-                "The item '" + itemTitle + "' has been flagged " + flagCount + " times and may need review.",
-                itemId);
-    }
-
     public void notifyItemFlagged(String reporterUserId, String itemTitle, String itemId) {
         createAndPush(reporterUserId, "ITEM_FLAGGED",
                 "Your item was flagged",
                 "Your listing '" + itemTitle + "' has been flagged for review by a moderator.",
                 itemId);
+    }
+
+    public void notifyReporterFlagsDismissed(String reporterUserId, String itemTitle, String itemId) {
+        createAndPush(reporterUserId, "REPORT_DISMISSED",
+                "Your report was dismissed",
+                "An admin reviewed your report on '" + itemTitle + "' and decided no action was needed.",
+                itemId);
+    }
+
+    public void notifyAdminItemReported(String adminUserId, String itemTitle, String itemId, String reason) {
+        createAndPush(adminUserId, "ITEM_REPORTED",
+                "New report on '" + itemTitle + "'",
+                "A user reported '" + itemTitle + "' as " + reason + ". Review it in Reports.",
+                itemId);
+    }
+
+    public void notifyOwnerItemHidden(String ownerUserId, String itemTitle, String itemId, String reason) {
+        String body = reason != null && !reason.isBlank()
+                ? "An admin hid '" + itemTitle + "'. Reason: " + reason
+                : "An admin hid '" + itemTitle + "' from the public feed.";
+        createAndPush(ownerUserId, "ITEM_HIDDEN", "Your item was hidden by an admin", body, itemId);
+    }
+
+    public void notifyOwnerItemDeleted(String ownerUserId, String itemTitle, String reason) {
+        String body = reason != null && !reason.isBlank()
+                ? "An admin removed '" + itemTitle + "'. Reason: " + reason
+                : "An admin removed '" + itemTitle + "' from the platform.";
+        // No linkId — the item is gone, no detail page to open.
+        createAndPush(ownerUserId, "ITEM_DELETED", "Your item was removed by an admin", body, null);
+    }
+
+    public void notifyOwnerItemRestored(String ownerUserId, String itemTitle, String itemId) {
+        createAndPush(ownerUserId, "ITEM_RESTORED",
+                "Your item is live again",
+                "An admin restored '" + itemTitle + "' to the public feed.",
+                itemId);
+    }
+
+    public void notifyAdminAppealSubmitted(String adminUserId, String itemTitle, String itemId, String ownerName) {
+        createAndPush(adminUserId, "APPEAL_SUBMITTED",
+                "New appeal from " + ownerName,
+                ownerName + " is appealing the hide of '" + itemTitle + "'. Review it in Reports.",
+                itemId);
+    }
+
+    public void notifyOwnerAppealApproved(String ownerUserId, String itemTitle, String itemId) {
+        createAndPush(ownerUserId, "APPEAL_APPROVED",
+                "Your appeal was approved",
+                "Your item '" + itemTitle + "' is live again. The reports on it were cleared.",
+                itemId);
+    }
+
+    public void notifyOwnerAppealRejected(String ownerUserId, String itemTitle, String itemId, String adminNote) {
+        String body = adminNote != null && !adminNote.isBlank()
+                ? "Your appeal on '" + itemTitle + "' was not approved. Admin note: " + adminNote
+                : "Your appeal on '" + itemTitle + "' was not approved.";
+        createAndPush(ownerUserId, "APPEAL_REJECTED", "Your appeal was not approved", body, itemId);
     }
 
     public void notifyItemMarkedReturned(String ownerUserId, String finderName,

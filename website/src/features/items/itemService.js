@@ -108,6 +108,18 @@ const itemService = {
       return { success: false, error: err.response?.data?.error || err.response?.data || 'Failed to fetch campus items' };
     }
   },
+
+  /**
+   * Owner appeal against an admin hide. Requires non-empty text.
+   */
+  async submitAppeal(id, text) {
+    try {
+      const response = await api.post(`/items/${id}/appeal`, { text });
+      return { success: true, data: response.data };
+    } catch (err) {
+      return { success: false, error: err.response?.data?.error || err.response?.data || 'Failed to submit appeal' };
+    }
+  },
 };
 
 export default itemService;

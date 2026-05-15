@@ -14,6 +14,7 @@ import AdminDashboard from './features/admin/AdminDashboard';
 import AdminItems from './features/admin/AdminItems';
 import AdminUsers from './features/admin/AdminUsers';
 import AdminClaims from './features/admin/AdminClaims';
+import AdminReports from './features/admin/AdminReports';
 import CampusManagement from './features/admin/CampusManagement';
 import AdminAuditLogs from './features/admin/AdminAuditLogs';
 import AdminAnalytics from './features/admin/AdminAnalytics';
@@ -83,6 +84,7 @@ function App() {
               <Route path="/admin/items" element={<AdminItems />} />
               <Route path="/admin/users" element={<AdminUsers />} />
               <Route path="/admin/claims" element={<AdminClaims />} />
+              <Route path="/admin/reports" element={<AdminReports />} />
               <Route path="/admin/campuses" element={<CampusManagement />} />
               <Route path="/admin/audit-logs" element={<AdminAuditLogs />} />
               <Route path="/admin/analytics" element={<AdminAnalytics />} />

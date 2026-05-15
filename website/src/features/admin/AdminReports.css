@@ -1,0 +1,371 @@
+/* Admin Reports Page */
+.admin-reports-page {
+    min-height: 100vh;
+    background: var(--gradient-bg);
+}
+
+.admin-reports-page .main-content {
+    padding-top: 80px;
+}
+
+.admin-reports-page .content-wrapper {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: var(--spacing-xl);
+}
+
+.admin-reports-page .page-header {
+    margin-bottom: var(--spacing-lg);
+}
+
+.admin-reports-page .page-header-top {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    color: var(--color-text-primary);
+}
+
+.admin-reports-page .page-header-top h1 {
+    font-size: var(--font-size-2xl);
+}
+
+.admin-reports-page .page-subtitle {
+    margin-top: var(--spacing-xs);
+    font-size: var(--font-size-sm);
+    color: var(--color-text-muted);
+}
+
+/* Filter Bar (mirror AdminItems) */
+.admin-reports-page .filter-bar {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: var(--spacing-sm);
+    padding: var(--spacing-md);
+    border-radius: var(--radius-lg);
+    margin-bottom: var(--spacing-md);
+    position: relative;
+    z-index: 10;
+}
+
+.admin-reports-page .filter-bar .search-input {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+    flex: 1;
+    min-width: 0;
+    background: var(--color-bg-secondary);
+    padding: 8px 12px;
+    border-radius: var(--radius-md);
+    color: var(--color-text-secondary);
+}
+
+.admin-reports-page .filter-bar .search-input input {
+    border: none;
+    background: none;
+    outline: none;
+    width: 100%;
+    color: var(--color-text-primary);
+    font-size: var(--font-size-sm);
+}
+
+.admin-reports-page .filter-bar .ui-dropdown {
+    flex-shrink: 0;
+}
+
+/* Item Cell — mirror AdminItems for consistency */
+.admin-reports-page .item-cell {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+}
+
+.admin-reports-page .item-cell .table-thumb {
+    width: 48px;
+    height: 36px;
+    object-fit: cover;
+    border-radius: var(--radius-sm);
+    background: var(--color-bg-secondary);
+    flex-shrink: 0;
+}
+
+.admin-reports-page .item-cell-info {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    min-width: 0;
+}
+
+.admin-reports-page .item-cell-title {
+    font-weight: 500;
+    font-size: var(--font-size-sm);
+    max-width: 220px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.admin-reports-page .type-badge-sm {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: var(--radius-full);
+    font-size: 0.6rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    width: fit-content;
+}
+
+.admin-reports-page .type-badge-sm.lost {
+    background: rgba(239, 68, 68, 0.1);
+    color: #ef4444;
+}
+
+.admin-reports-page .type-badge-sm.found {
+    background: rgba(16, 185, 129, 0.1);
+    color: #10b981;
+}
+
+/* Status badges — copy of AdminItems palette scoped to this page */
+.admin-reports-page .status-badge {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: var(--radius-full);
+    font-size: 0.65rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    white-space: nowrap;
+}
+
+.admin-reports-page .status-badge.active { background: rgba(59, 130, 246, 0.1); color: #3b82f6; }
+.admin-reports-page .status-badge.claimed { background: rgba(139, 92, 246, 0.1); color: #8b5cf6; }
+.admin-reports-page .status-badge.pending-owner-confirmation { background: rgba(245, 158, 11, 0.12); color: #d97706; }
+.admin-reports-page .status-badge.returned { background: rgba(5, 150, 105, 0.1); color: #059669; }
+.admin-reports-page .status-badge.expired { background: rgba(107, 114, 128, 0.1); color: #6b7280; }
+.admin-reports-page .status-badge.turned-over-to-office { background: rgba(99, 102, 241, 0.1); color: #6366f1; }
+.admin-reports-page .status-badge.hidden { background: rgba(107, 114, 128, 0.1); color: #6b7280; }
+
+/* Reason badges */
+.reason-badges {
+    display: inline-flex;
+    flex-wrap: wrap;
+    gap: 4px;
+}
+
+.reason-badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: var(--radius-full);
+    font-size: 0.6rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    background: var(--color-bg-secondary);
+    color: var(--color-text-secondary);
+    white-space: nowrap;
+}
+
+.reason-badge.spam { background: rgba(239, 68, 68, 0.1); color: #ef4444; }
+.reason-badge.inappropriate { background: rgba(244, 63, 94, 0.12); color: #e11d48; }
+.reason-badge.fake { background: rgba(245, 158, 11, 0.12); color: #d97706; }
+.reason-badge.duplicate { background: rgba(99, 102, 241, 0.12); color: #6366f1; }
+
+/* Appeal status badges */
+.appeal-badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: var(--radius-full);
+    font-size: 0.6rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    background: var(--color-bg-secondary);
+    color: var(--color-text-secondary);
+    white-space: nowrap;
+}
+
+.appeal-badge.pending { background: rgba(245, 158, 11, 0.12); color: #d97706; }
+.appeal-badge.approved { background: rgba(5, 150, 105, 0.12); color: #059669; }
+.appeal-badge.rejected { background: rgba(239, 68, 68, 0.1); color: #ef4444; }
+
+/* Appeal section inside expanded row */
+.appeal-section {
+    padding-bottom: var(--spacing-sm);
+    margin-bottom: var(--spacing-sm);
+    border-bottom: 1px dashed var(--color-border);
+}
+
+.appeal-section .report-detail-heading {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.appeal-admin-note {
+    margin-top: var(--spacing-xs);
+    padding: var(--spacing-xs) var(--spacing-sm);
+    background: var(--color-bg-secondary);
+    border-radius: var(--radius-sm);
+}
+
+.reject-summary {
+    margin-bottom: var(--spacing-sm);
+    font-size: var(--font-size-sm);
+    color: var(--color-text-secondary);
+}
+
+/* Expand control */
+.admin-reports-page .expand-cell {
+    width: 36px;
+    text-align: center;
+}
+
+.admin-reports-page .expand-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 26px;
+    height: 26px;
+    border: none;
+    border-radius: var(--radius-sm);
+    background: transparent;
+    color: var(--color-text-muted);
+    cursor: pointer;
+    transition: background var(--transition-fast), color var(--transition-fast);
+}
+
+.admin-reports-page .expand-btn:hover {
+    background: var(--color-bg-secondary);
+    color: var(--color-text-primary);
+}
+
+.admin-reports-page .expand-btn svg {
+    transition: transform var(--transition-fast);
+}
+
+.admin-reports-page .expand-btn svg.rotated {
+    transform: rotate(180deg);
+}
+
+.admin-reports-page tr.expanded {
+    background: rgba(99, 102, 241, 0.05);
+}
+
+/* Expanded report-detail row */
+.report-detail-row > td {
+    background: var(--color-bg-secondary);
+    padding: 0;
+}
+
+.report-detail-panel {
+    padding: var(--spacing-md) var(--spacing-lg);
+    border-top: 1px solid var(--color-border);
+}
+
+.report-detail-heading {
+    font-size: var(--font-size-xs);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--color-text-muted);
+    margin-bottom: var(--spacing-sm);
+}
+
+.report-detail-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-sm);
+}
+
+.report-detail-item {
+    display: flex;
+    gap: var(--spacing-sm);
+    padding: var(--spacing-sm);
+    background: var(--color-bg-primary);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+}
+
+.report-detail-avatar {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: var(--color-bg-secondary);
+    color: var(--color-text-muted);
+}
+
+.report-detail-body {
+    flex: 1;
+    min-width: 0;
+}
+
+.report-detail-meta {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    margin-bottom: 4px;
+}
+
+.report-detail-time {
+    font-size: var(--font-size-xs);
+    color: var(--color-text-muted);
+}
+
+.report-detail-text {
+    margin: 0;
+    font-size: var(--font-size-sm);
+    color: var(--color-text-primary);
+    line-height: 1.45;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+.report-detail-text.empty {
+    color: var(--color-text-muted);
+    font-style: italic;
+}
+
+.report-detail-empty {
+    margin: 0;
+    font-size: var(--font-size-sm);
+    color: var(--color-text-muted);
+    font-style: italic;
+}
+
+/* Responsive */
+@media (max-width: 900px) {
+    .admin-reports-page .content-wrapper {
+        padding: var(--spacing-md);
+    }
+
+    .admin-reports-page .admin-table {
+        overflow-x: auto;
+    }
+
+    .admin-reports-page .admin-table table {
+        min-width: 820px;
+    }
+}
+
+@media (max-width: 768px) {
+    .admin-reports-page .filter-bar {
+        flex-wrap: wrap;
+    }
+
+    .admin-reports-page .filter-bar .search-input {
+        flex: 1 1 100%;
+    }
+
+    .admin-reports-page .filter-bar .ui-dropdown {
+        flex: 1;
+        min-width: 0;
+    }
+}

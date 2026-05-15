@@ -67,15 +67,35 @@ public class AdminController {
             @RequestBody Map<String, String> body,
             Authentication auth) {
         String newStatus = body.get("status");
-        return ResponseEntity.ok(adminService.updateItemStatus(id, newStatus, auth.getName()));
+        String reason = body.get("reason");
+        return ResponseEntity.ok(adminService.updateItemStatus(id, newStatus, reason, auth.getName()));
     }
 
     @DeleteMapping("/items/{id}")
     public ResponseEntity<Void> forceDeleteItem(
             @PathVariable String id,
+            @RequestBody(required = false) Map<String, String> body,
             Authentication auth) {
-        adminService.forceDeleteItem(id, auth.getName());
+        String reason = body != null ? body.get("reason") : null;
+        adminService.forceDeleteItem(id, reason, auth.getName());
         return ResponseEntity.noContent().build();
+    }
+
+    @PutMapping("/items/{id}/dismiss-flags")
+    public ResponseEntity<ItemDTO> dismissItemFlags(
+            @PathVariable String id,
+            Authentication auth) {
+        return ResponseEntity.ok(adminService.dismissItemFlags(id, auth.getName()));
+    }
+
+    @PutMapping("/items/{id}/appeal")
+    public ResponseEntity<ItemDTO> reviewAppeal(
+            @PathVariable String id,
+            @RequestBody Map<String, String> body,
+            Authentication auth) {
+        String decision = body.get("decision");
+        String note = body.get("note");
+        return ResponseEntity.ok(adminService.reviewAppeal(id, decision, note, auth.getName()));
     }
 
     // ── Users ──────────────────────────────────────────────

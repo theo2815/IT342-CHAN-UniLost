@@ -123,9 +123,14 @@ public class AdminService {
     public Page<ItemDTO> getFlaggedItems(String adminEmail, Pageable pageable) {
         resolveAdmin(adminEmail);
 
+        // Reports page surfaces (a) flagged items and (b) hidden items with a pending appeal,
+        // so admins see appeals even after flags are dismissed.
         Query query = new Query();
         query.addCriteria(Criteria.where("isDeleted").is(false));
-        query.addCriteria(Criteria.where("flagCount").gt(0));
+        query.addCriteria(new Criteria().orOperator(
+                Criteria.where("flagCount").gt(0),
+                Criteria.where("appealStatus").is("PENDING")
+        ));
         long total = mongoTemplate.count(Query.of(query).limit(-1).skip(-1), ItemEntity.class);
         query.with(pageable);
         List<ItemEntity> items = mongoTemplate.find(query, ItemEntity.class);
@@ -135,7 +140,7 @@ public class AdminService {
 
     // ── Update Item Status (admin action) ──────────────────
 
-    public ItemDTO updateItemStatus(String itemId, String newStatus, String adminEmail) {
+    public ItemDTO updateItemStatus(String itemId, String newStatus, String reason, String adminEmail) {
         resolveAdmin(adminEmail);
         ItemEntity item = itemRepository.findByIdAndIsDeletedFalse(itemId)
                 .orElseThrow(() -> new ResourceNotFoundException("Item not found"));
@@ -158,25 +163,110 @@ public class AdminService {
             throw new IllegalArgumentException("Only items turned over to office can be marked as returned");
         }
 
-        String oldStatus = item.getStatus().name();
+        String trimmedReason = null;
+        if (reason != null && !reason.isBlank()) {
+            trimmedReason = reason.trim();
+            if (trimmedReason.length() > 280) {
+                throw new IllegalArgumentException("Reason must be 280 characters or fewer");
+            }
+        }
+
+        ItemStatus oldStatus = item.getStatus();
         item.setStatus(parsedStatus);
         item.setUpdatedAt(LocalDateTime.now());
+
+        boolean wasHidden = oldStatus == ItemStatus.HIDDEN;
+
+        if (parsedStatus == ItemStatus.HIDDEN) {
+            item.setAdminActionType("HIDDEN");
+            item.setAdminActionReason(trimmedReason);
+            item.setAdminActionAt(LocalDateTime.now());
+            item.setAdminActionBy(adminEmail);
+            // Hiding starts a fresh appeal cycle — clear any stale appeal state.
+            item.setAppealStatus("NONE");
+            item.setAppealText(null);
+            item.setAppealedAt(null);
+            item.setAppealResolvedAt(null);
+            item.setAppealResolvedBy(null);
+            item.setAppealAdminNote(null);
+        } else if (wasHidden) {
+            // Un-hiding: clear admin action + appeal state so the owner sees a clean view.
+            item.setAdminActionType(null);
+            item.setAdminActionReason(null);
+            item.setAdminActionAt(null);
+            item.setAdminActionBy(null);
+            item.setAppealStatus("NONE");
+            item.setAppealText(null);
+            item.setAppealedAt(null);
+            item.setAppealResolvedAt(null);
+            item.setAppealResolvedBy(null);
+            item.setAppealAdminNote(null);
+        }
+
         ItemEntity saved = itemRepository.save(item);
 
         auditLogService.log("UPDATE_ITEM_STATUS", "ITEM", itemId, adminEmail,
-                "Changed item '" + item.getTitle() + "' status from " + oldStatus + " to " + newStatus,
-                Map.of("oldStatus", oldStatus, "newStatus", newStatus, "itemTitle", item.getTitle()));
+                "Changed item '" + item.getTitle() + "' status from " + oldStatus.name() + " to " + newStatus,
+                Map.of("oldStatus", oldStatus.name(), "newStatus", newStatus, "itemTitle", item.getTitle(),
+                        "reason", trimmedReason != null ? trimmedReason : ""));
+
+        if (parsedStatus == ItemStatus.HIDDEN) {
+            notificationService.notifyOwnerItemHidden(item.getReporterId(), item.getTitle(), itemId, trimmedReason);
+        } else if (wasHidden && parsedStatus == ItemStatus.ACTIVE) {
+            notificationService.notifyOwnerItemRestored(item.getReporterId(), item.getTitle(), itemId);
+        }
+
+        return convertItemToDTO(saved, null, null);
+    }
+
+    // ── Dismiss Flags ──────────────────────────────────────
+
+    public ItemDTO dismissItemFlags(String itemId, String adminEmail) {
+        resolveAdmin(adminEmail);
+        ItemEntity item = itemRepository.findByIdAndIsDeletedFalse(itemId)
+                .orElseThrow(() -> new ResourceNotFoundException("Item not found"));
+
+        int prevCount = item.getFlagCount();
+        // Snapshot reporters BEFORE clearing so we can notify each that their report was dismissed.
+        List<String> reporterIds = new ArrayList<>(item.getFlaggedBy());
+
+        item.setFlagCount(0);
+        item.getFlaggedBy().clear();
+        item.getFlagReasons().clear();
+        item.getFlagDetails().clear();
+        item.setUpdatedAt(LocalDateTime.now());
+        ItemEntity saved = itemRepository.save(item);
+
+        auditLogService.log("DISMISS_FLAGS", "ITEM", itemId, adminEmail,
+                "Dismissed " + prevCount + " flag(s) on '" + item.getTitle() + "'",
+                Map.of("itemTitle", item.getTitle(), "previousFlagCount", prevCount));
+
+        for (String reporterId : reporterIds) {
+            notificationService.notifyReporterFlagsDismissed(reporterId, item.getTitle(), itemId);
+        }
 
         return convertItemToDTO(saved, null, null);
     }
 
     // ── Force Delete Item ──────────────────────────────────
 
-    public void forceDeleteItem(String itemId, String adminEmail) {
+    public void forceDeleteItem(String itemId, String reason, String adminEmail) {
         resolveAdmin(adminEmail);
         ItemEntity item = itemRepository.findByIdAndIsDeletedFalse(itemId)
                 .orElseThrow(() -> new ResourceNotFoundException("Item not found"));
 
+        String trimmedReason = null;
+        if (reason != null && !reason.isBlank()) {
+            trimmedReason = reason.trim();
+            if (trimmedReason.length() > 280) {
+                throw new IllegalArgumentException("Reason must be 280 characters or fewer");
+            }
+        }
+
+        item.setAdminActionType("DELETED");
+        item.setAdminActionReason(trimmedReason);
+        item.setAdminActionAt(LocalDateTime.now());
+        item.setAdminActionBy(adminEmail);
         item.setDeleted(true);
         item.setDeletedAt(LocalDateTime.now());
         item.setUpdatedAt(LocalDateTime.now());
@@ -184,7 +274,68 @@ public class AdminService {
 
         auditLogService.log("DELETE_ITEM", "ITEM", itemId, adminEmail,
                 "Soft-deleted item: " + item.getTitle(),
-                Map.of("itemTitle", item.getTitle()));
+                Map.of("itemTitle", item.getTitle(), "reason", trimmedReason != null ? trimmedReason : ""));
+
+        notificationService.notifyOwnerItemDeleted(item.getReporterId(), item.getTitle(), trimmedReason);
+    }
+
+    // ── Review Owner Appeal ────────────────────────────────
+
+    public ItemDTO reviewAppeal(String itemId, String decision, String note, String adminEmail) {
+        resolveAdmin(adminEmail);
+        ItemEntity item = itemRepository.findByIdAndIsDeletedFalse(itemId)
+                .orElseThrow(() -> new ResourceNotFoundException("Item not found"));
+
+        if (!"PENDING".equals(item.getAppealStatus())) {
+            throw new IllegalArgumentException("There is no pending appeal on this item");
+        }
+
+        if (!"APPROVED".equals(decision) && !"REJECTED".equals(decision)) {
+            throw new IllegalArgumentException("Decision must be APPROVED or REJECTED");
+        }
+
+        String trimmedNote = null;
+        if (note != null && !note.isBlank()) {
+            trimmedNote = note.trim();
+            if (trimmedNote.length() > 280) {
+                throw new IllegalArgumentException("Admin note must be 280 characters or fewer");
+            }
+        }
+
+        LocalDateTime now = LocalDateTime.now();
+        item.setAppealStatus(decision);
+        item.setAppealResolvedAt(now);
+        item.setAppealResolvedBy(adminEmail);
+        item.setAppealAdminNote(trimmedNote);
+        item.setUpdatedAt(now);
+
+        if ("APPROVED".equals(decision)) {
+            // Restore item, clear all moderation state, clear flags.
+            item.setStatus(ItemStatus.ACTIVE);
+            item.setAdminActionType(null);
+            item.setAdminActionReason(null);
+            item.setAdminActionAt(null);
+            item.setAdminActionBy(null);
+            item.setFlagCount(0);
+            item.getFlaggedBy().clear();
+            item.getFlagReasons().clear();
+            item.getFlagDetails().clear();
+        }
+
+        ItemEntity saved = itemRepository.save(item);
+
+        auditLogService.log("REVIEW_APPEAL", "ITEM", itemId, adminEmail,
+                decision + " appeal on '" + item.getTitle() + "'",
+                Map.of("itemTitle", item.getTitle(), "decision", decision,
+                        "note", trimmedNote != null ? trimmedNote : ""));
+
+        if ("APPROVED".equals(decision)) {
+            notificationService.notifyOwnerAppealApproved(item.getReporterId(), item.getTitle(), itemId);
+        } else {
+            notificationService.notifyOwnerAppealRejected(item.getReporterId(), item.getTitle(), itemId, trimmedNote);
+        }
+
+        return convertItemToDTO(saved, null, null);
     }
 
     // ── All Users ─────────────────────────────────────────
@@ -277,7 +428,7 @@ public class AdminService {
 
     // ── Flag Item (User-facing) ────────────────────────────
 
-    public void flagItem(String itemId, String reason, String userEmail) {
+    public void flagItem(String itemId, String reason, String description, String userEmail) {
         UserEntity user = userRepository.findByEmail(userEmail)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
@@ -299,22 +450,80 @@ public class AdminService {
             throw new IllegalArgumentException("Invalid flag reason. Use: SPAM, INAPPROPRIATE, FAKE, or DUPLICATE");
         }
 
+        String trimmedDescription = null;
+        if (description != null && !description.isBlank()) {
+            trimmedDescription = description.trim();
+            if (trimmedDescription.length() > 280) {
+                throw new IllegalArgumentException("Description must be 280 characters or fewer");
+            }
+        }
+
         item.getFlaggedBy().add(user.getId());
         item.getFlagReasons().add(reason);
+        item.getFlagDetails().add(new edu.cit.chan.unilost.features.item.FlagDetail(
+                user.getId(), reason, trimmedDescription, LocalDateTime.now()));
         item.setFlagCount(item.getFlagCount() + 1);
         item.setUpdatedAt(LocalDateTime.now());
         itemRepository.save(item);
 
         notificationService.notifyItemFlagged(item.getReporterId(), item.getTitle(), itemId);
 
-        // Notify admin when flag count reaches threshold
-        if (item.getFlagCount() >= 3) {
-            List<UserEntity> admins = userRepository.findByRole(Role.ADMIN);
-            for (UserEntity admin : admins) {
-                notificationService.notifyAdminFlagThreshold(
-                        admin.getId(), item.getTitle(), itemId, item.getFlagCount());
-            }
+        // Notify every admin on every flag — admins want full visibility into incoming reports.
+        List<UserEntity> admins = userRepository.findByRole(Role.ADMIN);
+        for (UserEntity admin : admins) {
+            notificationService.notifyAdminItemReported(
+                    admin.getId(), item.getTitle(), itemId, reason);
         }
+    }
+
+    // ── Submit Owner Appeal ────────────────────────────────
+
+    public ItemDTO submitAppeal(String itemId, String ownerEmail, String appealText) {
+        UserEntity user = userRepository.findByEmail(ownerEmail)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+
+        ItemEntity item = itemRepository.findByIdAndIsDeletedFalse(itemId)
+                .orElseThrow(() -> new ResourceNotFoundException("Item not found"));
+
+        if (!user.getId().equals(item.getReporterId())) {
+            throw new ForbiddenException("Only the owner can appeal this item");
+        }
+
+        if (item.getStatus() != ItemStatus.HIDDEN) {
+            throw new IllegalArgumentException("Only hidden items can be appealed");
+        }
+
+        // One appeal per hide cycle. Once admin resolves it (APPROVED|REJECTED), the owner
+        // can only appeal again if the item is hidden afresh — which resets these fields.
+        if (!"NONE".equals(item.getAppealStatus()) && item.getAppealStatus() != null) {
+            throw new IllegalArgumentException("An appeal has already been submitted for this item");
+        }
+
+        if (appealText == null || appealText.isBlank()) {
+            throw new IllegalArgumentException("Appeal reason is required");
+        }
+        String trimmed = appealText.trim();
+        if (trimmed.length() > 500) {
+            throw new IllegalArgumentException("Appeal must be 500 characters or fewer");
+        }
+
+        item.setAppealStatus("PENDING");
+        item.setAppealText(trimmed);
+        item.setAppealedAt(LocalDateTime.now());
+        item.setUpdatedAt(LocalDateTime.now());
+        ItemEntity saved = itemRepository.save(item);
+
+        auditLogService.log("APPEAL_SUBMITTED", "ITEM", itemId, ownerEmail,
+                "Owner appealed hide of '" + item.getTitle() + "'",
+                Map.of("itemTitle", item.getTitle()));
+
+        List<UserEntity> admins = userRepository.findByRole(Role.ADMIN);
+        for (UserEntity admin : admins) {
+            notificationService.notifyAdminAppealSubmitted(
+                    admin.getId(), item.getTitle(), itemId, user.getFullName());
+        }
+
+        return convertItemToDTO(saved, null, null);
     }
 
     // ── Analytics ──────────────────────────────────────────
@@ -666,6 +875,16 @@ public class AdminService {
         dto.setCampusId(item.getCampusId());
         dto.setFlagCount(item.getFlagCount());
         dto.setFlagReasons(item.getFlagReasons());
+        dto.setFlagDetails(item.getFlagDetails());
+
+        dto.setAdminActionType(item.getAdminActionType());
+        dto.setAdminActionReason(item.getAdminActionReason());
+        dto.setAdminActionAt(item.getAdminActionAt());
+        dto.setAppealStatus(item.getAppealStatus());
+        dto.setAppealText(item.getAppealText());
+        dto.setAppealedAt(item.getAppealedAt());
+        dto.setAppealResolvedAt(item.getAppealResolvedAt());
+        dto.setAppealAdminNote(item.getAppealAdminNote());
 
         UserEntity resolvedReporter = reporter;
         if (resolvedReporter == null && item.getReporterId() != null) {
