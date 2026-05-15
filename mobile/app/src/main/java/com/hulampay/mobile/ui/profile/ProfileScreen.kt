@@ -116,6 +116,17 @@ fun ProfileScreen(
                 .padding(padding)
                 .verticalScroll(rememberScrollState())
         ) {
+            Text(
+                "Profile",
+                style = MaterialTheme.typography.headlineMedium,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.padding(
+                    horizontal = UniLostSpacing.md,
+                    vertical = UniLostSpacing.sm
+                ),
+                color = MaterialTheme.colorScheme.onSurface
+            )
+
             // Profile Header
             Card(
                 modifier = Modifier

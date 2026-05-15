@@ -34,6 +34,7 @@ fun UniLostTopBar(
     onChatClick: () -> Unit = {},
     notificationCount: Int = 0,
     chatCount: Int = 0,
+    chatActive: Boolean = false,
     scrollBehavior: TopAppBarScrollBehavior? = null
 ) {
     TopAppBar(
@@ -79,8 +80,23 @@ fun UniLostTopBar(
                 }
             }
 
-            // Chat
-            IconButton(onClick = onChatClick) {
+            // Chat — when the user is on the Messages page (chatActive == true),
+            // render the IconButton with a primary-tinted circular container so it
+            // mirrors the active-tab pill treatment used in BottomNavBar.
+            val chatIconTint = if (chatActive) {
+                MaterialTheme.colorScheme.primary
+            } else {
+                MaterialTheme.colorScheme.onSurface
+            }
+            val chatButtonColors = if (chatActive) {
+                IconButtonDefaults.iconButtonColors(
+                    containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
+                    contentColor = MaterialTheme.colorScheme.primary
+                )
+            } else {
+                IconButtonDefaults.iconButtonColors()
+            }
+            IconButton(onClick = onChatClick, colors = chatButtonColors) {
                 if (chatCount > 0) {
                     BadgedBox(
                         badge = {
@@ -95,14 +111,14 @@ fun UniLostTopBar(
                         Icon(
                             Icons.Default.Chat,
                             contentDescription = "Messages",
-                            tint = MaterialTheme.colorScheme.onSurface
+                            tint = chatIconTint
                         )
                     }
                 } else {
                     Icon(
                         Icons.Default.Chat,
                         contentDescription = "Messages",
-                        tint = MaterialTheme.colorScheme.onSurface
+                        tint = chatIconTint
                     )
                 }
             }
