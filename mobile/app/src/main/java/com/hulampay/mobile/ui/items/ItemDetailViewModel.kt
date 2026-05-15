@@ -24,6 +24,13 @@ data class ItemDetailData(
     val incomingClaims: List<ClaimDto>,
     val currentUserId: String?,
     val isAdmin: Boolean,
+    /**
+     * The viewer's own claim against this item, if any. Only populated when the
+     * viewer is NOT the poster. Drives the bottom-bar CTA: chatId present →
+     * "Open Chat", claim without chat → "View Claim", null → submit-claim sheet.
+     * Mirrors website ItemDetail.jsx's `existingClaim` state.
+     */
+    val viewerClaim: ClaimDto? = null,
 ) {
     val isPoster: Boolean
         get() {
@@ -45,6 +52,27 @@ sealed class SubmitClaimState {
     data class Error(val message: String) : SubmitClaimState()
 }
 
+sealed class FlagSubmitState {
+    object Idle : FlagSubmitState()
+    object Submitting : FlagSubmitState()
+    object Success : FlagSubmitState()
+    data class Error(val message: String) : FlagSubmitState()
+}
+
+sealed class AppealSubmitState {
+    object Idle : AppealSubmitState()
+    object Submitting : AppealSubmitState()
+    object Success : AppealSubmitState()
+    data class Error(val message: String) : AppealSubmitState()
+}
+
+sealed class DeleteState {
+    object Idle : DeleteState()
+    object InProgress : DeleteState()
+    object Success : DeleteState()
+    data class Error(val message: String) : DeleteState()
+}
+
 @HiltViewModel
 class ItemDetailViewModel @Inject constructor(
     private val itemRepository: ItemRepository,
@@ -62,6 +90,15 @@ class ItemDetailViewModel @Inject constructor(
 
     private val _incomingActionInFlight = MutableStateFlow(false)
     val incomingActionInFlight: StateFlow<Boolean> = _incomingActionInFlight
+
+    private val _flagState = MutableStateFlow<FlagSubmitState>(FlagSubmitState.Idle)
+    val flagState: StateFlow<FlagSubmitState> = _flagState
+
+    private val _appealState = MutableStateFlow<AppealSubmitState>(AppealSubmitState.Idle)
+    val appealState: StateFlow<AppealSubmitState> = _appealState
+
+    private val _deleteState = MutableStateFlow<DeleteState>(DeleteState.Idle)
+    val deleteState: StateFlow<DeleteState> = _deleteState
 
     fun load(itemId: String) {
         if (itemId.isBlank()) {
@@ -83,6 +120,11 @@ class ItemDetailViewModel @Inject constructor(
             val isPoster = cachedUser?.id != null && cachedUser.id ==
                 (item.reporter?.id ?: item.reporterId)
             val incoming = if (isPoster) loadIncomingClaims(item.id) else emptyList()
+            // Non-posters: surface this viewer's own claim (if any) so the bottom
+            // CTA can branch to "Open Chat" / "View Claim" — parity with website.
+            val viewerClaim = if (!isPoster && cachedUser?.id != null) {
+                findViewerClaim(item.id)
+            } else null
 
             _state.value = UiState.Success(
                 ItemDetailData(
@@ -91,6 +133,7 @@ class ItemDetailViewModel @Inject constructor(
                     incomingClaims = incoming,
                     currentUserId = cachedUser?.id,
                     isAdmin = cachedUser?.isAdmin == true,
+                    viewerClaim = viewerClaim,
                 )
             )
         }
@@ -110,7 +153,11 @@ class ItemDetailViewModel @Inject constructor(
                 )
             )
             _submitState.value = if (result.isSuccess) {
-                SubmitClaimState.Success(result.getOrThrow())
+                val claim = result.getOrThrow()
+                // Patch the detail state so closing the sheet reveals the new
+                // "Open Chat" / "View Claim" CTA without requiring a page reload.
+                _state.value = UiState.Success(data.copy(viewerClaim = claim))
+                SubmitClaimState.Success(claim)
             } else {
                 SubmitClaimState.Error(result.exceptionOrNull()?.message ?: "Failed to submit claim")
             }
@@ -119,6 +166,65 @@ class ItemDetailViewModel @Inject constructor(
 
     fun resetSubmitState() {
         _submitState.value = SubmitClaimState.Idle
+    }
+
+    fun flagItem(reason: String, description: String?) {
+        val current = _state.value
+        val data = (current as? UiState.Success)?.data ?: return
+        if (_flagState.value is FlagSubmitState.Submitting) return
+        _flagState.value = FlagSubmitState.Submitting
+        viewModelScope.launch {
+            val result = itemRepository.flagItem(data.item.id, reason, description)
+            _flagState.value = if (result.isSuccess) {
+                _state.value = UiState.Success(data.copy(item = result.getOrThrow()))
+                FlagSubmitState.Success
+            } else {
+                FlagSubmitState.Error(result.exceptionOrNull()?.message ?: "Failed to submit report")
+            }
+        }
+    }
+
+    fun resetFlagState() {
+        _flagState.value = FlagSubmitState.Idle
+    }
+
+    fun submitAppeal(text: String) {
+        val current = _state.value
+        val data = (current as? UiState.Success)?.data ?: return
+        if (_appealState.value is AppealSubmitState.Submitting) return
+        _appealState.value = AppealSubmitState.Submitting
+        viewModelScope.launch {
+            val result = itemRepository.submitAppeal(data.item.id, text)
+            _appealState.value = if (result.isSuccess) {
+                _state.value = UiState.Success(data.copy(item = result.getOrThrow()))
+                AppealSubmitState.Success
+            } else {
+                AppealSubmitState.Error(result.exceptionOrNull()?.message ?: "Failed to submit appeal")
+            }
+        }
+    }
+
+    fun resetAppealState() {
+        _appealState.value = AppealSubmitState.Idle
+    }
+
+    fun deleteItem() {
+        val current = _state.value
+        val data = (current as? UiState.Success)?.data ?: return
+        if (_deleteState.value is DeleteState.InProgress) return
+        _deleteState.value = DeleteState.InProgress
+        viewModelScope.launch {
+            val result = itemRepository.deleteItem(data.item.id)
+            _deleteState.value = if (result.isSuccess) {
+                DeleteState.Success
+            } else {
+                DeleteState.Error(result.exceptionOrNull()?.message ?: "Failed to delete item")
+            }
+        }
+    }
+
+    fun resetDeleteState() {
+        _deleteState.value = DeleteState.Idle
     }
 
     fun acceptIncomingClaim(claimId: String) =
@@ -158,6 +264,18 @@ class ItemDetailViewModel @Inject constructor(
     private suspend fun loadIncomingClaims(itemId: String): List<ClaimDto> {
         val result = claimRepository.getClaimsForItem(itemId, page = 0, size = 50)
         return if (result.isSuccess) result.getOrThrow().content else emptyList()
+    }
+
+    /**
+     * Look up this viewer's own claim against [itemId], if any. Mirrors website
+     * ItemDetail.jsx fetching `claimService.getMyClaims` then `.find(c => c.itemId === id)`.
+     * Returns null on failure so the page still renders without this signal.
+     */
+    private suspend fun findViewerClaim(itemId: String): ClaimDto? {
+        val result = claimRepository.getMyClaims(page = 0, size = 100)
+        return if (result.isSuccess) {
+            result.getOrThrow().content.firstOrNull { it.itemId == itemId }
+        } else null
     }
 
     private suspend fun readCachedUser(): User? {

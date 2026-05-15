@@ -10,7 +10,15 @@ sealed class Screen(val route: String) {
     object Dashboard : Screen("dashboard_screen")
     object ItemFeed : Screen("item_feed_screen")
     object ItemDetail : Screen("item_detail_screen")
-    object PostItem : Screen("post_item_screen")
+    object PostItem : Screen("post_item_screen?itemId={itemId}") {
+        /**
+         * Build a navigation route. Omit [itemId] for new posts; supply an id
+         * to open the screen in edit mode (prefills the form, PUTs on submit).
+         */
+        fun createRoute(itemId: String? = null): String =
+            if (itemId.isNullOrBlank()) "post_item_screen"
+            else "post_item_screen?itemId=${Uri.encode(itemId)}"
+    }
     object MyItems : Screen("my_items_screen")
     object MyClaims : Screen("my_claims_screen")
     object ClaimDetail : Screen("claim_detail_screen")

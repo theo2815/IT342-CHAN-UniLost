@@ -90,8 +90,18 @@ fun NavGraph(navController: NavHostController) {
                 itemId = it.arguments?.getString("itemId") ?: ""
             )
         }
-        composable(Screen.PostItem.route) {
-            PostItemScreen(navController = navController)
+        composable(
+            Screen.PostItem.route,
+            arguments = listOf(navArgument("itemId") {
+                type = NavType.StringType
+                nullable = true
+                defaultValue = null
+            }),
+        ) { entry ->
+            PostItemScreen(
+                navController = navController,
+                itemId = entry.arguments?.getString("itemId"),
+            )
         }
         composable(Screen.MyItems.route) {
             MyItemsScreen(navController = navController)

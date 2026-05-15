@@ -41,6 +41,7 @@ import kotlinx.coroutines.withContext
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import java.util.TimeZone
 
 private const val MAX_IMAGES = 3
 
@@ -48,8 +49,11 @@ private const val MAX_IMAGES = 3
 @Composable
 fun PostItemScreen(
     navController: NavController,
+    itemId: String? = null,
     viewModel: PostItemViewModel = hiltViewModel(),
 ) {
+    val isEditMode = !itemId.isNullOrBlank()
+
     var type by remember { mutableStateOf("LOST") }
     var title by remember { mutableStateOf("") }
     var description by remember { mutableStateOf("") }
@@ -60,10 +64,38 @@ fun PostItemScreen(
     var selectedDateMillis by remember { mutableStateOf<Long?>(null) }
     var showDatePicker by remember { mutableStateOf(false) }
     var selectedImageUris by remember { mutableStateOf<List<Uri>>(emptyList()) }
+    var existingImageCount by remember { mutableStateOf(0) }
 
     val context = LocalContext.current
     val submitState by viewModel.submitState.collectAsState()
+    val prefill by viewModel.prefill.collectAsState()
     val isSubmitting = submitState is UiState.Loading
+
+    // Trigger the prefill load once when the screen opens in edit mode.
+    LaunchedEffect(itemId) {
+        if (!itemId.isNullOrBlank()) viewModel.loadForEdit(itemId)
+    }
+
+    // Apply the loaded item into the form state exactly once.
+    var prefillApplied by remember { mutableStateOf(false) }
+    LaunchedEffect(prefill) {
+        val source = prefill
+        if (source != null && !prefillApplied) {
+            type = source.type.ifBlank { "LOST" }
+            title = source.title
+            description = source.description
+            category = ItemCategory.backendToDisplay(source.category).orEmpty()
+            location = source.location.orEmpty()
+            secretDetail = source.secretDetailQuestion.orEmpty()
+            val millis = parseIsoLocalDateTime(source.dateLostFound)
+            if (millis != null) {
+                selectedDateMillis = millis
+                dateText = SimpleDateFormat("MMM dd, yyyy", Locale.getDefault()).format(Date(millis))
+            }
+            existingImageCount = source.imageUrls.size
+            prefillApplied = true
+        }
+    }
 
     val isFormValid = title.isNotBlank() && description.isNotBlank() &&
             category.isNotBlank() && location.isNotBlank() && !isSubmitting
@@ -83,7 +115,11 @@ fun PostItemScreen(
     LaunchedEffect(submitState) {
         when (val s = submitState) {
             is UiState.Success -> {
-                Toast.makeText(context, "Item posted successfully!", Toast.LENGTH_SHORT).show()
+                Toast.makeText(
+                    context,
+                    if (isEditMode) "Item updated successfully!" else "Item posted successfully!",
+                    Toast.LENGTH_SHORT
+                ).show()
                 viewModel.resetSubmitState()
                 navController.popBackStack()
             }
@@ -98,7 +134,7 @@ fun PostItemScreen(
     Scaffold(
         topBar = {
             UniLostDetailTopBar(
-                title = "Report an Item",
+                title = if (isEditMode) "Edit Item" else "Report an Item",
                 onBackClick = { navController.popBackStack() }
             )
         }
@@ -210,6 +246,16 @@ fun PostItemScreen(
                 }
             )
 
+            if (isEditMode && existingImageCount > 0 && selectedImageUris.isEmpty()) {
+                Text(
+                    "Keeping the original ${existingImageCount} image" +
+                        if (existingImageCount == 1) "" else "s" +
+                            ". Pick new ones above to replace them.",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+
             // Secret detail (FOUND only)
             if (type == "FOUND") {
                 Card(
@@ -259,18 +305,37 @@ fun PostItemScreen(
 
             // Submit button
             UniLostButton(
-                text = if (isSubmitting) "Posting..." else "Post Item",
+                text = when {
+                    isSubmitting && isEditMode -> "Saving..."
+                    isSubmitting -> "Posting..."
+                    isEditMode -> "Save changes"
+                    else -> "Post Item"
+                },
                 onClick = {
-                    viewModel.submit(
-                        type = type,
-                        title = title,
-                        description = description,
-                        categoryDisplay = category,
-                        location = location,
-                        secretDetail = secretDetail,
-                        dateMillis = selectedDateMillis,
-                        imageUris = selectedImageUris,
-                    )
+                    if (isEditMode && itemId != null) {
+                        viewModel.update(
+                            itemId = itemId,
+                            type = type,
+                            title = title,
+                            description = description,
+                            categoryDisplay = category,
+                            location = location,
+                            secretDetail = secretDetail,
+                            dateMillis = selectedDateMillis,
+                            imageUris = selectedImageUris,
+                        )
+                    } else {
+                        viewModel.submit(
+                            type = type,
+                            title = title,
+                            description = description,
+                            categoryDisplay = category,
+                            location = location,
+                            secretDetail = secretDetail,
+                            dateMillis = selectedDateMillis,
+                            imageUris = selectedImageUris,
+                        )
+                    }
                 },
                 enabled = isFormValid
             )
@@ -471,4 +536,30 @@ fun TypeOption(label: String, isSelected: Boolean, color: Color, modifier: Modif
             )
         }
     }
+}
+
+/**
+ * Parse the backend's ISO-8601 LocalDateTime string ("2026-05-13T00:00:00") back
+ * into millis-since-epoch. Returns null on blank input or format mismatch so the
+ * caller can fall through to "no date picked".
+ */
+private fun parseIsoLocalDateTime(iso: String?): Long? {
+    if (iso.isNullOrBlank()) return null
+    // Backend serializes with optional fractional seconds (LocalDateTime with Jackson).
+    val patterns = listOf(
+        "yyyy-MM-dd'T'HH:mm:ss.SSS",
+        "yyyy-MM-dd'T'HH:mm:ss",
+        "yyyy-MM-dd'T'HH:mm",
+        "yyyy-MM-dd",
+    )
+    for (pattern in patterns) {
+        try {
+            val sdf = SimpleDateFormat(pattern, Locale.US)
+            sdf.timeZone = TimeZone.getDefault()
+            return sdf.parse(iso)?.time
+        } catch (_: Exception) {
+            // try the next pattern
+        }
+    }
+    return null
 }

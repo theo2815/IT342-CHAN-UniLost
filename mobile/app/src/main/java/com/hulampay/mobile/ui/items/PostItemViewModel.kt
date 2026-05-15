@@ -41,8 +41,30 @@ class PostItemViewModel @Inject constructor(
     private val _submitState = MutableStateFlow<UiState<ItemDto>>(UiState.Idle)
     val submitState: StateFlow<UiState<ItemDto>> = _submitState
 
+    /**
+     * When the screen opens in edit mode, the existing item lands here so the screen
+     * can prefill its form state. Null while loading / on a fresh post.
+     */
+    private val _prefill = MutableStateFlow<ItemDto?>(null)
+    val prefill: StateFlow<ItemDto?> = _prefill
+
     fun resetSubmitState() {
         _submitState.value = UiState.Idle
+    }
+
+    fun loadForEdit(itemId: String) {
+        if (itemId.isBlank()) return
+        if (_prefill.value?.id == itemId) return
+        viewModelScope.launch {
+            val result = itemRepository.getItemById(itemId)
+            if (result.isSuccess) {
+                _prefill.value = result.getOrThrow()
+            } else {
+                _submitState.value = UiState.Error(
+                    result.exceptionOrNull()?.message ?: "Failed to load item for editing"
+                )
+            }
+        }
     }
 
     fun submit(
@@ -86,6 +108,52 @@ class PostItemViewModel @Inject constructor(
                 UiState.Success(result.getOrThrow())
             } else {
                 UiState.Error(result.exceptionOrNull()?.message ?: "Failed to post item")
+            }
+        }
+    }
+
+    fun update(
+        itemId: String,
+        type: String,
+        title: String,
+        description: String,
+        categoryDisplay: String,
+        location: String,
+        secretDetail: String,
+        dateMillis: Long?,
+        imageUris: List<Uri>,
+    ) {
+        if (imageUris.size > MAX_IMAGES) {
+            _submitState.value = UiState.Error("Maximum $MAX_IMAGES images allowed")
+            return
+        }
+        val category = ItemCategory.displayToBackend(categoryDisplay)
+        if (category == null) {
+            _submitState.value = UiState.Error("Please choose a category")
+            return
+        }
+
+        _submitState.value = UiState.Loading
+        viewModelScope.launch {
+            val user = readCachedUser()
+            val request = ItemRequest(
+                title = title.trim(),
+                description = description.trim(),
+                type = type,
+                category = category,
+                location = location.trim().takeIf { it.isNotBlank() },
+                secretDetailQuestion = secretDetail.trim()
+                    .takeIf { it.isNotBlank() && type == "FOUND" },
+                dateLostFound = dateMillis?.let { toIsoLocalDateTime(it) },
+                campusId = user?.universityTag,
+            )
+
+            val parts = imageUris.mapIndexedNotNull { index, uri -> uriToImagePart(uri, index) }
+            val result = itemRepository.updateItem(itemId, request, parts)
+            _submitState.value = if (result.isSuccess) {
+                UiState.Success(result.getOrThrow())
+            } else {
+                UiState.Error(result.exceptionOrNull()?.message ?: "Failed to update item")
             }
         }
     }

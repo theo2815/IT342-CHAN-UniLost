@@ -27,4 +27,24 @@ data class ItemDto(
     @SerializedName("campus")               val campus: School? = null,
     @SerializedName("flagCount")            val flagCount: Int = 0,
     @SerializedName("flagReasons")          val flagReasons: List<String> = emptyList(),
+    @SerializedName("flagDetails")          val flagDetails: List<FlagDetail> = emptyList(),
+
+    // Admin moderation action (HIDDEN | DELETED) — visible to owner + admin only.
+    @SerializedName("adminActionType")      val adminActionType: String? = null,
+    @SerializedName("adminActionReason")    val adminActionReason: String? = null,
+    @SerializedName("adminActionAt")        val adminActionAt: String? = null,
+
+    // Owner appeal lifecycle: NONE | PENDING | APPROVED | REJECTED.
+    @SerializedName("appealStatus")         val appealStatus: String? = null,
+    @SerializedName("appealText")           val appealText: String? = null,
+    @SerializedName("appealedAt")           val appealedAt: String? = null,
+    @SerializedName("appealResolvedAt")     val appealResolvedAt: String? = null,
+    @SerializedName("appealAdminNote")      val appealAdminNote: String? = null,
+
+    // Viewer-scoped report state — only populated by GET /api/items/{id}.
+    @SerializedName("viewerHasFlagged")     val viewerHasFlagged: Boolean? = null,
+    @SerializedName("viewerFlagDetail")     val viewerFlagDetail: FlagDetail? = null,
+
+    // True only when the owner/admin fetches their own soft-deleted item.
+    @SerializedName("isDeleted")            val isDeleted: Boolean? = null,
 )
