@@ -152,7 +152,7 @@ fun DashboardScreen(
                     label = "Browse Map",
                     color = Info,
                     modifier = Modifier.weight(1f),
-                    onClick = { /* TODO: Map screen */ }
+                    onClick = { navController.navigate(Screen.Map.route) }
                 )
             }
 
