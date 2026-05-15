@@ -57,6 +57,15 @@ private val guestItems = listOf(
     BottomNavItem.Board,
 )
 
+// Non-tab destinations that can be stacked on top of a tab (top-bar secondary
+// screens + the Post action). When switching tabs from one of these, pop them
+// first so the underlying tab's saved sub-stack doesn't include them.
+private val SECONDARY_ROUTES = setOf(
+    "chat_list_screen",
+    "notifications_screen",
+    "post_item_screen?itemId={itemId}",
+)
+
 /**
  * UniLost Bottom Navigation Bar matching spec Section 8.5.
  *
@@ -115,12 +124,10 @@ fun BottomNavBar(
                                     interactionSource = remember { MutableInteractionSource() },
                                     indication = rememberRipple(bounded = true, color = MaterialTheme.colorScheme.onPrimary),
                                     onClick = {
-                                        if (currentRoute != item.route) {
-                                            navController.navigate(item.route) {
-                                                popUpTo("dashboard_screen") { saveState = true }
-                                                launchSingleTop = true
-                                                restoreState = true
-                                            }
+                                        // Post is an action, not a tab — push on top of the current
+                                        // screen so back returns to where the user tapped "+".
+                                        navController.navigate(item.route) {
+                                            launchSingleTop = true
                                         }
                                     }
                                 ),
@@ -143,6 +150,9 @@ fun BottomNavBar(
                                     indication = null,
                                     onClick = {
                                         if (currentRoute != item.route) {
+                                            while (navController.currentBackStackEntry?.destination?.route in SECONDARY_ROUTES) {
+                                                if (!navController.popBackStack()) break
+                                            }
                                             navController.navigate(item.route) {
                                                 popUpTo("dashboard_screen") { saveState = true }
                                                 launchSingleTop = true

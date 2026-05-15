@@ -60,7 +60,7 @@ fun DashboardScreen(
                         restoreState = true
                     }
                 },
-                onNotificationsClick = { navController.navigate("notifications_screen") },
+                onNotificationsClick = { navController.navigate(Screen.Notifications.route) },
                 onChatClick = { navController.navigate(Screen.ChatList.route) },
                 notificationCount = unreadNotifications.toInt(),
                 chatCount = unreadChats.toInt()

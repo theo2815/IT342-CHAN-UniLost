@@ -167,6 +167,42 @@ fun UniLostGuestTopBar(
 }
 
 /**
+ * Logo-only top bar for primary tab screens that don't expose the chat /
+ * notification action icons (e.g. Profile). Shows the "UniLost" logo as the
+ * title and accepts arbitrary action slots on the right.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun UniLostLogoTopBar(
+    onLogoClick: () -> Unit = {},
+    actions: @Composable (RowScope.() -> Unit) = {},
+    scrollBehavior: TopAppBarScrollBehavior? = null
+) {
+    TopAppBar(
+        title = {
+            Text(
+                text = "UniLost",
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier.clickable(
+                    interactionSource = remember { MutableInteractionSource() },
+                    indication = null,
+                    onClick = onLogoClick,
+                )
+            )
+        },
+        actions = actions,
+        colors = TopAppBarDefaults.topAppBarColors(
+            containerColor = MaterialTheme.colorScheme.surface,
+            scrolledContainerColor = MaterialTheme.colorScheme.surface,
+            titleContentColor = MaterialTheme.colorScheme.onSurface
+        ),
+        scrollBehavior = scrollBehavior
+    )
+}
+
+/**
  * Detail-screen top bar with back navigation.
  * Shows back arrow + title + optional action icons.
  */

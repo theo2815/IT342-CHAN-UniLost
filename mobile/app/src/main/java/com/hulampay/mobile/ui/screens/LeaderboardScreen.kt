@@ -40,12 +40,16 @@ private val BronzeOrange = Color(0xFFEA580C)
 fun LeaderboardScreen(
     navController: NavController,
     viewModel: LeaderboardViewModel = hiltViewModel(),
+    badgeViewModel: NotificationBadgeViewModel = hiltViewModel(),
+    chatBadgeViewModel: ChatBadgeViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsState()
     val currentUserId by viewModel.currentUserId.collectAsState()
     val campuses by viewModel.campuses.collectAsState()
     val selectedCampusId by viewModel.selectedCampusId.collectAsState()
     val scrollState = rememberScrollState()
+    val unreadNotifications by badgeViewModel.unread.collectAsState()
+    val unreadChats by chatBadgeViewModel.unread.collectAsState()
 
     val selectedCampus = remember(campuses, selectedCampusId) {
         selectedCampusId?.let { id -> campuses.firstOrNull { it.id == id } }
@@ -63,9 +67,21 @@ fun LeaderboardScreen(
 
     Scaffold(
         topBar = {
-            UniLostDetailTopBar(
-                title = "Leaderboard",
-                onBackClick = { navController.popBackStack() }
+            UniLostTopBar(
+                onLogoClick = {
+                    navController.navigate(Screen.Dashboard.route) {
+                        popUpTo(Screen.Dashboard.route) {
+                            inclusive = false
+                            saveState = true
+                        }
+                        launchSingleTop = true
+                        restoreState = true
+                    }
+                },
+                onNotificationsClick = { navController.navigate(Screen.Notifications.route) },
+                onChatClick = { navController.navigate(Screen.ChatList.route) },
+                notificationCount = unreadNotifications.toInt(),
+                chatCount = unreadChats.toInt()
             )
         },
         bottomBar = { BottomNavBar(navController = navController) }

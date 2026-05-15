@@ -86,9 +86,17 @@ fun ProfileScreen(
 
     Scaffold(
         topBar = {
-            UniLostDetailTopBar(
-                title = "Profile",
-                onBackClick = { navController.popBackStack() },
+            UniLostLogoTopBar(
+                onLogoClick = {
+                    navController.navigate(Screen.Dashboard.route) {
+                        popUpTo(Screen.Dashboard.route) {
+                            inclusive = false
+                            saveState = true
+                        }
+                        launchSingleTop = true
+                        restoreState = true
+                    }
+                },
                 actions = {
                     IconButton(onClick = { navController.navigate(Screen.Settings.route) }) {
                         Icon(
