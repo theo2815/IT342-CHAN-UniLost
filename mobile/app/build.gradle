@@ -137,6 +137,7 @@ dependencies {
     // Google Maps (Phase 8 — Campus Map)
     implementation(libs.play.services.maps)
     implementation(libs.maps.compose)
+    implementation(libs.play.services.location)
 
     // Coil — image loading for Compose
     implementation(libs.coil.compose)

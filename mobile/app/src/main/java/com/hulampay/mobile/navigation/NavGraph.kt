@@ -150,8 +150,32 @@ fun NavGraph(navController: NavHostController) {
                 chatId = it.arguments?.getString("chatId") ?: ""
             )
         }
-        composable(Screen.Map.route) {
-            MapScreen(navController = navController)
+        composable(
+            Screen.Map.route,
+            arguments = listOf(
+                navArgument("lat") {
+                    type = NavType.StringType
+                    nullable = true
+                    defaultValue = null
+                },
+                navArgument("lng") {
+                    type = NavType.StringType
+                    nullable = true
+                    defaultValue = null
+                },
+                navArgument("itemId") {
+                    type = NavType.StringType
+                    nullable = true
+                    defaultValue = null
+                },
+            ),
+        ) { entry ->
+            MapScreen(
+                navController = navController,
+                focusLat = entry.arguments?.getString("lat")?.toDoubleOrNull(),
+                focusLng = entry.arguments?.getString("lng")?.toDoubleOrNull(),
+                focusItemId = entry.arguments?.getString("itemId"),
+            )
         }
         composable(Screen.Leaderboard.route) {
             LeaderboardScreen(navController = navController)

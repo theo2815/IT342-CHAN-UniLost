@@ -2,6 +2,7 @@ package com.hulampay.mobile.ui.screens
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.google.android.gms.maps.model.LatLng
 import com.hulampay.mobile.data.model.ItemDto
 import com.hulampay.mobile.data.model.School
 import com.hulampay.mobile.data.repository.AuthRepository
@@ -12,6 +13,9 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+
+/** Lifecycle of the device-location signal that drives the My-Location FAB. */
+enum class LocationStatus { UNKNOWN, GRANTED, DENIED, UNAVAILABLE }
 
 @HiltViewModel
 class MapViewModel @Inject constructor(
@@ -36,6 +40,12 @@ class MapViewModel @Inject constructor(
 
     private val _selectedItemId = MutableStateFlow<String?>(null)
     val selectedItemId: StateFlow<String?> = _selectedItemId
+
+    private val _userLocation = MutableStateFlow<LatLng?>(null)
+    val userLocation: StateFlow<LatLng?> = _userLocation
+
+    private val _locationStatus = MutableStateFlow(LocationStatus.UNKNOWN)
+    val locationStatus: StateFlow<LocationStatus> = _locationStatus
 
     init {
         loadCampuses()
@@ -96,5 +106,22 @@ class MapViewModel @Inject constructor(
             authRepository.getCampuses()
                 .onSuccess { _campuses.value = it }
         }
+    }
+
+    fun onLocationPermission(granted: Boolean) {
+        _locationStatus.value = if (granted) LocationStatus.GRANTED else LocationStatus.DENIED
+        if (!granted) _userLocation.value = null
+    }
+
+    fun setUserLocation(latLng: LatLng?) {
+        _userLocation.value = latLng
+        if (latLng != null && _locationStatus.value != LocationStatus.GRANTED) {
+            _locationStatus.value = LocationStatus.GRANTED
+        }
+    }
+
+    fun markLocationUnavailable() {
+        _locationStatus.value = LocationStatus.UNAVAILABLE
+        _userLocation.value = null
     }
 }

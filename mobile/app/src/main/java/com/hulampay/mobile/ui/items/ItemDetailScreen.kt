@@ -554,7 +554,15 @@ private fun ItemDetailContent(
                     Spacer(modifier = Modifier.height(UniLostSpacing.md))
                     UniLostButton(
                         text = "View Location",
-                        onClick = { navController.navigate(Screen.Map.route) },
+                        onClick = {
+                            navController.navigate(
+                                Screen.Map.createRoute(
+                                    lat = item.latitude,
+                                    lng = item.longitude,
+                                    itemId = item.id,
+                                )
+                            )
+                        },
                         variant = ButtonVariant.SECONDARY,
                         icon = Icons.Default.LocationOn,
                         modifier = Modifier.fillMaxWidth(),
