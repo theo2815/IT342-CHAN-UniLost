@@ -46,7 +46,11 @@ function getNotifRoute(notif) {
         case 'ITEM_FLAGGED':
         case 'ITEM_EXPIRED':
         case 'ITEM_MATCH':
+        case 'REPORT_DISMISSED':
             return `/items/${notif.linkId}`;
+        case 'ITEM_REPORTED':
+        case 'APPEAL_SUBMITTED':
+            return '/admin/reports';
         default:
             return '/notifications';
     }

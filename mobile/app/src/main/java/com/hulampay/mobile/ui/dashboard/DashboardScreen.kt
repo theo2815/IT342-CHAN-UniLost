@@ -60,7 +60,7 @@ fun DashboardScreen(
                         restoreState = true
                     }
                 },
-                onNotificationsClick = { navController.navigate("notifications_screen") },
+                onNotificationsClick = { navController.navigate(Screen.Notifications.route) },
                 onChatClick = { navController.navigate(Screen.ChatList.route) },
                 notificationCount = unreadNotifications.toInt(),
                 chatCount = unreadChats.toInt()
@@ -152,7 +152,7 @@ fun DashboardScreen(
                     label = "Browse Map",
                     color = Info,
                     modifier = Modifier.weight(1f),
-                    onClick = { /* TODO: Map screen */ }
+                    onClick = { navController.navigate(Screen.Map.route) }
                 )
             }
 

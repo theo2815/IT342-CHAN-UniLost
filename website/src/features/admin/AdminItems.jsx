@@ -22,6 +22,9 @@ const AdminItems = () => {
     const [showRemoveModal, setShowRemoveModal] = useState(false);
     const [removeTarget, setRemoveTarget] = useState(null);
     const [removeReason, setRemoveReason] = useState('');
+    const [showHideModal, setShowHideModal] = useState(false);
+    const [hideTarget, setHideTarget] = useState(null);
+    const [hideReason, setHideReason] = useState('');
     const [actionLoading, setActionLoading] = useState(false);
     const [exportLoading, setExportLoading] = useState(false);
     const [selectedIds, setSelectedIds] = useState(new Set());
@@ -59,7 +62,7 @@ const AdminItems = () => {
     const confirmRemove = async () => {
         if (!removeTarget) return;
         setActionLoading(true);
-        const result = await adminService.forceDeleteItem(removeTarget.id);
+        const result = await adminService.forceDeleteItem(removeTarget.id, removeReason);
         if (result.success) {
             fetchItems();
         } else {
@@ -68,6 +71,26 @@ const AdminItems = () => {
         setActionLoading(false);
         setShowRemoveModal(false);
         setRemoveTarget(null);
+    };
+
+    const handleHide = (item) => {
+        setHideTarget(item);
+        setHideReason('');
+        setShowHideModal(true);
+    };
+
+    const confirmHide = async () => {
+        if (!hideTarget) return;
+        setActionLoading(true);
+        const result = await adminService.updateItemStatus(hideTarget.id, 'HIDDEN', hideReason);
+        if (result.success) {
+            fetchItems();
+        } else {
+            setError(result.error);
+        }
+        setActionLoading(false);
+        setShowHideModal(false);
+        setHideTarget(null);
     };
 
     const handleStatusChange = async (itemId, newStatus) => {
@@ -270,7 +293,7 @@ const AdminItems = () => {
                                                     <Eye size={16} />
                                                 </button>
                                                 {item.status === 'ACTIVE' && (
-                                                    <button className="action-btn warning" title="Hide" onClick={() => handleStatusChange(item.id, 'HIDDEN')} disabled={actionLoading}>
+                                                    <button className="action-btn warning" title="Hide" onClick={() => handleHide(item)} disabled={actionLoading}>
                                                         <EyeOff size={16} />
                                                     </button>
                                                 )}
@@ -312,6 +335,47 @@ const AdminItems = () => {
                         </div>
                     )}
 
+                    {/* Hide Modal */}
+                    {showHideModal && hideTarget && (
+                        <div className="modal-overlay" onClick={() => !actionLoading && setShowHideModal(false)}>
+                            <div className="modal-card glass" onClick={(e) => e.stopPropagation()}>
+                                <div className="modal-header">
+                                    <EyeOff size={20} color="#f59e0b" />
+                                    <h3>Hide Item</h3>
+                                    <button className="modal-close" onClick={() => !actionLoading && setShowHideModal(false)}>
+                                        <X size={18} />
+                                    </button>
+                                </div>
+                                <div className="modal-body">
+                                    <div className="remove-item-summary">
+                                        <img src={hideTarget.imageUrls?.[0] || '/placeholder.png'} alt="" />
+                                        <div>
+                                            <strong>{hideTarget.title}</strong>
+                                            <span>Posted by {hideTarget.reporter?.fullName || '-'}</span>
+                                        </div>
+                                    </div>
+                                    <label>Reason for hiding (optional)</label>
+                                    <textarea
+                                        value={hideReason}
+                                        onChange={(e) => setHideReason(e.target.value.slice(0, 280))}
+                                        placeholder="Tell the owner why this item was hidden so they can fix it or appeal."
+                                        rows={3}
+                                        maxLength={280}
+                                    />
+                                    <div className="flag-description-meta">
+                                        <span>{hideReason.length}/280</span>
+                                    </div>
+                                </div>
+                                <div className="modal-footer">
+                                    <button className="btn-secondary" onClick={() => setShowHideModal(false)} disabled={actionLoading}>Cancel</button>
+                                    <button className="btn-danger" onClick={confirmHide} disabled={actionLoading}>
+                                        {actionLoading ? 'Hiding...' : 'Confirm Hide'}
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
                     {/* Remove Modal */}
                     {showRemoveModal && removeTarget && (
                         <div className="modal-overlay" onClick={() => setShowRemoveModal(false)}>
@@ -331,13 +395,17 @@ const AdminItems = () => {
                                             <span>Posted by {removeTarget.reporter?.fullName || '-'}</span>
                                         </div>
                                     </div>
-                                    <label>Reason for removal</label>
+                                    <label>Reason for removal (optional)</label>
                                     <textarea
                                         value={removeReason}
-                                        onChange={(e) => setRemoveReason(e.target.value)}
+                                        onChange={(e) => setRemoveReason(e.target.value.slice(0, 280))}
                                         placeholder="Enter the reason for removing this item..."
                                         rows={3}
+                                        maxLength={280}
                                     />
+                                    <div className="flag-description-meta">
+                                        <span>{removeReason.length}/280</span>
+                                    </div>
                                 </div>
                                 <div className="modal-footer">
                                     <button className="btn-secondary" onClick={() => setShowRemoveModal(false)}>Cancel</button>

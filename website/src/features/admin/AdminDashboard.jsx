@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Shield, Users, Package, Clock, CheckCircle, Ban, ChevronRight, Loader2, AlertCircle, ScrollText, BarChart3, Activity } from 'lucide-react';
+import { Shield, Users, Package, Clock, CheckCircle, Ban, ChevronRight, Loader2, AlertCircle, ScrollText, BarChart3, Activity, Flag } from 'lucide-react';
 import Header from '../../shared/layout/Header/Header';
 import adminService from './adminService';
 import './AdminDashboard.css';
@@ -37,6 +37,7 @@ const AdminDashboard = () => {
         { label: 'Items Management', description: 'View, filter, and remove item listings', route: '/admin/items', icon: Package },
         { label: 'Users Management', description: 'Search, ban, and manage user accounts', route: '/admin/users', icon: Users },
         { label: 'Claims Management', description: 'Oversee claims and override handovers', route: '/admin/claims', icon: Shield },
+        { label: 'Reports', description: 'Review flagged items and take action', route: '/admin/reports', icon: Flag },
         { label: 'Campus Management', description: 'Cross-campus stats and school settings', route: '/admin/campuses', icon: Shield },
         { label: 'Audit Logs', description: 'Track admin actions and changes', route: '/admin/audit-logs', icon: ScrollText },
         { label: 'Analytics & Reports', description: 'Charts, trends, and campus comparisons', route: '/admin/analytics', icon: BarChart3 },

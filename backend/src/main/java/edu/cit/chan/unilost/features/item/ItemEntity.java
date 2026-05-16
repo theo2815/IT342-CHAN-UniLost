@@ -66,4 +66,20 @@ public class ItemEntity {
     private List<String> flaggedBy = new ArrayList<>();
 
     private List<String> flagReasons = new ArrayList<>();
+
+    private List<FlagDetail> flagDetails = new ArrayList<>();
+
+    // Admin moderation action (last hide/delete by admin)
+    private String adminActionType;        // HIDDEN | DELETED
+    private String adminActionReason;      // free text, ≤280 chars, optional
+    private LocalDateTime adminActionAt;
+    private String adminActionBy;          // admin email
+
+    // Owner appeal against the current admin action
+    private String appealStatus = "NONE";  // NONE | PENDING | APPROVED | REJECTED
+    private String appealText;             // required when submitted, ≤500 chars
+    private LocalDateTime appealedAt;
+    private LocalDateTime appealResolvedAt;
+    private String appealResolvedBy;       // admin email
+    private String appealAdminNote;        // optional, ≤280 chars
 }

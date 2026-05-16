@@ -42,4 +42,10 @@ object ItemCategory {
         val idx = displayLabels.indexOfFirst { it.equals(display, ignoreCase = true) }
         return if (idx >= 0) backendNames[idx] else null
     }
+
+    fun backendToDisplay(backend: String?): String? {
+        if (backend.isNullOrBlank()) return null
+        val idx = backendNames.indexOfFirst { it.equals(backend, ignoreCase = true) }
+        return if (idx >= 0) displayLabels[idx] else null
+    }
 }

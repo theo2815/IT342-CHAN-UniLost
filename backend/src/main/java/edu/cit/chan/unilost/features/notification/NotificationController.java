@@ -1,5 +1,6 @@
 package edu.cit.chan.unilost.features.notification;
 
+import edu.cit.chan.unilost.shared.util.Pagination;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -23,7 +24,7 @@ public class NotificationController {
             @RequestParam(defaultValue = "20") int size) {
         String email = getEmail();
         return ResponseEntity.ok(notificationService.getNotifications(email,
-                PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"))));
+                PageRequest.of(page, Pagination.clamp(size), Sort.by(Sort.Direction.DESC, "createdAt"))));
     }
 
     @GetMapping("/unread/count")

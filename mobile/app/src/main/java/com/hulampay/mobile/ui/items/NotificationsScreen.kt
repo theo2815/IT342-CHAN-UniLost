@@ -43,13 +43,25 @@ private val typeConfigs = mapOf(
     "ITEM_RETURNED"         to NotifTypeConfig(Icons.Default.Verified,      Success, "Return Confirmed"),
     "HANDOVER_DISPUTED"     to NotifTypeConfig(Icons.Default.ReportProblem, Warning, "Handover Disputed"),
     "ITEM_FLAG_THRESHOLD"   to NotifTypeConfig(Icons.Default.Flag,          Warning, "Flag Threshold"),
+    "ITEM_REPORTED"         to NotifTypeConfig(Icons.Default.Flag,          Warning, "Item Reported"),
+    "ITEM_HIDDEN"           to NotifTypeConfig(Icons.Default.VisibilityOff, Warning, "Item Hidden"),
+    "ITEM_DELETED"          to NotifTypeConfig(Icons.Default.DeleteForever, ErrorRed, "Item Removed"),
+    "ITEM_RESTORED"         to NotifTypeConfig(Icons.Default.Restore,       Success, "Item Restored"),
+    "REPORT_DISMISSED"      to NotifTypeConfig(Icons.Default.TaskAlt,       Info, "Report Dismissed"),
+    "APPEAL_SUBMITTED"      to NotifTypeConfig(Icons.Default.ReportProblem, Warning, "Appeal Submitted"),
+    "APPEAL_APPROVED"       to NotifTypeConfig(Icons.Default.CheckCircle,   Success, "Appeal Approved"),
+    "APPEAL_REJECTED"       to NotifTypeConfig(Icons.Default.Cancel,        ErrorRed, "Appeal Rejected"),
 )
 
 private val claimTypes = setOf(
     "CLAIM_RECEIVED", "CLAIM_ACCEPTED", "CLAIM_REJECTED",
     "ITEM_MARKED_RETURNED", "ITEM_RETURNED", "HANDOVER_DISPUTED",
 )
-private val itemTypes = setOf("ITEM_FLAGGED", "NEW_MESSAGE", "ITEM_FLAG_THRESHOLD")
+private val itemTypes = setOf(
+    "ITEM_FLAGGED", "NEW_MESSAGE", "ITEM_FLAG_THRESHOLD",
+    "ITEM_REPORTED", "ITEM_HIDDEN", "ITEM_DELETED", "ITEM_RESTORED",
+    "REPORT_DISMISSED", "APPEAL_SUBMITTED", "APPEAL_APPROVED", "APPEAL_REJECTED",
+)
 
 private fun routeFor(notif: NotificationDto): String? {
     val link = notif.linkId?.takeIf { it.isNotBlank() } ?: return null
@@ -58,8 +70,11 @@ private fun routeFor(notif: NotificationDto): String? {
             "claim_detail_screen/$link"
         "ITEM_MARKED_RETURNED", "ITEM_RETURNED", "HANDOVER_DISPUTED", "NEW_MESSAGE" ->
             "chat_detail_screen/$link"
-        "ITEM_FLAGGED", "ITEM_FLAG_THRESHOLD" ->
+        "ITEM_FLAGGED", "ITEM_FLAG_THRESHOLD",
+        "ITEM_REPORTED", "ITEM_HIDDEN", "ITEM_RESTORED",
+        "REPORT_DISMISSED", "APPEAL_SUBMITTED", "APPEAL_APPROVED", "APPEAL_REJECTED" ->
             "item_detail_screen/$link"
+        // ITEM_DELETED has no detail page to land on — clicking just marks-as-read.
         else -> null
     }
 }

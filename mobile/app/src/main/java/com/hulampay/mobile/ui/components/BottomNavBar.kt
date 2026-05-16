@@ -57,6 +57,17 @@ private val guestItems = listOf(
     BottomNavItem.Board,
 )
 
+// Non-tab destinations that can be stacked on top of a tab (top-bar secondary
+// screens + the Post action). When switching tabs from one of these, pop them
+// first so the underlying tab's saved sub-stack doesn't include them. Compared
+// against the route's prefix (query parameters stripped) to handle PostItem's
+// "post_item_screen?itemId={itemId}" template.
+private val SECONDARY_ROUTES = setOf(
+    "chat_list_screen",
+    "notifications_screen",
+    "post_item_screen",
+)
+
 /**
  * UniLost Bottom Navigation Bar matching spec Section 8.5.
  *
@@ -75,7 +86,9 @@ fun BottomNavBar(
     isAuthenticated: Boolean = true
 ) {
     val navBackStackEntry by navController.currentBackStackEntryAsState()
-    val currentRoute = navBackStackEntry?.destination?.route
+    // Strip query parameters so that PostItem's templated route
+    // ("post_item_screen?itemId={itemId}") still matches BottomNavItem.Post.route.
+    val currentRoute = navBackStackEntry?.destination?.route?.substringBefore('?')
 
     val items = if (isAuthenticated) authenticatedItems else guestItems
 
@@ -108,18 +121,18 @@ fun BottomNavBar(
                         Box(
                             modifier = Modifier
                                 .size(56.dp)
-                                .shadow(4.dp, CircleShape)
+                                .shadow(if (isSelected) 8.dp else 4.dp, CircleShape)
                                 .clip(CircleShape)
                                 .background(MaterialTheme.colorScheme.primary)
                                 .clickable(
                                     interactionSource = remember { MutableInteractionSource() },
                                     indication = rememberRipple(bounded = true, color = MaterialTheme.colorScheme.onPrimary),
                                     onClick = {
+                                        // Post is an action, not a tab — push on top of the current
+                                        // screen so back returns to where the user tapped "+".
                                         if (currentRoute != item.route) {
                                             navController.navigate(item.route) {
-                                                popUpTo("dashboard_screen") { saveState = true }
                                                 launchSingleTop = true
-                                                restoreState = true
                                             }
                                         }
                                     }
@@ -143,6 +156,9 @@ fun BottomNavBar(
                                     indication = null,
                                     onClick = {
                                         if (currentRoute != item.route) {
+                                            while (navController.currentBackStackEntry?.destination?.route?.substringBefore('?') in SECONDARY_ROUTES) {
+                                                if (!navController.popBackStack()) break
+                                            }
                                             navController.navigate(item.route) {
                                                 popUpTo("dashboard_screen") { saveState = true }
                                                 launchSingleTop = true
@@ -154,16 +170,28 @@ fun BottomNavBar(
                             horizontalAlignment = Alignment.CenterHorizontally,
                             verticalArrangement = Arrangement.Center
                         ) {
-                            Icon(
-                                imageVector = item.icon,
-                                contentDescription = item.label,
-                                tint = if (isSelected) {
-                                    MaterialTheme.colorScheme.primary
-                                } else {
-                                    MaterialTheme.colorScheme.onSurfaceVariant
-                                },
-                                modifier = Modifier.size(24.dp)
-                            )
+                            Box(
+                                modifier = Modifier
+                                    .clip(UniLostShapes.full)
+                                    .then(
+                                        if (isSelected) Modifier.background(
+                                            MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
+                                        ) else Modifier
+                                    )
+                                    .padding(horizontal = 16.dp, vertical = 4.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = item.icon,
+                                    contentDescription = item.label,
+                                    tint = if (isSelected) {
+                                        MaterialTheme.colorScheme.primary
+                                    } else {
+                                        MaterialTheme.colorScheme.onSurfaceVariant
+                                    },
+                                    modifier = Modifier.size(24.dp)
+                                )
+                            }
                             Spacer(modifier = Modifier.height(2.dp))
                             Text(
                                 text = item.label,

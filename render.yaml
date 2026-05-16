@@ -1,0 +1,69 @@
+services:
+  # ──────────────────────────────────────────────────────────────────
+  # Backend — Spring Boot (Docker) Web Service
+  # ──────────────────────────────────────────────────────────────────
+  - type: web
+    name: unilost-backend
+    runtime: docker
+    plan: free
+    region: singapore
+    healthCheckPath: /actuator/health/liveness
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    envVars:
+      - key: PORT
+        value: 8080
+      - key: MONGODB_URI
+        sync: false
+      - key: MONGODB_DATABASE
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+      - key: JWT_EXPIRATION
+        value: 3600000
+      - key: MAIL_HOST
+        value: smtp-relay.brevo.com
+      - key: MAIL_PORT
+        value: 587
+      - key: MAIL_USERNAME
+        sync: false
+      - key: MAIL_PASSWORD
+        sync: false
+      - key: MAIL_FROM
+        sync: false
+      - key: CLOUDINARY_CLOUD_NAME
+        sync: false
+      - key: CLOUDINARY_API_KEY
+        sync: false
+      - key: CLOUDINARY_API_SECRET
+        sync: false
+      - key: CORS_ALLOWED_ORIGINS
+        sync: false
+      # Set in dashboard for FIRST deploy only. Unset after admin is seeded
+      # so subsequent restarts don't silently reset the admin password.
+      - key: ADMIN_SEED_PASSWORD
+        sync: false
+      - key: TZ
+        value: UTC
+
+  # ──────────────────────────────────────────────────────────────────
+  # Website — React (Vite) Static Site
+  # ──────────────────────────────────────────────────────────────────
+  - type: web
+    name: unilost-website
+    runtime: static
+    rootDir: website
+    buildCommand: npm ci && npm run build
+    staticPublishPath: ./dist
+    pullRequestPreviewsEnabled: false
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    envVars:
+      - key: VITE_API_URL
+        sync: false
+      - key: VITE_GOOGLE_MAPS_API_KEY
+        sync: false
+      - key: VITE_GOOGLE_MAPS_MAP_ID
+        sync: false

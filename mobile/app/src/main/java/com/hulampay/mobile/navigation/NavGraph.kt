@@ -9,8 +9,6 @@ import androidx.navigation.navArgument
 import com.hulampay.mobile.ui.auth.ForgotPasswordScreen
 import com.hulampay.mobile.ui.auth.VerifyOtpScreen
 import com.hulampay.mobile.ui.auth.ResetPasswordScreen
-import com.hulampay.mobile.ui.detail.DetailScreen
-import com.hulampay.mobile.ui.home.MainScreen
 import com.hulampay.mobile.ui.items.ItemFeedScreen
 import com.hulampay.mobile.ui.items.ItemDetailScreen
 import com.hulampay.mobile.ui.items.PostItemScreen
@@ -33,15 +31,6 @@ fun NavGraph(navController: NavHostController) {
         navController = navController, startDestination = Screen.Login.route
     ) {
 
-        composable(Screen.Main.route) {
-            MainScreen(navController = navController)
-        }
-        composable(
-            "${Screen.Detail.route}/{id}",
-            arguments = listOf(navArgument("id") { type = NavType.IntType })
-        ) {
-            DetailScreen(navController = navController, id = it.arguments?.getInt("id") ?: 0)
-        }
         composable(Screen.Login.route) {
             com.hulampay.mobile.ui.auth.LoginScreen(navController = navController)
         }
@@ -90,8 +79,18 @@ fun NavGraph(navController: NavHostController) {
                 itemId = it.arguments?.getString("itemId") ?: ""
             )
         }
-        composable(Screen.PostItem.route) {
-            PostItemScreen(navController = navController)
+        composable(
+            Screen.PostItem.route,
+            arguments = listOf(navArgument("itemId") {
+                type = NavType.StringType
+                nullable = true
+                defaultValue = null
+            }),
+        ) { entry ->
+            PostItemScreen(
+                navController = navController,
+                itemId = entry.arguments?.getString("itemId"),
+            )
         }
         composable(Screen.MyItems.route) {
             MyItemsScreen(navController = navController)
@@ -140,8 +139,32 @@ fun NavGraph(navController: NavHostController) {
                 chatId = it.arguments?.getString("chatId") ?: ""
             )
         }
-        composable(Screen.Map.route) {
-            MapScreen(navController = navController)
+        composable(
+            Screen.Map.route,
+            arguments = listOf(
+                navArgument("lat") {
+                    type = NavType.StringType
+                    nullable = true
+                    defaultValue = null
+                },
+                navArgument("lng") {
+                    type = NavType.StringType
+                    nullable = true
+                    defaultValue = null
+                },
+                navArgument("itemId") {
+                    type = NavType.StringType
+                    nullable = true
+                    defaultValue = null
+                },
+            ),
+        ) { entry ->
+            MapScreen(
+                navController = navController,
+                focusLat = entry.arguments?.getString("lat")?.toDoubleOrNull(),
+                focusLng = entry.arguments?.getString("lng")?.toDoubleOrNull(),
+                focusItemId = entry.arguments?.getString("itemId"),
+            )
         }
         composable(Screen.Leaderboard.route) {
             LeaderboardScreen(navController = navController)

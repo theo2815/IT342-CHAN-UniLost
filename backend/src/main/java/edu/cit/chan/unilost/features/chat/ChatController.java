@@ -1,5 +1,6 @@
 package edu.cit.chan.unilost.features.chat;
 
+import edu.cit.chan.unilost.shared.util.Pagination;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -31,7 +32,7 @@ public class ChatController {
             Authentication auth) {
         return ResponseEntity.ok(chatService.getMyChats(
                 auth.getName(),
-                PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "lastMessageAt"))));
+                PageRequest.of(page, Pagination.clamp(size), Sort.by(Sort.Direction.DESC, "lastMessageAt"))));
     }
 
     /** Get a specific chat room */
@@ -48,7 +49,7 @@ public class ChatController {
             @RequestParam(defaultValue = "50") int size,
             Authentication auth) {
         return ResponseEntity.ok(chatService.getMessages(chatId, auth.getName(),
-                PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"))));
+                PageRequest.of(page, Pagination.clamp(size, Pagination.MESSAGES_MAX_PAGE_SIZE), Sort.by(Sort.Direction.DESC, "createdAt"))));
     }
 
     /** Send a message in a chat */

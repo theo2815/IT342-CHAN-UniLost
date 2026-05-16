@@ -18,6 +18,14 @@ function ClaimDetail() {
     const [cancelLoading, setCancelLoading] = useState(false);
     const [error, setError] = useState('');
 
+    const handleGoBack = () => {
+        if (window.history.state && window.history.state.idx > 0) {
+            navigate(-1);
+        } else {
+            navigate('/profile?tab=claims');
+        }
+    };
+
     useEffect(() => {
         const controller = new AbortController();
         const fetchClaim = async () => {
@@ -56,7 +64,7 @@ function ClaimDetail() {
                     <div className="content-wrapper">
                         <div className="not-found-state">
                             <h2>{error || 'Claim Not Found'}</h2>
-                            <button className="back-btn" onClick={() => navigate('/my-claims')}>
+                            <button className="back-btn" onClick={handleGoBack}>
                                 <ArrowLeft size={18} /> Back to My Claims
                             </button>
                         </div>
@@ -95,7 +103,7 @@ function ClaimDetail() {
 
             <main className="main-content">
                 <div className="content-wrapper">
-                    <button className="back-link" onClick={() => navigate('/my-claims')}>
+                    <button className="back-link" onClick={handleGoBack}>
                         <ArrowLeft size={18} /> Back to My Claims
                     </button>
 

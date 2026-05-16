@@ -6,10 +6,10 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -23,6 +23,9 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.hulampay.mobile.navigation.Screen
+import com.hulampay.mobile.ui.components.AlertType
+import com.hulampay.mobile.ui.components.AuthLogoHeader
+import com.hulampay.mobile.ui.components.UniLostAlert
 import com.hulampay.mobile.ui.components.UniLostButton
 import com.hulampay.mobile.ui.components.UniLostDropdownItem
 import com.hulampay.mobile.ui.components.UniLostSelectField
@@ -46,6 +49,7 @@ fun RegisterScreen(
     var confirmPassword by remember { mutableStateOf("") }
     var selectedCampusId by remember { mutableStateOf<String?>(null) }
     var agreedToTerms   by remember { mutableStateOf(false) }
+    var apiError        by remember { mutableStateOf<String?>(null) }
 
     val registerState   by viewModel.registerState.collectAsState()
     val matchedCampuses by viewModel.matchedCampuses.collectAsState()
@@ -81,7 +85,7 @@ fun RegisterScreen(
                 }
             }
             is UiState.Error -> {
-                Toast.makeText(context, (registerState as UiState.Error).message, Toast.LENGTH_LONG).show()
+                apiError = (registerState as UiState.Error).message
             }
             else -> {}
         }
@@ -104,19 +108,7 @@ fun RegisterScreen(
             Spacer(modifier = Modifier.height(32.dp))
 
             // ── Brand header ─────────────────────────────────────────────────
-            Box(
-                modifier = Modifier
-                    .size(60.dp)
-                    .background(MaterialTheme.colorScheme.primary, shape = CircleShape),
-                contentAlignment = Alignment.Center,
-            ) {
-                Text(
-                    text = "UL",
-                    style = MaterialTheme.typography.titleLarge,
-                    color = MaterialTheme.colorScheme.onPrimary,
-                    fontWeight = FontWeight.Bold,
-                )
-            }
+            AuthLogoHeader()
             Spacer(modifier = Modifier.height(12.dp))
             Text(
                 text = "Create Account",
@@ -125,13 +117,22 @@ fun RegisterScreen(
                 fontWeight = FontWeight.Bold,
             )
             Text(
-                text = "Join the campus lost & found community",
+                text = "Join the Cebu City campus lost & found network.",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(top = 4.dp),
             )
 
             Spacer(modifier = Modifier.height(24.dp))
+
+            // Inline API error (mirrors website's <Alert type="error">)
+            apiError?.let {
+                UniLostAlert(
+                    message = it,
+                    type = AlertType.ERROR,
+                    modifier = Modifier.padding(bottom = UniLostSpacing.md)
+                )
+            }
 
             // ── Form card ─────────────────────────────────────────────────────
             Surface(
@@ -143,25 +144,24 @@ fun RegisterScreen(
             ) {
                 Column(modifier = Modifier.padding(24.dp)) {
 
-                    // ── Personal Info ─────────────────────────────────────────
-                    FormSectionHeader("Personal Information")
-                    Spacer(modifier = Modifier.height(12.dp))
-
                     UniLostTextField(
                         value = fullName,
-                        onValueChange = { fullName = it },
+                        onValueChange = {
+                            fullName = it
+                            if (apiError != null) apiError = null
+                        },
                         label = "Full Name",
                         leadingIcon = Icons.Default.Person,
                         modifier = Modifier.padding(bottom = 16.dp),
                     )
 
-                    // ── Account Details ───────────────────────────────────────
-                    FormSectionHeader("Account Details")
-                    Spacer(modifier = Modifier.height(12.dp))
-
                     UniLostTextField(
                         value = email,
-                        onValueChange = { email = it; selectedCampusId = null },
+                        onValueChange = {
+                            email = it
+                            selectedCampusId = null
+                            if (apiError != null) apiError = null
+                        },
                         label = "University Email",
                         leadingIcon = Icons.Default.Email,
                         keyboardType = KeyboardType.Email,
@@ -228,7 +228,7 @@ fun RegisterScreen(
                             Text(
                                 text = "Domain not recognized. Supported: cit.edu · usc.edu.ph · usjr.edu.ph · uc.edu.ph · up.edu.ph · swu.edu.ph · cnu.edu.ph · ctu.edu.ph",
                                 style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.error,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier.padding(start = 4.dp),
                             )
                         }
@@ -240,7 +240,10 @@ fun RegisterScreen(
                     // Password with strength indicator
                     UniLostTextField(
                         value = password,
-                        onValueChange = { password = it },
+                        onValueChange = {
+                            password = it
+                            if (apiError != null) apiError = null
+                        },
                         label = "Password",
                         leadingIcon = Icons.Default.Lock,
                         isPassword = true,
@@ -258,9 +261,12 @@ fun RegisterScreen(
 
                     UniLostTextField(
                         value = confirmPassword,
-                        onValueChange = { confirmPassword = it },
+                        onValueChange = {
+                            confirmPassword = it
+                            if (apiError != null) apiError = null
+                        },
                         label = "Confirm Password",
-                        leadingIcon = Icons.Default.Lock,
+                        leadingIcon = Icons.Default.CheckCircle,
                         isPassword = true,
                         errorMessage = confirmError,
                         modifier = Modifier.padding(top = 4.dp),
@@ -288,7 +294,7 @@ fun RegisterScreen(
                         )
                         Spacer(modifier = Modifier.width(4.dp))
                         Text(
-                            text = "I agree to the Terms of Service and Privacy Policy",
+                            text = "I agree to the Terms & Privacy Policy",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
@@ -306,7 +312,7 @@ fun RegisterScreen(
                         agreedToTerms
 
                     UniLostButton(
-                        text = "Create Account",
+                        text = if (registerState is UiState.Loading) "Creating Account..." else "Join UniLost",
                         onClick = {
                             viewModel.register(
                                 fullName         = fullName,
@@ -319,6 +325,9 @@ fun RegisterScreen(
                         },
                         isLoading = registerState is UiState.Loading,
                         enabled   = canSubmit,
+                        trailingIcon = if (registerState !is UiState.Loading) {
+                            Icons.AutoMirrored.Filled.ArrowForward
+                        } else null,
                     )
 
                     // Sign in link
@@ -330,7 +339,7 @@ fun RegisterScreen(
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         Text(
-                            text = "Already have an account? ",
+                            text = "Already a member? ",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
@@ -383,17 +392,3 @@ private fun PasswordStrengthBar(
     }
 }
 
-// ── Section header ────────────────────────────────────────────────────────────
-@Composable
-private fun FormSectionHeader(label: String) {
-    Text(
-        text = label.uppercase(),
-        style = MaterialTheme.typography.labelSmall,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
-        fontWeight = FontWeight.SemiBold,
-    )
-    Divider(
-        modifier = Modifier.padding(top = 6.dp),
-        color = MaterialTheme.colorScheme.outline,
-    )
-}

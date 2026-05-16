@@ -2,13 +2,16 @@ package com.hulampay.mobile.ui.auth
 
 import android.widget.Toast
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -16,12 +19,18 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.hulampay.mobile.navigation.Screen
+import com.hulampay.mobile.ui.components.AlertType
+import com.hulampay.mobile.ui.components.AuthLogoHeader
+import com.hulampay.mobile.ui.components.UniLostAlert
 import com.hulampay.mobile.ui.components.UniLostButton
 import com.hulampay.mobile.ui.components.UniLostTextField
 import com.hulampay.mobile.ui.theme.Success
@@ -37,6 +46,7 @@ fun ResetPasswordScreen(
 ) {
     var newPassword     by remember { mutableStateOf("") }
     var confirmPassword by remember { mutableStateOf("") }
+    var apiError        by remember { mutableStateOf<String?>(null) }
 
     val resetState by viewModel.resetState.collectAsState()
     val context    = LocalContext.current
@@ -62,7 +72,7 @@ fun ResetPasswordScreen(
                 }
             }
             is UiState.Error -> {
-                Toast.makeText(context, (resetState as UiState.Error).message, Toast.LENGTH_LONG).show()
+                apiError = (resetState as UiState.Error).message
             }
             else -> {}
         }
@@ -82,25 +92,14 @@ fun ResetPasswordScreen(
                 .padding(horizontal = 24.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(48.dp))
 
-            // ── Back button ───────────────────────────────────────────────────
-            Row(modifier = Modifier.fillMaxWidth()) {
-                IconButton(
-                    onClick = { navController.navigateUp() },
-                    modifier = Modifier.size(40.dp),
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.ArrowBack,
-                        contentDescription = "Back",
-                        tint = MaterialTheme.colorScheme.onBackground,
-                    )
-                }
-            }
+            // ── Brand header ──────────────────────────────────────────────────
+            AuthLogoHeader()
 
-            Spacer(modifier = Modifier.height(32.dp))
+            Spacer(modifier = Modifier.height(24.dp))
 
-            // ── Lock icon ─────────────────────────────────────────────────────
+            // ── Success-feel accent icon ──────────────────────────────────────
             Box(
                 modifier = Modifier
                     .size(80.dp)
@@ -108,7 +107,7 @@ fun ResetPasswordScreen(
                 contentAlignment = Alignment.Center,
             ) {
                 Icon(
-                    imageVector = Icons.Default.Lock,
+                    imageVector = Icons.Default.CheckCircle,
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.size(36.dp),
@@ -125,7 +124,12 @@ fun ResetPasswordScreen(
                 textAlign = TextAlign.Center,
             )
             Text(
-                text = "Your new password must be at least 8 characters with uppercase, number, and special character.",
+                text = buildAnnotatedString {
+                    append("Create a new password for ")
+                    withStyle(SpanStyle(fontWeight = FontWeight.SemiBold)) {
+                        append(email)
+                    }
+                },
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center,
@@ -133,6 +137,15 @@ fun ResetPasswordScreen(
             )
 
             Spacer(modifier = Modifier.height(32.dp))
+
+            // Inline API error (mirrors website's <Alert type="error">)
+            apiError?.let {
+                UniLostAlert(
+                    message = it,
+                    type = AlertType.ERROR,
+                    modifier = Modifier.padding(bottom = 16.dp)
+                )
+            }
 
             // ── Form card ─────────────────────────────────────────────────────
             Surface(
@@ -146,7 +159,10 @@ fun ResetPasswordScreen(
 
                     UniLostTextField(
                         value = newPassword,
-                        onValueChange = { newPassword = it },
+                        onValueChange = {
+                            newPassword = it
+                            if (apiError != null) apiError = null
+                        },
                         label = "New Password",
                         leadingIcon = Icons.Default.Lock,
                         isPassword = true,
@@ -165,7 +181,10 @@ fun ResetPasswordScreen(
 
                     UniLostTextField(
                         value = confirmPassword,
-                        onValueChange = { confirmPassword = it },
+                        onValueChange = {
+                            confirmPassword = it
+                            if (apiError != null) apiError = null
+                        },
                         label = "Confirm New Password",
                         leadingIcon = Icons.Default.Lock,
                         isPassword = true,
@@ -180,7 +199,7 @@ fun ResetPasswordScreen(
                         confirmPassword.isNotEmpty()
 
                     UniLostButton(
-                        text = "Reset Password",
+                        text = if (resetState is UiState.Loading) "Resetting..." else "Reset Password",
                         onClick = {
                             viewModel.resetPassword(
                                 email           = email,
@@ -191,8 +210,39 @@ fun ResetPasswordScreen(
                         },
                         isLoading = resetState is UiState.Loading,
                         enabled   = canSubmit,
+                        trailingIcon = if (resetState !is UiState.Loading) {
+                            Icons.AutoMirrored.Filled.ArrowForward
+                        } else null,
                     )
                 }
+            }
+
+            // ── Footer: Back to Sign In ───────────────────────────────────────
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 16.dp)
+                    .clickable {
+                        navController.navigate(Screen.Login.route) {
+                            popUpTo(0) { inclusive = true }
+                        }
+                    },
+                horizontalArrangement = Arrangement.Center,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.secondary,
+                    modifier = Modifier.size(14.dp),
+                )
+                Spacer(modifier = Modifier.size(4.dp))
+                Text(
+                    text = "Back to Sign In",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.secondary,
+                    fontWeight = FontWeight.SemiBold,
+                )
             }
 
             Spacer(modifier = Modifier.height(40.dp))

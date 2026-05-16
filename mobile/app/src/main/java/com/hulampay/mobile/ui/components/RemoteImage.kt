@@ -12,6 +12,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.blur
+import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.Dp
@@ -23,7 +24,8 @@ import coil.request.ImageRequest
  * Loads [url] into a Box matching the existing UniLost item-image placeholder convention
  * (surfaceVariant background, centered Image icon when blank/loading). Falls back to the
  * placeholder when [url] is null/blank or fails. Pass [blurred] to apply the FOUND-blur
- * convention used elsewhere in the app.
+ * convention used elsewhere in the app. Pass [colorFilter] to apply a tint/grayscale
+ * transformation (used on resolved items to mirror the website's grayscale treatment).
  *
  * Implementation notes:
  * - Uses [AsyncImage] (NOT SubcomposeAsyncImage) so the composable is safe inside parents
@@ -40,6 +42,7 @@ fun RemoteImage(
     modifier: Modifier = Modifier,
     blurred: Boolean = false,
     placeholderIconSize: Dp = 28.dp,
+    colorFilter: ColorFilter? = null,
 ) {
     val blurModifier = if (blurred) Modifier.blur(20.dp) else Modifier
 
@@ -66,6 +69,7 @@ fun RemoteImage(
                     .build(),
                 contentDescription = contentDescription,
                 contentScale = ContentScale.Crop,
+                colorFilter = colorFilter,
                 modifier = Modifier
                     .fillMaxSize()
                     .then(blurModifier)

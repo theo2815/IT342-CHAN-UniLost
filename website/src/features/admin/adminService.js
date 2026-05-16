@@ -41,21 +41,45 @@ const adminService = {
     }
   },
 
-  async updateItemStatus(itemId, status) {
+  async updateItemStatus(itemId, status, reason) {
     try {
-      const response = await api.put(`/admin/items/${itemId}/status`, { status });
+      const body = { status };
+      if (reason && reason.trim()) body.reason = reason.trim();
+      const response = await api.put(`/admin/items/${itemId}/status`, body);
       return { success: true, data: response.data };
     } catch (err) {
       return { success: false, error: err.response?.data?.error || err.response?.data || 'Failed to update item status' };
     }
   },
 
-  async forceDeleteItem(itemId) {
+  async forceDeleteItem(itemId, reason) {
     try {
-      await api.delete(`/admin/items/${itemId}`);
+      const body = {};
+      if (reason && reason.trim()) body.reason = reason.trim();
+      await api.delete(`/admin/items/${itemId}`, { data: body });
       return { success: true };
     } catch (err) {
       return { success: false, error: err.response?.data?.error || err.response?.data || 'Failed to delete item' };
+    }
+  },
+
+  async dismissItemFlags(itemId) {
+    try {
+      const response = await api.put(`/admin/items/${itemId}/dismiss-flags`);
+      return { success: true, data: response.data };
+    } catch (err) {
+      return { success: false, error: err.response?.data?.error || err.response?.data || 'Failed to dismiss flags' };
+    }
+  },
+
+  async reviewAppeal(itemId, decision, note) {
+    try {
+      const body = { decision };
+      if (note && note.trim()) body.note = note.trim();
+      const response = await api.put(`/admin/items/${itemId}/appeal`, body);
+      return { success: true, data: response.data };
+    } catch (err) {
+      return { success: false, error: err.response?.data?.error || err.response?.data || 'Failed to review appeal' };
     }
   },
 
@@ -198,10 +222,12 @@ const adminService = {
   },
 
   // ── Flagging (user-facing) ─────────────────────────────
-  async flagItem(itemId, reason) {
+  async flagItem(itemId, reason, description) {
     try {
-      await api.post(`/items/${itemId}/flag`, { reason });
-      return { success: true };
+      const body = { reason };
+      if (description && description.trim()) body.description = description.trim();
+      const response = await api.post(`/items/${itemId}/flag`, body);
+      return { success: true, data: response.data };
     } catch (err) {
       return { success: false, error: err.response?.data?.error || err.response?.data || 'Failed to flag item' };
     }

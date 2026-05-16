@@ -1,6 +1,7 @@
 package com.hulampay.mobile.di
 
 import com.google.gson.Gson
+import com.hulampay.mobile.BuildConfig
 import com.hulampay.mobile.data.api.AppGson
 import com.hulampay.mobile.data.api.AuthApiService
 import com.hulampay.mobile.data.api.AuthInterceptor
@@ -24,13 +25,15 @@ import javax.inject.Singleton
 @InstallIn(SingletonComponent::class)
 object NetworkModule {
 
-    private const val BASE_URL = "http://10.0.2.2:8080/api/" // Standard emulator localhost alias
-
     @Provides
     @Singleton
     fun provideLoggingInterceptor(): HttpLoggingInterceptor {
         return HttpLoggingInterceptor().apply {
-            level = HttpLoggingInterceptor.Level.BODY
+            level = if (BuildConfig.DEBUG) {
+                HttpLoggingInterceptor.Level.BODY
+            } else {
+                HttpLoggingInterceptor.Level.NONE
+            }
         }
     }
 
@@ -54,7 +57,7 @@ object NetworkModule {
     @Singleton
     fun provideRetrofit(okHttpClient: OkHttpClient, gson: Gson): Retrofit {
         return Retrofit.Builder()
-            .baseUrl(BASE_URL)
+            .baseUrl(BuildConfig.BASE_URL)
             .client(okHttpClient)
             .addConverterFactory(GsonConverterFactory.create(gson))
             .build()
@@ -100,11 +103,5 @@ object NetworkModule {
     @Singleton
     fun provideCampusApiService(retrofit: Retrofit): CampusApiService {
         return retrofit.create(CampusApiService::class.java)
-    }
-
-    @Provides
-    @Singleton
-    fun provideAppApi(retrofit: Retrofit): com.hulampay.mobile.data.remote.AppApi {
-        return retrofit.create(com.hulampay.mobile.data.remote.AppApi::class.java)
     }
 }

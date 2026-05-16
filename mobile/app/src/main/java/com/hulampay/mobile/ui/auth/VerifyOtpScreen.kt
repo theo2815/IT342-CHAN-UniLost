@@ -1,6 +1,5 @@
 package com.hulampay.mobile.ui.auth
 
-import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -12,22 +11,25 @@ import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.VerifiedUser
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
-import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.hulampay.mobile.navigation.Screen
+import com.hulampay.mobile.ui.components.AuthLogoHeader
 import com.hulampay.mobile.ui.components.UniLostButton
 import com.hulampay.mobile.utils.UiState
 
@@ -41,24 +43,17 @@ fun VerifyOtpScreen(
 
     val verifyState   by viewModel.verifyState.collectAsState()
     val countdown     by viewModel.resendCountdown.collectAsState()
-    val context       = LocalContext.current
 
     val isLoading  = verifyState is UiState.Loading
     val errorMsg   = (verifyState as? UiState.Error)?.message
 
     LaunchedEffect(verifyState) {
-        when (verifyState) {
-            is UiState.Success -> {
-                val resetToken = (verifyState as UiState.Success<String>).data
-                viewModel.resetState()
-                navController.navigate(Screen.ResetPassword.createRoute(email, resetToken)) {
-                    popUpTo(Screen.VerifyOtp.route) { inclusive = true }
-                }
+        if (verifyState is UiState.Success) {
+            val resetToken = (verifyState as UiState.Success<String>).data
+            viewModel.resetState()
+            navController.navigate(Screen.ResetPassword.createRoute(email, resetToken)) {
+                popUpTo(Screen.VerifyOtp.route) { inclusive = true }
             }
-            is UiState.Error -> {
-                Toast.makeText(context, (verifyState as UiState.Error).message, Toast.LENGTH_LONG).show()
-            }
-            else -> {}
         }
     }
 
@@ -76,25 +71,14 @@ fun VerifyOtpScreen(
                 .padding(horizontal = 24.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(48.dp))
 
-            // ── Back button ───────────────────────────────────────────────────
-            Row(modifier = Modifier.fillMaxWidth()) {
-                IconButton(
-                    onClick = { navController.navigateUp() },
-                    modifier = Modifier.size(40.dp),
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.ArrowBack,
-                        contentDescription = "Back",
-                        tint = MaterialTheme.colorScheme.onBackground,
-                    )
-                }
-            }
+            // ── Brand header ──────────────────────────────────────────────────
+            AuthLogoHeader()
 
-            Spacer(modifier = Modifier.height(32.dp))
+            Spacer(modifier = Modifier.height(24.dp))
 
-            // ── Lock icon ─────────────────────────────────────────────────────
+            // ── Verified-shield accent icon ───────────────────────────────────
             Box(
                 modifier = Modifier
                     .size(80.dp)
@@ -102,7 +86,7 @@ fun VerifyOtpScreen(
                 contentAlignment = Alignment.Center,
             ) {
                 Icon(
-                    imageVector = Icons.Default.Lock,
+                    imageVector = Icons.Default.VerifiedUser,
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.size(36.dp),
@@ -112,7 +96,7 @@ fun VerifyOtpScreen(
             Spacer(modifier = Modifier.height(24.dp))
 
             Text(
-                text = "Verify Your Email",
+                text = "Enter Verification Code",
                 style = MaterialTheme.typography.headlineMedium,
                 color = MaterialTheme.colorScheme.onBackground,
                 fontWeight = FontWeight.Bold,
@@ -122,16 +106,14 @@ fun VerifyOtpScreen(
             Spacer(modifier = Modifier.height(8.dp))
 
             Text(
-                text = "Enter the 6-digit code sent to",
+                text = buildAnnotatedString {
+                    append("We sent a 6-digit code to ")
+                    withStyle(SpanStyle(fontWeight = FontWeight.SemiBold)) {
+                        append(email)
+                    }
+                },
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                textAlign = TextAlign.Center,
-            )
-            Text(
-                text = email,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onBackground,
-                fontWeight = FontWeight.SemiBold,
                 textAlign = TextAlign.Center,
             )
 
@@ -187,7 +169,7 @@ fun VerifyOtpScreen(
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         Text(
-                            text = "Didn't receive it? ",
+                            text = "Didn't receive the code? ",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
@@ -208,6 +190,30 @@ fun VerifyOtpScreen(
                         }
                     }
                 }
+            }
+
+            // ── Footer: Change email ──────────────────────────────────────────
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 16.dp)
+                    .clickable { navController.navigateUp() },
+                horizontalArrangement = Arrangement.Center,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.secondary,
+                    modifier = Modifier.size(14.dp),
+                )
+                Spacer(modifier = Modifier.size(4.dp))
+                Text(
+                    text = "Change email",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.secondary,
+                    fontWeight = FontWeight.SemiBold,
+                )
             }
 
             Spacer(modifier = Modifier.height(40.dp))

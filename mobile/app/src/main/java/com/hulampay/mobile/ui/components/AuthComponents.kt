@@ -1,13 +1,23 @@
 package com.hulampay.mobile.ui.components
 
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
+import com.hulampay.mobile.R
 import com.hulampay.mobile.ui.theme.*
 
 /**
@@ -100,5 +110,91 @@ fun PrimaryButton(
                 style = MaterialTheme.typography.labelLarge
             )
         }
+    }
+}
+
+/**
+ * Shared logo header for auth screens — mirrors the website's `.logo`
+ * composition (mark + "UniLost" wordmark).
+ */
+@Composable
+fun AuthLogoHeader(modifier: Modifier = Modifier) {
+    Row(
+        modifier = modifier,
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(UniLostSpacing.sm)
+    ) {
+        Image(
+            painter = painterResource(id = R.drawable.ic_unilost_logo),
+            contentDescription = null,
+            modifier = Modifier.size(28.dp)
+        )
+        Text(
+            text = "UniLost",
+            style = MaterialTheme.typography.headlineLarge,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onSurface
+        )
+    }
+}
+
+enum class AlertType { ERROR, SUCCESS, WARNING, INFO }
+
+/**
+ * Inline alert banner — mirrors the website's `<Alert>` component used
+ * above auth forms for API errors and form-level messages.
+ */
+@Composable
+fun UniLostAlert(
+    message: String,
+    modifier: Modifier = Modifier,
+    type: AlertType = AlertType.ERROR,
+    icon: ImageVector? = null
+) {
+    val bgColor: Color
+    val fgColor: Color
+    val defaultIcon: ImageVector
+    when (type) {
+        AlertType.ERROR -> {
+            bgColor = ErrorBg
+            fgColor = ErrorRed
+            defaultIcon = Icons.Default.Warning
+        }
+        AlertType.SUCCESS -> {
+            bgColor = SuccessBg
+            fgColor = Success
+            defaultIcon = Icons.Default.CheckCircle
+        }
+        AlertType.WARNING -> {
+            bgColor = WarningBg
+            fgColor = Warning
+            defaultIcon = Icons.Default.Warning
+        }
+        AlertType.INFO -> {
+            bgColor = InfoBg
+            fgColor = Info
+            defaultIcon = Icons.Default.Info
+        }
+    }
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .background(color = bgColor, shape = UniLostShapes.md)
+            .padding(UniLostSpacing.md),
+        verticalAlignment = Alignment.Top,
+        horizontalArrangement = Arrangement.spacedBy(UniLostSpacing.sm)
+    ) {
+        Icon(
+            imageVector = icon ?: defaultIcon,
+            contentDescription = null,
+            tint = fgColor,
+            modifier = Modifier.size(20.dp)
+        )
+        Text(
+            text = message,
+            style = MaterialTheme.typography.bodyMedium,
+            color = fgColor,
+            modifier = Modifier.weight(1f)
+        )
     }
 }

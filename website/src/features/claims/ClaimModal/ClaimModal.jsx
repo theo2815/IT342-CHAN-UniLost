@@ -70,7 +70,7 @@ function ClaimModal({ item, onClose }) {
                   className="btn-primary"
                   onClick={() => {
                     onClose();
-                    navigate("/my-claims");
+                    navigate("/profile?tab=claims");
                   }}
                 >
                   View My Claims

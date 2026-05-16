@@ -101,7 +101,7 @@ function Header() {
     <header className="main-header glass">
       <div className="header-left">
         <Link to={user ? "/dashboard" : "/"} className="logo">
-          <Search className="logo-icon" size={28} />
+          <img src="/unilost-logo.png" alt="UniLost" className="logo-icon" />
           <span className="logo-text">UniLost</span>
         </Link>
       </div>

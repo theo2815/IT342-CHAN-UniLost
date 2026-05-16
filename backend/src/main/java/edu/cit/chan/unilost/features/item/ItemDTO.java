@@ -38,4 +38,25 @@ public class ItemDTO {
     // Flagging info (admin views)
     private int flagCount;
     private List<String> flagReasons;
+    private List<FlagDetail> flagDetails;
+
+    // Admin moderation action (visible to owner + admin)
+    private String adminActionType;
+    private String adminActionReason;
+    private LocalDateTime adminActionAt;
+
+    // Owner appeal lifecycle
+    private String appealStatus;
+    private String appealText;
+    private LocalDateTime appealedAt;
+    private LocalDateTime appealResolvedAt;
+    private String appealAdminNote;
+
+    // Viewer-specific report state (only set on single-item detail fetches with auth)
+    private Boolean viewerHasFlagged;
+    private FlagDetail viewerFlagDetail;
+
+    // True only on the owner/admin view of a soft-deleted item — lets the UI
+    // explain that the item is gone instead of rendering a blank detail page.
+    private Boolean isDeleted;
 }

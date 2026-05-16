@@ -1,6 +1,7 @@
 package edu.cit.chan.unilost.features.item;
 
 import edu.cit.chan.unilost.features.admin.AdminService;
+import edu.cit.chan.unilost.shared.exception.ResourceNotFoundException;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -111,14 +112,27 @@ public class ItemController {
     }
 
     @PostMapping("/{id}/flag")
-    public ResponseEntity<Void> flagItem(
+    public ResponseEntity<ItemDTO> flagItem(
             @PathVariable String id,
             @RequestBody Map<String, String> body,
             Authentication authentication) {
         String email = (String) authentication.getPrincipal();
         String reason = body.get("reason");
-        adminService.flagItem(id, reason, email);
-        return ResponseEntity.ok().build();
+        String description = body.get("description");
+        adminService.flagItem(id, reason, description, email);
+        // Return the post-flag DTO with viewerHasFlagged populated so the UI flips state in one round-trip.
+        return ResponseEntity.ok(itemService.getItemById(id, email)
+                .orElseThrow(() -> new ResourceNotFoundException("Item not found")));
+    }
+
+    @PostMapping("/{id}/appeal")
+    public ResponseEntity<ItemDTO> submitAppeal(
+            @PathVariable String id,
+            @RequestBody Map<String, String> body,
+            Authentication authentication) {
+        String email = (String) authentication.getPrincipal();
+        String text = body.get("text");
+        return ResponseEntity.ok(adminService.submitAppeal(id, email, text));
     }
 
     /**

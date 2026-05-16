@@ -14,6 +14,7 @@ import AdminDashboard from './features/admin/AdminDashboard';
 import AdminItems from './features/admin/AdminItems';
 import AdminUsers from './features/admin/AdminUsers';
 import AdminClaims from './features/admin/AdminClaims';
+import AdminReports from './features/admin/AdminReports';
 import CampusManagement from './features/admin/CampusManagement';
 import AdminAuditLogs from './features/admin/AdminAuditLogs';
 import AdminAnalytics from './features/admin/AdminAnalytics';
@@ -27,6 +28,7 @@ import ResetPassword from './features/auth/ResetPassword/ResetPassword';
 import MapView from './features/items/MapView/MapView';
 import Leaderboard from './features/user/Leaderboard/Leaderboard';
 import Messages from './features/messaging/Messages/Messages';
+import NotFound from './features/notfound/NotFound/NotFound';
 import { APIProvider } from '@vis.gl/react-google-maps';
 import { ToastProvider } from './shared/components/ui/Toast';
 import { useGlobalToast } from './shared/hooks/useToast';
@@ -83,12 +85,16 @@ function App() {
               <Route path="/admin/items" element={<AdminItems />} />
               <Route path="/admin/users" element={<AdminUsers />} />
               <Route path="/admin/claims" element={<AdminClaims />} />
+              <Route path="/admin/reports" element={<AdminReports />} />
               <Route path="/admin/campuses" element={<CampusManagement />} />
               <Route path="/admin/audit-logs" element={<AdminAuditLogs />} />
               <Route path="/admin/analytics" element={<AdminAnalytics />} />
               <Route path="/admin/health" element={<AdminHealth />} />
             </Route>
           </Route>
+
+          {/* Catch-all 404 — must be last */}
+          <Route path="*" element={<NotFound />} />
         </Routes>
       </Router>
       </ToastProvider>

@@ -76,7 +76,8 @@ fun ChatListScreen(
                 },
                 onNotificationsClick = { navController.navigate(Screen.Notifications.route) },
                 notificationCount = unreadNotifications.toInt(),
-                chatCount = unreadChats.toInt()
+                chatCount = unreadChats.toInt(),
+                chatActive = true
             )
         },
         bottomBar = { BottomNavBar(navController = navController) }

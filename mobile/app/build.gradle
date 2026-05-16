@@ -19,7 +19,14 @@ if (localPropertiesFile.exists()) {
         localProperties.load(reader)
     }
 }
-def mapsApiKey = localProperties.getProperty('MAPS_API_KEY', '')
+def mapsApiKeyDebug   = localProperties.getProperty('MAPS_API_KEY', '')
+def mapsApiKeyRelease = localProperties.getProperty('MAPS_API_KEY_RELEASE', mapsApiKeyDebug)
+
+// Network endpoints. Debug = Android-emulator loopback; release reads from local.properties
+// (gitignored). The CHANGEME defaults exist only so a release build doesn't fail to assemble
+// before the host is provisioned — it just won't be able to reach the backend.
+def prodApiUrl = localProperties.getProperty('PROD_API_URL', 'https://CHANGEME.onrender.com/api/')
+def prodWsUrl  = localProperties.getProperty('PROD_WS_URL',  'wss://CHANGEME.onrender.com/ws/websocket')
 
 android {
     namespace 'com.hulampay.mobile'
@@ -32,18 +39,41 @@ android {
         versionCode 1
         versionName "1.0"
 
-        manifestPlaceholders = [MAPS_API_KEY: mapsApiKey]
-
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
             useSupportLibrary true
         }
     }
 
-    buildTypes {
+    signingConfigs {
         release {
-            minifyEnabled false
-            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            def storeFilePath = localProperties.getProperty('RELEASE_STORE_FILE')
+            if (storeFilePath != null && !storeFilePath.isEmpty()) {
+                storeFile     file(storeFilePath)
+                storePassword localProperties.getProperty('RELEASE_STORE_PASSWORD')
+                keyAlias      localProperties.getProperty('RELEASE_KEY_ALIAS')
+                keyPassword   localProperties.getProperty('RELEASE_KEY_PASSWORD')
+            }
+        }
+    }
+
+    buildTypes {
+        debug {
+            buildConfigField "String", "BASE_URL", "\"http://10.0.2.2:8080/api/\""
+            buildConfigField "String", "WS_URL",   "\"ws://10.0.2.2:8080/ws/websocket\""
+            manifestPlaceholders = [MAPS_API_KEY: mapsApiKeyDebug]
+        }
+        release {
+            buildConfigField "String", "BASE_URL", "\"${prodApiUrl}\""
+            buildConfigField "String", "WS_URL",   "\"${prodWsUrl}\""
+            manifestPlaceholders = [MAPS_API_KEY: mapsApiKeyRelease]
+            minifyEnabled true
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            // signingConfig only applied if local.properties has RELEASE_STORE_FILE set;
+            // otherwise the release build will be unsigned (assembleRelease still works for verification).
+            if (localProperties.getProperty('RELEASE_STORE_FILE') != null) {
+                signingConfig signingConfigs.release
+            }
         }
     }
     compileOptions {
@@ -55,6 +85,7 @@ android {
     }
     buildFeatures {
         compose true
+        buildConfig true
     }
     composeOptions {
         kotlinCompilerExtensionVersion '1.5.10'
@@ -111,11 +142,6 @@ dependencies {
     implementation(libs.hilt)
     ksp(libs.hilt.compiler)
 
-    // Room
-    implementation(libs.room)
-    implementation(libs.room.runtime)
-    ksp(libs.room.compiler)
-
     // Coroutines
     implementation(libs.kotlinx.coroutines.core)
     implementation(libs.kotlinx.coroutines.android)
@@ -137,6 +163,7 @@ dependencies {
     // Google Maps (Phase 8 — Campus Map)
     implementation(libs.play.services.maps)
     implementation(libs.maps.compose)
+    implementation(libs.play.services.location)
 
     // Coil — image loading for Compose
     implementation(libs.coil.compose)
@@ -156,10 +183,6 @@ dependencies {
 
     // Material Icons Extended (Visibility, LocationOn, Email, Badge, etc.)
     implementation("androidx.compose.material:material-icons-extended")
-
-    // Glide
-    implementation(libs.glide)
-    ksp(libs.ksp)
 
     // Firebase
     // implementation(libs.firebase)

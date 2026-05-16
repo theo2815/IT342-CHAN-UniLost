@@ -86,8 +86,45 @@ public class ItemService {
     }
 
     public Optional<ItemDTO> getItemById(String id, String currentEmail) {
-        return itemRepository.findByIdAndIsDeletedFalse(id)
-                .map(item -> {
+        // Soft-deleted items: visible only to the owner and admins, so they can see the
+        // admin's "Removed" notice instead of a blank page when arriving via notification.
+        Optional<ItemEntity> activeItem = itemRepository.findByIdAndIsDeletedFalse(id);
+        if (activeItem.isEmpty()) {
+            return itemRepository.findById(id)
+                    .filter(ItemEntity::isDeleted)
+                    .flatMap(deleted -> {
+                        Optional<UserEntity> currentUser = currentEmail != null
+                                ? userRepository.findByEmail(currentEmail) : Optional.empty();
+                        boolean isOwner = currentUser.isPresent()
+                                && currentUser.get().getId().equals(deleted.getReporterId());
+                        boolean isAdmin = currentUser.isPresent()
+                                && currentUser.get().getRole() == Role.ADMIN;
+                        if (!isOwner && !isAdmin) {
+                            return Optional.<ItemDTO>empty();
+                        }
+                        UserEntity reporter = deleted.getReporterId() != null
+                                ? userRepository.findById(deleted.getReporterId()).orElse(null) : null;
+                        CampusEntity campus = deleted.getCampusId() != null
+                                ? campusRepository.findById(deleted.getCampusId()).orElse(null) : null;
+                        ItemDTO dto = convertToDTO(deleted, reporter, campus);
+                        dto.setIsDeleted(true);
+                        return Optional.of(dto);
+                    });
+        }
+        return activeItem
+                .flatMap(item -> {
+                    Optional<UserEntity> currentUser = currentEmail != null
+                            ? userRepository.findByEmail(currentEmail) : Optional.empty();
+                    boolean isOwner = currentUser.isPresent()
+                            && currentUser.get().getId().equals(item.getReporterId());
+                    boolean isAdmin = currentUser.isPresent()
+                            && currentUser.get().getRole() == Role.ADMIN;
+
+                    // Hidden items are only visible to the owner and admins. Others get a 404.
+                    if (item.getStatus() == ItemStatus.HIDDEN && !isOwner && !isAdmin) {
+                        return Optional.<ItemDTO>empty();
+                    }
+
                     // Pre-load entities to avoid N+1 fallback queries in convertToDTO
                     UserEntity reporter = item.getReporterId() != null
                             ? userRepository.findById(item.getReporterId()).orElse(null) : null;
@@ -95,20 +132,26 @@ public class ItemService {
                             ? campusRepository.findById(item.getCampusId()).orElse(null) : null;
 
                     ItemDTO dto = convertToDTO(item, reporter, campus);
-                    // Hide secretDetailQuestion from non-owners
-                    if (currentEmail != null) {
-                        Optional<UserEntity> currentUser = userRepository.findByEmail(currentEmail);
-                        boolean isOwner = currentUser.isPresent()
-                                && currentUser.get().getId().equals(item.getReporterId());
-                        boolean isAdmin = currentUser.isPresent()
-                                && currentUser.get().getRole() == Role.ADMIN;
-                        if (!isOwner && !isAdmin) {
-                            dto.setSecretDetailQuestion(null);
-                        }
-                    } else {
+                    if (!isOwner && !isAdmin) {
                         dto.setSecretDetailQuestion(null);
                     }
-                    return dto;
+
+                    // Viewer's own flag state — lets the UI swap the Report button for a
+                    // "View My Report" button without exposing other reporters' free text.
+                    if (currentUser.isPresent() && !isOwner) {
+                        String uid = currentUser.get().getId();
+                        boolean flagged = item.getFlaggedBy() != null
+                                && item.getFlaggedBy().contains(uid);
+                        dto.setViewerHasFlagged(flagged);
+                        if (flagged && item.getFlagDetails() != null) {
+                            item.getFlagDetails().stream()
+                                    .filter(fd -> uid.equals(fd.getReporterId()))
+                                    .findFirst()
+                                    .ifPresent(dto::setViewerFlagDetail);
+                        }
+                    }
+
+                    return Optional.of(dto);
                 });
     }
 
@@ -332,6 +375,16 @@ public class ItemService {
         dto.setCampusId(item.getCampusId());
         dto.setFlagCount(item.getFlagCount());
         dto.setFlagReasons(item.getFlagReasons());
+
+        // Admin action + appeal — surfaced to owner so the owner banner can render
+        dto.setAdminActionType(item.getAdminActionType());
+        dto.setAdminActionReason(item.getAdminActionReason());
+        dto.setAdminActionAt(item.getAdminActionAt());
+        dto.setAppealStatus(item.getAppealStatus());
+        dto.setAppealText(item.getAppealText());
+        dto.setAppealedAt(item.getAppealedAt());
+        dto.setAppealResolvedAt(item.getAppealResolvedAt());
+        dto.setAppealAdminNote(item.getAppealAdminNote());
 
         // Resolve reporter — use provided entity or fetch if needed
         UserEntity resolvedReporter = reporter;

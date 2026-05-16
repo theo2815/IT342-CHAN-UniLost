@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, MapPin, Calendar, Clock, Tag, Share2, Flag, Hand, Search, X, CheckCircle2, User, MessageSquare, Edit3, Trash2, ExternalLink, ChevronLeft, ChevronRight, Shield, EyeOff, RotateCcw, AlertTriangle } from 'lucide-react';
+import { ArrowLeft, MapPin, Calendar, Clock, Tag, Share2, Flag, Hand, Search, X, CheckCircle2, User, MessageSquare, Edit3, Trash2, ExternalLink, ChevronLeft, ChevronRight, Shield, EyeOff, RotateCcw, AlertTriangle, MessageCircle } from 'lucide-react';
 import Header from '../../../shared/layout/Header/Header';
 import StatusBadge from '../../../shared/components/StatusBadge/StatusBadge';
 import ItemCard from '../ItemCard/ItemCard';
@@ -27,8 +27,10 @@ function ItemDetail() {
     const [showClaimModal, setShowClaimModal] = useState(false);
     const [showFlagModal, setShowFlagModal] = useState(false);
     const [flagReason, setFlagReason] = useState('');
+    const [flagDescription, setFlagDescription] = useState('');
     const [flagLoading, setFlagLoading] = useState(false);
     const [flagMessage, setFlagMessage] = useState('');
+    const [showMyReportModal, setShowMyReportModal] = useState(false);
     const [activeImageIndex, setActiveImageIndex] = useState(0);
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [deleteLoading, setDeleteLoading] = useState(false);
@@ -38,6 +40,17 @@ function ItemDetail() {
     const [adminActionLoading, setAdminActionLoading] = useState(false);
     const [showAdminDeleteModal, setShowAdminDeleteModal] = useState(false);
     const [adminDeleteReason, setAdminDeleteReason] = useState('');
+    const [showAdminHideModal, setShowAdminHideModal] = useState(false);
+    const [adminHideReason, setAdminHideReason] = useState('');
+
+    // Appeal state (owner)
+    const [showAppealModal, setShowAppealModal] = useState(false);
+    const [appealText, setAppealText] = useState('');
+    const [appealLoading, setAppealLoading] = useState(false);
+    const [appealError, setAppealError] = useState('');
+
+    // Auto-open modal when the item was soft-deleted (admin or owner).
+    const [showRemovedModal, setShowRemovedModal] = useState(false);
 
     useEffect(() => {
         const fetchItem = async () => {
@@ -47,6 +60,12 @@ function ItemDetail() {
             const result = await itemService.getItemById(id);
             if (result.success) {
                 setItem(result.data);
+
+                if (result.data?.isDeleted) {
+                    setShowRemovedModal(true);
+                    setLoading(false);
+                    return;
+                }
 
                 // Fetch existing claims to see if user already claimed this
                 if (currentUser && result.data.reporterId !== currentUser.id) {
@@ -111,6 +130,70 @@ function ItemDetail() {
         );
     }
 
+    if (item.isDeleted) {
+        const adminRemoved = item.adminActionType === 'DELETED';
+        return (
+            <div className="item-detail-page">
+                <Header />
+                <main className="main-content">
+                    <div className="content-wrapper">
+                        <div className="not-found-state">
+                            <h2>This listing has been removed</h2>
+                            <p>
+                                {adminRemoved
+                                    ? 'An admin removed this item from the platform.'
+                                    : 'This listing has been deleted.'}
+                            </p>
+                            {adminRemoved && item.adminActionReason && (
+                                <p className="removed-reason"><strong>Reason:</strong> {item.adminActionReason}</p>
+                            )}
+                            <button className="back-btn" onClick={handleGoBack}>
+                                <ArrowLeft size={18} /> Go Back
+                            </button>
+                        </div>
+                    </div>
+                </main>
+
+                {showRemovedModal && (
+                    <div className="modal-overlay" onClick={() => setShowRemovedModal(false)}>
+                        <div className="modal-card glass" onClick={(e) => e.stopPropagation()}>
+                            <div className="modal-header">
+                                <Trash2 size={20} color="#ef4444" />
+                                <h3>Item removed</h3>
+                                <button className="modal-close" onClick={() => setShowRemovedModal(false)}>
+                                    <X size={18} />
+                                </button>
+                            </div>
+                            <div className="modal-body">
+                                {adminRemoved ? (
+                                    <>
+                                        <p>An admin removed <strong>"{item.title}"</strong> from the platform.</p>
+                                        {item.adminActionReason && (
+                                            <p className="removed-reason"><strong>Reason:</strong> {item.adminActionReason}</p>
+                                        )}
+                                        {item.adminActionAt && (
+                                            <p className="my-report-meta">{timeAgo(item.adminActionAt)}</p>
+                                        )}
+                                    </>
+                                ) : (
+                                    <p>This listing has been deleted.</p>
+                                )}
+                            </div>
+                            <div className="modal-footer">
+                                <button className="btn-secondary" onClick={() => setShowRemovedModal(false)}>
+                                    Stay here
+                                </button>
+                                <button className="btn-danger" onClick={handleGoBack}>
+                                    Go Back
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
+            </div>
+        );
+    }
+
     const isOwner = currentUser && item.reporterId === currentUser.id;
     const isFound = item.type === 'FOUND';
     const isResolved = item.status === 'RETURNED' || item.status === 'COMPLETED';
@@ -145,10 +228,19 @@ function ItemDetail() {
         if (!flagReason) return;
         setFlagLoading(true);
         setFlagMessage('');
-        const result = await adminService.flagItem(id, flagReason);
+        const result = await adminService.flagItem(id, flagReason, flagDescription);
         if (result.success) {
+            // Flip the local item so the Report button immediately becomes "View My Report".
+            if (result.data) {
+                setItem(result.data);
+            }
             setFlagMessage('Item reported successfully. An admin will review it.');
-            setTimeout(() => { setShowFlagModal(false); setFlagMessage(''); setFlagReason(''); }, 2000);
+            setTimeout(() => {
+                setShowFlagModal(false);
+                setFlagMessage('');
+                setFlagReason('');
+                setFlagDescription('');
+            }, 2000);
         } else {
             setFlagMessage(typeof result.error === 'string' ? result.error : 'Failed to report item');
         }
@@ -181,24 +273,55 @@ function ItemDetail() {
     };
 
     // Admin actions
-    const handleAdminStatusChange = async (newStatus) => {
+    const handleAdminStatusChange = async (newStatus, reason) => {
         setAdminActionLoading(true);
-        const result = await adminService.updateItemStatus(id, newStatus);
-        if (result.success) {
+        const result = await adminService.updateItemStatus(id, newStatus, reason);
+        if (result.success && result.data) {
+            setItem(result.data);
+        } else if (result.success) {
             setItem(prev => ({ ...prev, status: newStatus }));
         }
         setAdminActionLoading(false);
     };
 
+    const handleAdminHide = async () => {
+        await handleAdminStatusChange('HIDDEN', adminHideReason);
+        setShowAdminHideModal(false);
+        setAdminHideReason('');
+    };
+
     const handleAdminDelete = async () => {
         setAdminActionLoading(true);
-        const result = await adminService.forceDeleteItem(id);
+        const result = await adminService.forceDeleteItem(id, adminDeleteReason);
         if (result.success) {
             navigate('/admin/items');
         }
         setAdminActionLoading(false);
         setShowAdminDeleteModal(false);
     };
+
+    // Owner appeal
+    const handleSubmitAppeal = async () => {
+        if (!appealText.trim()) {
+            setAppealError('Please tell us why this should be reviewed.');
+            return;
+        }
+        setAppealLoading(true);
+        setAppealError('');
+        const result = await itemService.submitAppeal(id, appealText.trim());
+        if (result.success && result.data) {
+            setItem(result.data);
+            setShowAppealModal(false);
+            setAppealText('');
+        } else {
+            setAppealError(typeof result.error === 'string' ? result.error : 'Failed to submit appeal');
+        }
+        setAppealLoading(false);
+    };
+
+    const isHidden = item.status === 'HIDDEN';
+    const appealStatus = item.appealStatus || 'NONE';
+    const showOwnerHiddenView = isOwner && isHidden;
 
     return (
         <div className="item-detail-page">
@@ -417,6 +540,57 @@ function ItemDetail() {
 
                         {/* Right: Details */}
                         <div className="detail-info-section">
+                            {showOwnerHiddenView && (
+                                <Alert
+                                    type="warning"
+                                    icon={EyeOff}
+                                    title="This item was hidden by an admin"
+                                    className="owner-hidden-banner"
+                                >
+                                    <div className="owner-hidden-body">
+                                        {item.adminActionReason ? (
+                                            <p><strong>Reason:</strong> {item.adminActionReason}</p>
+                                        ) : (
+                                            <p>An admin removed this listing from the public feed. No reason was provided.</p>
+                                        )}
+                                        {item.adminActionAt && (
+                                            <p className="owner-hidden-time">Hidden {timeAgo(item.adminActionAt)}</p>
+                                        )}
+
+                                        {appealStatus === 'NONE' && (
+                                            <div className="appeal-cta">
+                                                <p className="appeal-cta-hint">
+                                                    Think this report was a mistake or troll? Submit an appeal and an admin will re-review the item.
+                                                </p>
+                                                <Button
+                                                    variant="primary"
+                                                    icon={MessageCircle}
+                                                    onClick={() => { setAppealText(''); setAppealError(''); setShowAppealModal(true); }}
+                                                >
+                                                    Appeal this decision
+                                                </Button>
+                                            </div>
+                                        )}
+                                        {appealStatus === 'PENDING' && (
+                                            <div className="appeal-status pending">
+                                                <p><strong>Appeal under review</strong> · Submitted {timeAgo(item.appealedAt)}</p>
+                                                {item.appealText && <p className="appeal-quote">"{item.appealText}"</p>}
+                                            </div>
+                                        )}
+                                        {appealStatus === 'REJECTED' && (
+                                            <div className="appeal-status rejected">
+                                                <p><strong>Your appeal was not approved</strong> · {timeAgo(item.appealResolvedAt)}</p>
+                                                {item.appealAdminNote ? (
+                                                    <p className="appeal-quote"><em>Admin note:</em> {item.appealAdminNote}</p>
+                                                ) : (
+                                                    <p className="appeal-quote empty">No reason was given.</p>
+                                                )}
+                                            </div>
+                                        )}
+                                    </div>
+                                </Alert>
+                            )}
+
                             <div className="detail-badges">
                                 <StatusBadge type={item.type} />
                                 <StatusBadge status={item.status} />
@@ -468,7 +642,15 @@ function ItemDetail() {
                             <div className="detail-actions">
                                 {isOwner ? (
                                     <>
-                                        <Button variant="primary" icon={Edit3} onClick={() => navigate(`/post-item?edit=${item.id}`)}>Edit Item</Button>
+                                        <Button
+                                            variant="primary"
+                                            icon={Edit3}
+                                            onClick={() => navigate(`/post-item?edit=${item.id}`)}
+                                            disabled={isHidden}
+                                            title={isHidden ? 'Editing is disabled while this item is hidden by an admin' : undefined}
+                                        >
+                                            Edit Item
+                                        </Button>
                                         <Button variant="danger" icon={Trash2} onClick={handleDelete}>Delete Listing</Button>
                                     </>
                                 ) : (
@@ -501,9 +683,20 @@ function ItemDetail() {
                                             Share
                                         </Button>
                                         {currentUser && (
-                                            <Button variant="secondary" icon={Flag} onClick={() => setShowFlagModal(true)}>
-                                                Report
-                                            </Button>
+                                            item.viewerHasFlagged ? (
+                                                <Button
+                                                    variant="secondary"
+                                                    icon={Flag}
+                                                    onClick={() => setShowMyReportModal(true)}
+                                                    className="reported-btn"
+                                                >
+                                                    View My Report
+                                                </Button>
+                                            ) : (
+                                                <Button variant="secondary" icon={Flag} onClick={() => setShowFlagModal(true)}>
+                                                    Report
+                                                </Button>
+                                            )
                                         )}
                                     </>
                                 )}
@@ -547,7 +740,7 @@ function ItemDetail() {
                                             <Button
                                                 variant="secondary"
                                                 icon={EyeOff}
-                                                onClick={() => handleAdminStatusChange('HIDDEN')}
+                                                onClick={() => { setAdminHideReason(''); setShowAdminHideModal(true); }}
                                                 disabled={adminActionLoading}
                                             >
                                                 Hide Item
@@ -631,6 +824,21 @@ function ItemDetail() {
                                     </label>
                                 ))}
                             </div>
+                            <label className="flag-description-label" htmlFor="flag-description">
+                                Tell us more <span className="optional-tag">(optional)</span>
+                            </label>
+                            <textarea
+                                id="flag-description"
+                                className="flag-description"
+                                value={flagDescription}
+                                onChange={(e) => setFlagDescription(e.target.value.slice(0, 280))}
+                                placeholder="Add any details that will help the admin review this report."
+                                rows={3}
+                                maxLength={280}
+                            />
+                            <div className="flag-description-meta">
+                                <span>{flagDescription.length}/280</span>
+                            </div>
                             {flagMessage && (
                                 <p className={`flag-message ${flagMessage.includes('success') ? 'success' : 'error'}`}>
                                     {flagMessage}
@@ -642,6 +850,62 @@ function ItemDetail() {
                             <button className="btn-danger" onClick={handleFlag} disabled={!flagReason || flagLoading}>
                                 {flagLoading ? 'Submitting...' : 'Submit Report'}
                             </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* My Report Status Modal */}
+            {showMyReportModal && (
+                <div className="modal-overlay" onClick={() => setShowMyReportModal(false)}>
+                    <div className="modal-card glass" onClick={(e) => e.stopPropagation()}>
+                        <div className="modal-header">
+                            <Flag size={20} color="#f59e0b" />
+                            <h3>Your Report</h3>
+                            <button className="modal-close" onClick={() => setShowMyReportModal(false)}>
+                                <X size={18} />
+                            </button>
+                        </div>
+                        <div className="modal-body my-report-modal">
+                            {item.viewerFlagDetail ? (
+                                <>
+                                    <div className="my-report-section">
+                                        <span className="my-report-label">Reason</span>
+                                        <span className={`reason-badge ${(item.viewerFlagDetail.reason || '').toLowerCase()}`}>
+                                            {item.viewerFlagDetail.reason}
+                                        </span>
+                                    </div>
+                                    {item.viewerFlagDetail.description && (
+                                        <div className="my-report-section">
+                                            <span className="my-report-label">Your description</span>
+                                            <p className="my-report-text">{item.viewerFlagDetail.description}</p>
+                                        </div>
+                                    )}
+                                    <div className="my-report-section">
+                                        <span className="my-report-label">Submitted</span>
+                                        <span className="my-report-meta">{timeAgo(item.viewerFlagDetail.createdAt)}</span>
+                                    </div>
+                                </>
+                            ) : (
+                                <p className="my-report-text">You reported this item, but the details are no longer available.</p>
+                            )}
+
+                            <div className="my-report-status-block">
+                                <span className="my-report-label">Status</span>
+                                {item.status === 'HIDDEN' ? (
+                                    <>
+                                        <p className="my-report-status hidden">An admin hid this item from the public feed.</p>
+                                        {item.adminActionReason && (
+                                            <p className="my-report-text"><strong>Admin reason:</strong> {item.adminActionReason}</p>
+                                        )}
+                                    </>
+                                ) : (
+                                    <p className="my-report-status pending">Under review by admins. The item is still public for now.</p>
+                                )}
+                            </div>
+                        </div>
+                        <div className="modal-footer">
+                            <button className="btn-secondary" onClick={() => setShowMyReportModal(false)}>Close</button>
                         </div>
                     </div>
                 </div>
@@ -678,6 +942,92 @@ function ItemDetail() {
                 </div>
             )}
 
+            {/* Admin Hide Modal */}
+            {showAdminHideModal && (
+                <div className="modal-overlay" onClick={() => !adminActionLoading && setShowAdminHideModal(false)}>
+                    <div className="modal-card glass" onClick={(e) => e.stopPropagation()}>
+                        <div className="modal-header">
+                            <EyeOff size={20} color="#f59e0b" />
+                            <h3>Admin: Hide Item</h3>
+                            <button className="modal-close" onClick={() => !adminActionLoading && setShowAdminHideModal(false)} disabled={adminActionLoading}>
+                                <X size={18} />
+                            </button>
+                        </div>
+                        <div className="modal-body">
+                            <div className="admin-delete-summary">
+                                <img src={item.imageUrls?.[0] || 'https://picsum.photos/seed/placeholder/600/400'} alt="" />
+                                <div>
+                                    <strong>{item.title}</strong>
+                                    <span>Posted by {item.reporter?.fullName || 'Unknown'}</span>
+                                </div>
+                            </div>
+                            <label>Reason for hiding (optional)</label>
+                            <textarea
+                                value={adminHideReason}
+                                onChange={(e) => setAdminHideReason(e.target.value.slice(0, 280))}
+                                placeholder="Tell the owner why this item was hidden so they can fix it or appeal..."
+                                rows={3}
+                                maxLength={280}
+                            />
+                            <div className="flag-description-meta">
+                                <span>{adminHideReason.length}/280</span>
+                            </div>
+                        </div>
+                        <div className="modal-footer">
+                            <button className="btn-secondary" onClick={() => setShowAdminHideModal(false)} disabled={adminActionLoading}>
+                                Cancel
+                            </button>
+                            <button className="btn-danger" onClick={handleAdminHide} disabled={adminActionLoading}>
+                                {adminActionLoading ? 'Hiding...' : 'Confirm Hide'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Owner Appeal Modal */}
+            {showAppealModal && (
+                <div className="modal-overlay" onClick={() => !appealLoading && setShowAppealModal(false)}>
+                    <div className="modal-card glass" onClick={(e) => e.stopPropagation()}>
+                        <div className="modal-header">
+                            <MessageCircle size={20} color="#6366f1" />
+                            <h3>Appeal hidden item</h3>
+                            <button className="modal-close" onClick={() => !appealLoading && setShowAppealModal(false)} disabled={appealLoading}>
+                                <X size={18} />
+                            </button>
+                        </div>
+                        <div className="modal-body">
+                            <p className="appeal-modal-hint">
+                                Explain why this item should be restored. An admin will review your appeal and decide whether to bring it back.
+                            </p>
+                            <label htmlFor="appeal-text">Your reason</label>
+                            <textarea
+                                id="appeal-text"
+                                value={appealText}
+                                onChange={(e) => setAppealText(e.target.value.slice(0, 500))}
+                                placeholder="This listing is genuine because..."
+                                rows={5}
+                                maxLength={500}
+                            />
+                            <div className="flag-description-meta">
+                                <span>{appealText.length}/500</span>
+                            </div>
+                            {appealError && (
+                                <p className="flag-message error">{appealError}</p>
+                            )}
+                        </div>
+                        <div className="modal-footer">
+                            <button className="btn-secondary" onClick={() => setShowAppealModal(false)} disabled={appealLoading}>
+                                Cancel
+                            </button>
+                            <button className="btn-danger" onClick={handleSubmitAppeal} disabled={appealLoading || !appealText.trim()}>
+                                {appealLoading ? 'Submitting...' : 'Submit Appeal'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {/* Admin Delete Confirmation Modal */}
             {showAdminDeleteModal && (
                 <div className="modal-overlay" onClick={() => !adminActionLoading && setShowAdminDeleteModal(false)}>
@@ -700,10 +1050,14 @@ function ItemDetail() {
                             <label>Reason for removal (optional)</label>
                             <textarea
                                 value={adminDeleteReason}
-                                onChange={(e) => setAdminDeleteReason(e.target.value)}
+                                onChange={(e) => setAdminDeleteReason(e.target.value.slice(0, 280))}
                                 placeholder="Enter reason for removing this item..."
                                 rows={3}
+                                maxLength={280}
                             />
+                            <div className="flag-description-meta">
+                                <span>{adminDeleteReason.length}/280</span>
+                            </div>
                         </div>
                         <div className="modal-footer">
                             <button className="btn-secondary" onClick={() => setShowAdminDeleteModal(false)} disabled={adminActionLoading}>

@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Search, GraduationCap, Mail, Lock, User, ArrowRight, AlertTriangle, CheckSquare, Square, CheckCircle, ShieldCheck, MapPinned, Eye, EyeOff } from 'lucide-react';
+import { GraduationCap, Mail, Lock, User, ArrowRight, AlertTriangle, CheckSquare, Square, CheckCircle, ShieldCheck, MapPinned, Eye, EyeOff } from 'lucide-react';
 import authService from '../authService';
 import campusService from '../../../shared/services/campusService';
 import { useToast } from '../../../shared/hooks/useToast';
@@ -177,7 +177,7 @@ function Register() {
                     <div className="form-wrapper glass">
                         <div className="form-header">
                             <div className="logo">
-                                <Search className="logo-icon" size={28} />
+                                <img src="/unilost-logo.png" alt="UniLost" className="logo-icon" width="72" height="72" />
                                 <span className="logo-text">UniLost</span>
                             </div>
                             <h2>Create Account</h2>

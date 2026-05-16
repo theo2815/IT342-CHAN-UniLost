@@ -68,6 +68,9 @@ public class SecurityConfig {
                         // WebSocket endpoint — permitAll (auth handled via STOMP)
                         .requestMatchers("/ws/**").permitAll()
 
+                        // Actuator health probes — public for Render liveness/readiness
+                        .requestMatchers("/actuator/health", "/actuator/health/**").permitAll()
+
                         // Campus management (create/update/delete) requires ADMIN
                         .requestMatchers(HttpMethod.POST, "/api/campuses").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.PUT, "/api/campuses/**").hasRole("ADMIN")

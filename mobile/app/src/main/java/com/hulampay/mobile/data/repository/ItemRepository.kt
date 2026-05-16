@@ -120,4 +120,73 @@ class ItemRepository @Inject constructor(
             Result.failure(e)
         }
     }
+
+    /**
+     * Update an existing item. An empty [images] list keeps the existing images
+     * untouched — the backend only swaps images when a non-empty list is supplied.
+     */
+    suspend fun updateItem(
+        itemId: String,
+        request: ItemRequest,
+        images: List<MultipartBody.Part>,
+    ): Result<ItemDto> {
+        return try {
+            val itemBody = gson.toJson(request).toRequestBody("application/json".toMediaType())
+            val response = itemApiService.updateItem(itemId, itemBody, images)
+            if (response.isSuccessful && response.body() != null) {
+                Result.success(response.body()!!)
+            } else {
+                Result.failure(Exception(response.errorBody()?.string() ?: "Failed to update item"))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun deleteItem(itemId: String): Result<Unit> {
+        return try {
+            val response = itemApiService.deleteItem(itemId)
+            if (response.isSuccessful) {
+                Result.success(Unit)
+            } else {
+                Result.failure(Exception(response.errorBody()?.string() ?: "Failed to delete item"))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun flagItem(
+        itemId: String,
+        reason: String,
+        description: String?,
+    ): Result<ItemDto> {
+        return try {
+            val body = buildMap {
+                put("reason", reason)
+                description?.takeIf { it.isNotBlank() }?.let { put("description", it) }
+            }
+            val response = itemApiService.flagItem(itemId, body)
+            if (response.isSuccessful && response.body() != null) {
+                Result.success(response.body()!!)
+            } else {
+                Result.failure(Exception(response.errorBody()?.string() ?: "Failed to submit report"))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun submitAppeal(itemId: String, text: String): Result<ItemDto> {
+        return try {
+            val response = itemApiService.submitAppeal(itemId, mapOf("text" to text))
+            if (response.isSuccessful && response.body() != null) {
+                Result.success(response.body()!!)
+            } else {
+                Result.failure(Exception(response.errorBody()?.string() ?: "Failed to submit appeal"))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
 }

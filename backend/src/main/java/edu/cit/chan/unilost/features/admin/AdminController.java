@@ -4,6 +4,7 @@ import edu.cit.chan.unilost.features.claim.ClaimDTO;
 import edu.cit.chan.unilost.features.claim.ClaimService;
 import edu.cit.chan.unilost.features.item.ItemDTO;
 import edu.cit.chan.unilost.features.user.UserDTO;
+import edu.cit.chan.unilost.shared.util.Pagination;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -48,7 +49,7 @@ public class AdminController {
             @RequestParam(required = false) String status,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
-        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
+        Pageable pageable = PageRequest.of(page, Pagination.clamp(size, Pagination.MESSAGES_MAX_PAGE_SIZE), Sort.by(Sort.Direction.DESC, "createdAt"));
         return ResponseEntity.ok(adminService.getCampusItems(auth.getName(), keyword, type, status, pageable));
     }
 
@@ -57,7 +58,7 @@ public class AdminController {
             Authentication auth,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
-        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "flagCount"));
+        Pageable pageable = PageRequest.of(page, Pagination.clamp(size, Pagination.MESSAGES_MAX_PAGE_SIZE), Sort.by(Sort.Direction.DESC, "flagCount"));
         return ResponseEntity.ok(adminService.getFlaggedItems(auth.getName(), pageable));
     }
 
@@ -67,15 +68,35 @@ public class AdminController {
             @RequestBody Map<String, String> body,
             Authentication auth) {
         String newStatus = body.get("status");
-        return ResponseEntity.ok(adminService.updateItemStatus(id, newStatus, auth.getName()));
+        String reason = body.get("reason");
+        return ResponseEntity.ok(adminService.updateItemStatus(id, newStatus, reason, auth.getName()));
     }
 
     @DeleteMapping("/items/{id}")
     public ResponseEntity<Void> forceDeleteItem(
             @PathVariable String id,
+            @RequestBody(required = false) Map<String, String> body,
             Authentication auth) {
-        adminService.forceDeleteItem(id, auth.getName());
+        String reason = body != null ? body.get("reason") : null;
+        adminService.forceDeleteItem(id, reason, auth.getName());
         return ResponseEntity.noContent().build();
+    }
+
+    @PutMapping("/items/{id}/dismiss-flags")
+    public ResponseEntity<ItemDTO> dismissItemFlags(
+            @PathVariable String id,
+            Authentication auth) {
+        return ResponseEntity.ok(adminService.dismissItemFlags(id, auth.getName()));
+    }
+
+    @PutMapping("/items/{id}/appeal")
+    public ResponseEntity<ItemDTO> reviewAppeal(
+            @PathVariable String id,
+            @RequestBody Map<String, String> body,
+            Authentication auth) {
+        String decision = body.get("decision");
+        String note = body.get("note");
+        return ResponseEntity.ok(adminService.reviewAppeal(id, decision, note, auth.getName()));
     }
 
     // ── Users ──────────────────────────────────────────────
@@ -88,7 +109,7 @@ public class AdminController {
             @RequestParam(required = false) String accountStatus,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
-        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
+        Pageable pageable = PageRequest.of(page, Pagination.clamp(size, Pagination.MESSAGES_MAX_PAGE_SIZE), Sort.by(Sort.Direction.DESC, "createdAt"));
         return ResponseEntity.ok(adminService.getCampusUsers(auth.getName(), keyword, role, accountStatus, pageable));
     }
 
@@ -109,7 +130,7 @@ public class AdminController {
             @RequestParam(required = false) String status,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
-        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
+        Pageable pageable = PageRequest.of(page, Pagination.clamp(size, Pagination.MESSAGES_MAX_PAGE_SIZE), Sort.by(Sort.Direction.DESC, "createdAt"));
         return ResponseEntity.ok(adminService.getCampusClaims(auth.getName(), status, pageable));
     }
 
@@ -220,7 +241,7 @@ public class AdminController {
             @RequestParam(required = false) String targetType,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size) {
-        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
+        Pageable pageable = PageRequest.of(page, Pagination.clamp(size, Pagination.MESSAGES_MAX_PAGE_SIZE), Sort.by(Sort.Direction.DESC, "createdAt"));
         return ResponseEntity.ok(auditLogService.getAuditLogs(action, targetType, pageable));
     }
 }
