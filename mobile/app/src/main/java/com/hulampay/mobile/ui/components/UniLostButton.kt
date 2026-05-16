@@ -38,6 +38,7 @@ fun UniLostButton(
     modifier: Modifier = Modifier,
     variant: ButtonVariant = ButtonVariant.PRIMARY,
     icon: ImageVector? = null,
+    trailingIcon: ImageVector? = null,
     enabled: Boolean = true,
     isLoading: Boolean = false,
     isCompact: Boolean = false,
@@ -60,7 +61,7 @@ fun UniLostButton(
                 ),
                 enabled = enabled && !isLoading
             ) {
-                ButtonContent(text, icon, isLoading, MaterialTheme.colorScheme.onPrimary)
+                ButtonContent(text, icon, trailingIcon, isLoading, MaterialTheme.colorScheme.onPrimary)
             }
         }
 
@@ -75,7 +76,7 @@ fun UniLostButton(
                 ),
                 enabled = enabled && !isLoading
             ) {
-                ButtonContent(text, icon, isLoading, MaterialTheme.colorScheme.primary)
+                ButtonContent(text, icon, trailingIcon, isLoading, MaterialTheme.colorScheme.primary)
             }
         }
 
@@ -92,7 +93,7 @@ fun UniLostButton(
                 ),
                 enabled = enabled && !isLoading
             ) {
-                ButtonContent(text, icon, isLoading, MaterialTheme.colorScheme.onError)
+                ButtonContent(text, icon, trailingIcon, isLoading, MaterialTheme.colorScheme.onError)
             }
         }
 
@@ -107,7 +108,7 @@ fun UniLostButton(
                 ),
                 enabled = enabled && !isLoading
             ) {
-                ButtonContent(text, icon, isLoading, MaterialTheme.colorScheme.primary)
+                ButtonContent(text, icon, trailingIcon, isLoading, MaterialTheme.colorScheme.primary)
             }
         }
     }
@@ -117,6 +118,7 @@ fun UniLostButton(
 private fun ButtonContent(
     text: String,
     icon: ImageVector?,
+    trailingIcon: ImageVector?,
     isLoading: Boolean,
     spinnerColor: Color
 ) {
@@ -139,5 +141,13 @@ private fun ButtonContent(
             text = text,
             style = MaterialTheme.typography.labelLarge
         )
+        if (trailingIcon != null) {
+            Spacer(modifier = Modifier.width(UniLostSpacing.sm))
+            Icon(
+                imageVector = trailingIcon,
+                contentDescription = null,
+                modifier = Modifier.size(18.dp)
+            )
+        }
     }
 }

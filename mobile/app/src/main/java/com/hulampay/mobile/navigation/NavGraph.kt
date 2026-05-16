@@ -9,8 +9,6 @@ import androidx.navigation.navArgument
 import com.hulampay.mobile.ui.auth.ForgotPasswordScreen
 import com.hulampay.mobile.ui.auth.VerifyOtpScreen
 import com.hulampay.mobile.ui.auth.ResetPasswordScreen
-import com.hulampay.mobile.ui.detail.DetailScreen
-import com.hulampay.mobile.ui.home.MainScreen
 import com.hulampay.mobile.ui.items.ItemFeedScreen
 import com.hulampay.mobile.ui.items.ItemDetailScreen
 import com.hulampay.mobile.ui.items.PostItemScreen
@@ -33,15 +31,6 @@ fun NavGraph(navController: NavHostController) {
         navController = navController, startDestination = Screen.Login.route
     ) {
 
-        composable(Screen.Main.route) {
-            MainScreen(navController = navController)
-        }
-        composable(
-            "${Screen.Detail.route}/{id}",
-            arguments = listOf(navArgument("id") { type = NavType.IntType })
-        ) {
-            DetailScreen(navController = navController, id = it.arguments?.getInt("id") ?: 0)
-        }
         composable(Screen.Login.route) {
             com.hulampay.mobile.ui.auth.LoginScreen(navController = navController)
         }

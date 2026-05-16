@@ -1,5 +1,6 @@
 package com.hulampay.mobile.data.ws
 
+import com.hulampay.mobile.BuildConfig
 import com.hulampay.mobile.data.api.AppGson
 import com.hulampay.mobile.data.model.MessageDto
 import com.hulampay.mobile.data.model.NotificationDto
@@ -85,7 +86,7 @@ class ChatWebSocketClient @Inject constructor(
             }
         val newSession = try {
             stompClient.connect(
-                url = WS_URL,
+                url = BuildConfig.WS_URL,
                 customStompConnectHeaders = mapOf("Authorization" to "Bearer $token"),
             )
         } catch (t: Throwable) {
@@ -98,10 +99,4 @@ class ChatWebSocketClient @Inject constructor(
     }
 
     enum class ConnectionState { IDLE, CONNECTING, CONNECTED, DISCONNECTED }
-
-    companion object {
-        // SockJS exposes a raw WebSocket transport at `${endpoint}/websocket`.
-        // The backend registers `/ws` with `.withSockJS()` in WebSocketConfig.
-        private const val WS_URL = "ws://10.0.2.2:8080/ws/websocket"
-    }
 }
