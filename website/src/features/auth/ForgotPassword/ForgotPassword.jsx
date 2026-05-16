@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Search, Mail, ArrowRight, ArrowLeft } from 'lucide-react';
+import { Mail, ArrowRight, ArrowLeft } from 'lucide-react';
 import authService from '../authService';
 import { useToast } from '../../../shared/hooks/useToast';
 import { Input, Button } from '../../../shared/components/ui';
@@ -55,7 +55,7 @@ function ForgotPassword() {
             <div className="forgot-card glass">
                 <div className="form-header">
                     <div className="logo">
-                        <Search className="logo-icon" size={28} />
+                        <img src="/unilost-logo.png" alt="UniLost" className="logo-icon" width="72" height="72" />
                         <span className="logo-text">UniLost</span>
                     </div>
                     <h2>Forgot Password</h2>

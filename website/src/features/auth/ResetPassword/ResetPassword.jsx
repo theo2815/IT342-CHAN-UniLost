@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { Search, Lock, ArrowRight, Eye, EyeOff, CheckCircle } from 'lucide-react';
+import { Lock, ArrowRight, Eye, EyeOff, CheckCircle } from 'lucide-react';
 import authService from '../authService';
 import { useToast } from '../../../shared/hooks/useToast';
 import { Input, Button } from '../../../shared/components/ui';
@@ -89,7 +89,7 @@ function ResetPassword() {
             <div className="reset-card glass">
                 <div className="form-header">
                     <div className="logo">
-                        <Search className="logo-icon" size={28} />
+                        <img src="/unilost-logo.png" alt="UniLost" className="logo-icon" width="72" height="72" />
                         <span className="logo-text">UniLost</span>
                     </div>
                     <div className="reset-icon-wrapper">

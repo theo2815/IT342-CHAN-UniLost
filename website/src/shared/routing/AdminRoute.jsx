@@ -4,41 +4,33 @@ import authService from "../../features/auth/authService";
 
 export const AdminRoute = () => {
   const isAuthenticated = authService.isAuthenticated();
-  const [isChecking, setIsChecking] = useState(true);
-  const [isAdmin, setIsAdmin] = useState(false);
+  const cachedUser = isAuthenticated ? authService.getCurrentUser() : null;
+  const initialIsAdmin = cachedUser?.role === 'ADMIN';
+
+  // Optimistic: trust the cached role to render immediately, then re-validate
+  // against /auth/me in the background and correct state if the server disagrees.
+  const [isAdmin, setIsAdmin] = useState(initialIsAdmin);
 
   useEffect(() => {
+    if (!isAuthenticated) return;
     let mounted = true;
 
-    const validateRole = async () => {
-      if (!isAuthenticated) {
-        if (mounted) {
-          setIsAdmin(false);
-          setIsChecking(false);
-        }
-        return;
-      }
-
-      const result = await authService.syncCurrentUser();
+    authService.syncCurrentUser().then((result) => {
       if (!mounted) return;
-
       const role = result.success ? result.data?.role : null;
-      setIsAdmin(role === 'ADMIN');
-      setIsChecking(false);
-    };
+      const serverIsAdmin = role === 'ADMIN';
+      if (serverIsAdmin !== initialIsAdmin) {
+        setIsAdmin(serverIsAdmin);
+      }
+    });
 
-    validateRole();
     return () => {
       mounted = false;
     };
-  }, [isAuthenticated]);
+  }, [isAuthenticated, initialIsAdmin]);
 
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
-  }
-
-  if (isChecking) {
-    return null;
   }
 
   if (!isAdmin) {

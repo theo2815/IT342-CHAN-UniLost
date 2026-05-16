@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { Search, Mail, Lock, CheckSquare, Square, AlertTriangle, ArrowLeft, ArrowRight, ShieldCheck, MapPin, Eye, EyeOff } from 'lucide-react';
+import { Mail, Lock, CheckSquare, Square, AlertTriangle, ArrowLeft, ArrowRight, ShieldCheck, MapPin, Eye, EyeOff } from 'lucide-react';
 import authService from '../authService';
 import { useToast } from '../../../shared/hooks/useToast';
 import { Input, Button, Alert } from '../../../shared/components/ui';
@@ -82,7 +82,7 @@ function Login() {
           <div className="form-wrapper glass">
             <div className="form-header">
               <div className="logo">
-                <Search className="logo-icon" size={28} />
+                <img src="/unilost-logo.png" alt="UniLost" className="logo-icon" width="72" height="72" />
                 <span className="logo-text">UniLost</span>
               </div>
               <h2>Welcome Back</h2>

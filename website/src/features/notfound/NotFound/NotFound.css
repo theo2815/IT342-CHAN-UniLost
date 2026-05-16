@@ -1,0 +1,17 @@
+.not-found-page {
+    min-height: 100vh;
+    background: var(--gradient-bg);
+}
+
+.not-found-page .main-content {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.not-found-page .content-wrapper {
+    width: 100%;
+    max-width: 560px;
+    margin: 0 auto;
+    padding: var(--spacing-xl);
+}

@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { Search, ArrowLeft, ShieldCheck } from 'lucide-react';
+import { ArrowLeft, ShieldCheck } from 'lucide-react';
 import authService from '../authService';
 import { useToast } from '../../../shared/hooks/useToast';
 import { Button } from '../../../shared/components/ui';
@@ -129,7 +129,7 @@ function VerifyOTP() {
             <div className="otp-card glass">
                 <div className="form-header">
                     <div className="logo">
-                        <Search className="logo-icon" size={28} />
+                        <img src="/unilost-logo.png" alt="UniLost" className="logo-icon" width="72" height="72" />
                         <span className="logo-text">UniLost</span>
                     </div>
                     <div className="otp-icon-wrapper">

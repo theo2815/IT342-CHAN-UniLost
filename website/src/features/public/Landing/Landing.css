@@ -62,7 +62,7 @@
   gap: var(--spacing-md);
 }
 
-.logo-icon {
+.landing-header .logo-icon {
   width: 32px;
   height: 32px;
   color: var(--color-primary);
@@ -73,7 +73,7 @@
   padding: 4px;
 }
 
-.logo-text {
+.landing-header .logo-text {
   font-size: var(--font-size-xl);
   font-weight: 900;
   letter-spacing: -0.025em;
