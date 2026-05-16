@@ -19,8 +19,6 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 /**
  * Authenticates STOMP CONNECT frames using the JWT token
@@ -30,7 +28,7 @@ import java.util.regex.Pattern;
 @RequiredArgsConstructor
 public class WebSocketAuthInterceptor implements ChannelInterceptor {
 
-    private static final Pattern CHAT_TOPIC_PATTERN = Pattern.compile("^/topic/chat/([a-zA-Z0-9]+)$");
+    private static final String CHAT_TOPIC_PREFIX = "/topic/chat/";
 
     private final JwtUtils jwtUtils;
     private final UserRepository userRepository;
@@ -70,22 +68,22 @@ public class WebSocketAuthInterceptor implements ChannelInterceptor {
             }
 
             String destination = accessor.getDestination();
-            if (destination != null) {
-                Matcher matcher = CHAT_TOPIC_PATTERN.matcher(destination);
-                if (matcher.matches()) {
-                    String chatId = matcher.group(1);
-                    String email = accessor.getUser().getName();
-                    UserEntity user = userRepository.findByEmail(email).orElse(null);
-                    if (user == null) {
-                        throw new MessageDeliveryException("User not found");
-                    }
-                    ChatEntity chat = chatRepository.findById(chatId).orElse(null);
-                    if (chat == null) {
-                        throw new MessageDeliveryException("Chat not found");
-                    }
-                    if (!chat.getFinderId().equals(user.getId()) && !chat.getOwnerId().equals(user.getId())) {
-                        throw new MessageDeliveryException("Not a participant of this chat");
-                    }
+            // Fail-closed prefix check: any subscription to /topic/chat/... must pass the
+            // participant gate regardless of the chat ID's format. The previous regex check
+            // could silently skip the gate if the ID format ever changed.
+            if (destination != null && destination.startsWith(CHAT_TOPIC_PREFIX)) {
+                String chatId = destination.substring(CHAT_TOPIC_PREFIX.length());
+                String email = accessor.getUser().getName();
+                UserEntity user = userRepository.findByEmail(email).orElse(null);
+                if (user == null) {
+                    throw new MessageDeliveryException("User not found");
+                }
+                ChatEntity chat = chatRepository.findById(chatId).orElse(null);
+                if (chat == null) {
+                    throw new MessageDeliveryException("Chat not found");
+                }
+                if (!chat.getFinderId().equals(user.getId()) && !chat.getOwnerId().equals(user.getId())) {
+                    throw new MessageDeliveryException("Not a participant of this chat");
                 }
             }
         }

@@ -4,6 +4,7 @@ import edu.cit.chan.unilost.features.claim.ClaimDTO;
 import edu.cit.chan.unilost.features.claim.ClaimService;
 import edu.cit.chan.unilost.features.item.ItemDTO;
 import edu.cit.chan.unilost.features.user.UserDTO;
+import edu.cit.chan.unilost.shared.util.Pagination;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -48,7 +49,7 @@ public class AdminController {
             @RequestParam(required = false) String status,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
-        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
+        Pageable pageable = PageRequest.of(page, Pagination.clamp(size, Pagination.MESSAGES_MAX_PAGE_SIZE), Sort.by(Sort.Direction.DESC, "createdAt"));
         return ResponseEntity.ok(adminService.getCampusItems(auth.getName(), keyword, type, status, pageable));
     }
 
@@ -57,7 +58,7 @@ public class AdminController {
             Authentication auth,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
-        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "flagCount"));
+        Pageable pageable = PageRequest.of(page, Pagination.clamp(size, Pagination.MESSAGES_MAX_PAGE_SIZE), Sort.by(Sort.Direction.DESC, "flagCount"));
         return ResponseEntity.ok(adminService.getFlaggedItems(auth.getName(), pageable));
     }
 
@@ -108,7 +109,7 @@ public class AdminController {
             @RequestParam(required = false) String accountStatus,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
-        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
+        Pageable pageable = PageRequest.of(page, Pagination.clamp(size, Pagination.MESSAGES_MAX_PAGE_SIZE), Sort.by(Sort.Direction.DESC, "createdAt"));
         return ResponseEntity.ok(adminService.getCampusUsers(auth.getName(), keyword, role, accountStatus, pageable));
     }
 
@@ -129,7 +130,7 @@ public class AdminController {
             @RequestParam(required = false) String status,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
-        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
+        Pageable pageable = PageRequest.of(page, Pagination.clamp(size, Pagination.MESSAGES_MAX_PAGE_SIZE), Sort.by(Sort.Direction.DESC, "createdAt"));
         return ResponseEntity.ok(adminService.getCampusClaims(auth.getName(), status, pageable));
     }
 
@@ -240,7 +241,7 @@ public class AdminController {
             @RequestParam(required = false) String targetType,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size) {
-        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
+        Pageable pageable = PageRequest.of(page, Pagination.clamp(size, Pagination.MESSAGES_MAX_PAGE_SIZE), Sort.by(Sort.Direction.DESC, "createdAt"));
         return ResponseEntity.ok(auditLogService.getAuditLogs(action, targetType, pageable));
     }
 }

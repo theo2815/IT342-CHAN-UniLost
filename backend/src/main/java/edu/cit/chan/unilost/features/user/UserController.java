@@ -1,6 +1,7 @@
 package edu.cit.chan.unilost.features.user;
 
 import edu.cit.chan.unilost.features.auth.ChangePasswordRequest;
+import edu.cit.chan.unilost.shared.util.Pagination;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -42,7 +43,7 @@ public class UserController {
     public ResponseEntity<Page<UserDTO>> getAllUsers(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size) {
-        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
+        Pageable pageable = PageRequest.of(page, Pagination.clamp(size, Pagination.MESSAGES_MAX_PAGE_SIZE), Sort.by(Sort.Direction.DESC, "createdAt"));
         Page<UserDTO> users = userService.getAllUsers(pageable);
 
         // Strip sensitive fields for non-admin callers

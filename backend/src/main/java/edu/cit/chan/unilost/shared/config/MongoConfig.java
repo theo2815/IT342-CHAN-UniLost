@@ -1,6 +1,9 @@
 package edu.cit.chan.unilost.shared.config;
 
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.data.mongodb.MongoDatabaseFactory;
+import org.springframework.data.mongodb.MongoTransactionManager;
 import org.springframework.data.mongodb.config.AbstractMongoClientConfiguration;
 import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoClients;
@@ -19,16 +22,29 @@ public class MongoConfig extends AbstractMongoClientConfiguration {
     @Value("${spring.data.mongodb.uri}")
     private String mongoUri;
 
+    @Value("${spring.data.mongodb.database}")
+    private String databaseName;
+
     @Override
     @NonNull
     protected String getDatabaseName() {
-        return "unilost";
+        return databaseName;
     }
 
     @Override
     @NonNull
     public MongoClient mongoClient() {
         return MongoClients.create(mongoUri);
+    }
+
+    /**
+     * Activates Spring's @Transactional support for MongoDB. Without this bean,
+     * every @Transactional annotation in the codebase is a silent no-op. Atlas
+     * already runs a replica set so multi-document transactions are supported.
+     */
+    @Bean
+    public MongoTransactionManager transactionManager(MongoDatabaseFactory factory) {
+        return new MongoTransactionManager(factory);
     }
 
     @PostConstruct

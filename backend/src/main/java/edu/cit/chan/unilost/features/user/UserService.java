@@ -95,7 +95,8 @@ public class UserService {
     }
 
     public UserDTO authenticate(String email, String password) {
-        UserEntity user = userRepository.findByEmail(email)
+        String normalized = email == null ? "" : email.trim().toLowerCase();
+        UserEntity user = userRepository.findByEmail(normalized)
                 .orElseThrow(() -> new AuthenticationException("Invalid email or password"));
 
         if (user.getAccountStatus() == AccountStatus.SUSPENDED) {
@@ -258,11 +259,17 @@ public class UserService {
     private static final int RESET_TOKEN_EXPIRY_MINUTES = 10;
 
     public String verifyResetOtp(String email, String otp) {
-        UserEntity user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new ResourceNotFoundException("No account found with that email address."));
-
-        if (user.getPasswordResetToken() == null || user.getPasswordResetExpiry() == null) {
-            throw new IllegalArgumentException("No password reset was requested. Please request a new code.");
+        // Treat unknown email and "no pending reset" identically to the wrong-OTP branch
+        // so attackers can't enumerate users via this endpoint. Match the timing delay
+        // used in requestPasswordReset for the same reason.
+        UserEntity user = userRepository.findByEmail(email).orElse(null);
+        if (user == null || user.getPasswordResetToken() == null || user.getPasswordResetExpiry() == null) {
+            try {
+                Thread.sleep(200 + new SecureRandom().nextInt(301));
+            } catch (InterruptedException ie) {
+                Thread.currentThread().interrupt();
+            }
+            throw new AuthenticationException("Invalid verification code. Please try again.");
         }
 
         // Check lockout
@@ -314,10 +321,15 @@ public class UserService {
     }
 
     public void resetPassword(String email, String newPassword, String resetToken) {
-        UserEntity user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new ResourceNotFoundException("No account found with that email address."));
-
-        if (user.getResetToken() == null || !user.getResetToken().equals(resetToken)) {
+        // Same enumeration mitigation as verifyResetOtp: unknown email and bad/missing
+        // token must look identical to a legitimate "token expired" or "token wrong" failure.
+        UserEntity user = userRepository.findByEmail(email).orElse(null);
+        if (user == null || user.getResetToken() == null || !user.getResetToken().equals(resetToken)) {
+            try {
+                Thread.sleep(200 + new SecureRandom().nextInt(301));
+            } catch (InterruptedException ie) {
+                Thread.currentThread().interrupt();
+            }
             throw new IllegalArgumentException("Invalid or expired reset token. Please verify your code again.");
         }
 
