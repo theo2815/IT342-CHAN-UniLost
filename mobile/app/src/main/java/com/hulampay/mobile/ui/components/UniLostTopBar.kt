@@ -1,5 +1,6 @@
 package com.hulampay.mobile.ui.components
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
@@ -8,10 +9,40 @@ import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.hulampay.mobile.R
 import com.hulampay.mobile.ui.theme.*
+
+/**
+ * Shared title slot: UniLost logo mark + wordmark, rendered as a Row.
+ * Used by the three "main" top bar variants (authenticated, guest, logo-only).
+ */
+@Composable
+private fun TopBarBrand(
+    modifier: Modifier = Modifier
+) {
+    Row(
+        modifier = modifier,
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(UniLostSpacing.xs)
+    ) {
+        Image(
+            painter = painterResource(id = R.drawable.ic_unilost_logo),
+            contentDescription = null,
+            modifier = Modifier.size(28.dp)
+        )
+        Text(
+            text = "UniLost",
+            style = MaterialTheme.typography.headlineSmall,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onSurface
+        )
+    }
+}
 
 /**
  * UniLost Top App Bar matching spec Section 8.6.
@@ -39,11 +70,7 @@ fun UniLostTopBar(
 ) {
     TopAppBar(
         title = {
-            Text(
-                text = "UniLost",
-                style = MaterialTheme.typography.headlineSmall,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurface,
+            TopBarBrand(
                 modifier = Modifier.clickable(
                     interactionSource = remember { MutableInteractionSource() },
                     indication = null,
@@ -145,12 +172,7 @@ fun UniLostGuestTopBar(
 ) {
     TopAppBar(
         title = {
-            Text(
-                text = "UniLost",
-                style = MaterialTheme.typography.headlineSmall,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurface
-            )
+            TopBarBrand()
         },
         actions = {
             TextButton(onClick = onLoginClick) {
@@ -196,11 +218,7 @@ fun UniLostLogoTopBar(
 ) {
     TopAppBar(
         title = {
-            Text(
-                text = "UniLost",
-                style = MaterialTheme.typography.headlineSmall,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurface,
+            TopBarBrand(
                 modifier = Modifier.clickable(
                     interactionSource = remember { MutableInteractionSource() },
                     indication = null,

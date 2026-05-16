@@ -1,14 +1,20 @@
 package com.hulampay.mobile.ui.components
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
+import com.hulampay.mobile.R
 import com.hulampay.mobile.ui.theme.*
+
 
 /**
  * UniLost branded OutlinedTextField for auth forms.
@@ -100,5 +106,30 @@ fun PrimaryButton(
                 style = MaterialTheme.typography.labelLarge
             )
         }
+    }
+}
+
+/**
+ * Shared logo header for auth screens — mirrors the website's `.logo`
+ * composition (mark + "UniLost" wordmark).
+ */
+@Composable
+fun AuthLogoHeader(modifier: Modifier = Modifier) {
+    Row(
+        modifier = modifier,
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(UniLostSpacing.sm)
+    ) {
+        Image(
+            painter = painterResource(id = R.drawable.ic_unilost_logo),
+            contentDescription = null,
+            modifier = Modifier.size(28.dp)
+        )
+        Text(
+            text = "UniLost",
+            style = MaterialTheme.typography.headlineLarge,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onSurface
+        )
     }
 }
